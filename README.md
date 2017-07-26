@@ -45,11 +45,12 @@ All DEM nodes are branches except `.dat` nodes. `.dat` nodes contain main inform
 
 ### DEM[.dat]
 
-`.dat` node under the `DEM` means that described structure should be placed into this branch in common DEM when some DEM structures are merged:
+`.dat` node directly under the `DEM` means that described structure should be placed into appropriate branch in common DEM when some DEM structures are merged:
 
     {
       "DEM": {
-        ".dat": "/vendor/module/submodule"
+        ".dat": "/vendor/module/submodule",
+        "customer": {}
       }
     }
 
@@ -59,7 +60,9 @@ This DEM will be converted into:
       "DEM": {
         "vendor": {
           "module": {
-            "submodule": {}
+            "submodule": {
+              "customer": {}
+            }
           }
         }
       }
@@ -77,7 +80,7 @@ is equal to
  
 We can create many modules with DEMs inside (and with own mounting points), then combine all of them into one DEM structure. This allows us to create a single database from many DEMs.
 
-If `DEM[.dat]` is omitted then all branches been mounted into the root. 
+If `DEM[.dat]` is omitted then all branches from this DEM will be mounted into the root. 
 
 
 ### branch[.dat]
@@ -99,7 +102,7 @@ Entity with name `/user/group` in DEM corresponds to table with name `user_group
 
 ## Entity
 
-`.dat` nodes contain all information that is needed for table creation. Only branches with `.dat` node are converted into tables:
+`.dat` node of a branch contains all information that is needed for table creation. Only branches with `.dat` node are converted into tables:
 
     {
       "DEM": {
