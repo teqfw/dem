@@ -1,8 +1,8 @@
 {
   "DEM": {
-    "path": "/vendor/module",
-    "entity": {
-      "user": {
+    ".dat": "/vendor/module",
+    "user": {
+      ".dat": {
         "desc": "User data.",
         "attr": {
           "id": {
@@ -16,25 +16,20 @@
         },
         "index": {},
         "relation": {
-          "to_group": {
+          "./group": {
             "own": ["group_ref"],
-            "ref": {
-              "path": "group",
-              "attrs": ["id"]
-            },
+            "foreign": ["id"],
             "on": {"delete": "restrict", "update": "restrict"}
           }
-        },
-        "sub": {
-          "entity": {
-            "group": {
-              "desc": "User Group data.",
-              "attr": {
-                "id": {
-                  "desc": "Entity ID.",
-                  "increment": true
-                }
-              }
+        }
+      },
+      "group": {
+        ".dat": {
+          "desc": "User Group data.",
+          "attr": {
+            "id": {
+              "desc": "Entity ID.",
+              "increment": true
             }
           }
         }

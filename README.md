@@ -4,70 +4,125 @@
 
 ## What is DEM?
 
-DEM is a database structure wrote in JSON format. DEM can describe whole database or just a part of them:
+DEM is a relational database structure wrote in JSON format. DEM can describe whole database or just a part of them:
 
     {"DEM": {}} 
 
 
 
-## Path
+## Branch
 
-`path` keyword defines the prefix for tables that are described by current DEM:
-
-    {
-      "DEM": {
-        "path": "/vendor/module/submodule"
-      }
-    }
-
-This means that all tables names described by the DEM will start with `vendor_module_submodule_` prefix. We can create many modules with DEMs inside (and with own paths), then combine all of them into one DEM structure. Then create a single database from this aggregated  DEM.
-
-Path in DEM is like a path in filesystem - absolute (starts with '/') or relative (starts with './', '../' or just a name).
-
-Path can be omitted. In this case tables will be created without prefix. 
-
-## Entity
-
-`entity` in DEM is a table in DB:
+Every node in DEM is a branch (`user`, `sale`) or nested branch (`user/group`, `sale/order`).
 
     {
       "DEM": {
-        "path": "/user",
-        "entity": {
-          "registry": {},
+        "user": {
           "group": {}
+        },
+        "sale": {
+          "order": {}
         }
       }
     }
 
-This means that 2 tables will be created:
-* `user_registry`
-* `user_group`
+
+
+## Paths
+
+Path is a chain of branches starting from `DEM` node. Path in DEM is like a path in filesystem - absolute (starts with '/') or relative (starts with './', '../' or just a name).
+
+* `/user`
+* `/user/group`
+* `/sale`
+* `/sale/order`
 
 
 
-## Subs (nested entities)
+## .dat
 
-`sub` is a keyword and this keyword describes not new entity `sub` but group of the _nested entities_:
+All DEM nodes are branches except `.dat` nodes. `.dat` nodes contain main information about database structure. Assignment of this information depend from it placement in the DEM.
+
+
+### DEM[.dat]
+
+`.dat` node under the `DEM` means that described structure should be placed into this branch in common DEM when some DEM structures are merged:
 
     {
       "DEM": {
-        "path": "/user",
-        "entity": {
-          "registry": {},
+        ".dat": "/vendor/module/submodule"
+      }
+    }
+
+This DEM will be converted into:
+ 
+    {
+      "DEM": {
+        "vendor": {
+          "module": {
+            "submodule": {}
+          }
+        }
+      }
+    }
+ 
+before merge.
+ 
+`DEM[.dat]` always started from root. So 
+
+    { "DEM": { ".dat": "vendor/module/submodule" } }
+    
+is equal to
+
+    { "DEM": { ".dat": "/vendor/module/submodule" } }
+ 
+We can create many modules with DEMs inside (and with own mounting points), then combine all of them into one DEM structure. This allows us to create a single database from many DEMs.
+
+If `DEM[.dat]` is omitted then all branches been mounted into the root. 
+
+
+### branch[.dat]
+
+`branch[.dat]` contains information about entity (table). Path to this branch is a table name:
+
+    {
+      "DEM": {
+        ".dat": "/user",
+        "group": {
+          ".dat": {}
+        }
+      }
+    }
+
+Entity with name `/user/group` in DEM corresponds to table with name `user_group` in DB.
+
+
+
+## Entity
+
+`.dat` nodes contain all information that is needed for table creation. Only branches with `.dat` node are converted into tables:
+
+    {
+      "DEM": {
+        ".dat": "core",
+        "user": {
+          ".dat": {},
+          "registry": {
+            ".dat": {}
+          },
           "group": {
-            "sub": {
-              "acl":{}
+            "acl": {
+              ".dat": {}
             }
           }
         }
       }
     }
 
-2 tables will be created:
-* `user_registry`
-* `user_group`
-* `user_group_acl`
+This means that 3 tables will be created:
+* `core_user`
+* `core_user_registry`
+* `core_user_group_acl`
+
 
 
 
@@ -75,9 +130,9 @@ This means that 2 tables will be created:
 
     {
       "DEM": {
-        "path": "/vendor/module",
-        "entity": {
-          "user": {
+        ".dat": "/vendor/module",
+        "user": {
+          ".dat": {
             "desc": "User data.",
             "attr": {
               "id": {
@@ -91,25 +146,20 @@ This means that 2 tables will be created:
             },
             "index": {},
             "relation": {
-              "to_group": {
+              "./group": {
                 "own": ["group_ref"],
-                "ref": {
-                  "path": "group",
-                  "attrs": ["id"]
-                },
+                "foreign": ["id"],
                 "on": {"delete": "restrict", "update": "restrict"}
               }
-            },
-            "sub": {
-              "entity": {
-                "group": {
-                  "desc": "User Group data.",
-                  "attr": {
-                    "id": {
-                      "desc": "Entity ID.",
-                      "increment": true
-                    }
-                  }
+            }
+          },
+          "group": {
+            ".dat": {
+              "desc": "User Group data.",
+              "attr": {
+                "id": {
+                  "desc": "Entity ID.",
+                  "increment": true
                 }
               }
             }
