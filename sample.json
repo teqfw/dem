@@ -1,0 +1,44 @@
+{
+  "DEM": {
+    "path": "/vendor/module",
+    "entity": {
+      "user": {
+        "desc": "User data.",
+        "attr": {
+          "id": {
+            "desc": "Entity ID.",
+            "increment": true
+          },
+          "group_ref": {
+            "desc": "User Group reference.",
+            "reference": true
+          }
+        },
+        "index": {},
+        "relation": {
+          "to_group": {
+            "own": ["group_ref"],
+            "ref": {
+              "path": "group",
+              "attrs": ["id"]
+            },
+            "on": {"delete": "restrict", "update": "restrict"}
+          }
+        },
+        "sub": {
+          "entity": {
+            "group": {
+              "desc": "User Group data.",
+              "attr": {
+                "id": {
+                  "desc": "Entity ID.",
+                  "increment": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
