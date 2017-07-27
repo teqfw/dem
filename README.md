@@ -4,7 +4,11 @@
 
 ## What is DEM?
 
-DEM is a relational database structure wrote in JSON format. DEM can describe whole database or just a part of them:
+DEM is a database structure been wrote in JSON format. DEM is designed for distributed development of a project database. DEM can describe whole database or just a part of them. DEM should be used with classic relational DBMS (MariaDB/MySQL, Postgres, ...), it is not for NoSQL DBs.
+
+
+
+## DEM root
 
     {"DEM": {}} 
 
@@ -40,12 +44,12 @@ Path is a chain of branches starting from `DEM` node. Path in DEM is like a path
 
 ## .dat
 
-All DEM nodes are branches except `.dat` nodes. `.dat` nodes contain main information about database structure. Assignment of this information depend from it placement in the DEM.
+All DEM nodes are branches except `.dat` nodes. `.dat` nodes contain main information about database structure. Assignment of this information depends from it placement in the DEM.
 
 
 ### DEM[.dat]
 
-`.dat` node directly under the `DEM` means that described structure should be placed into appropriate branch in common DEM when some DEM structures are merged:
+`.dat` node directly under the `DEM` is a `string` and means that described structure should be placed into appropriate branch in common DEM when some DEM structures are merged:
 
     {
       "DEM": {
