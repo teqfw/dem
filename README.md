@@ -102,6 +102,15 @@ If `DEM[.dat]` is omitted then all branches from this DEM will be mounted into t
 
 Entity with name `/user/group` in DEM corresponds to table with name `user_group` in DB.
 
+`.dat` structure:
+
+    ".dat": {
+      "desc": "",           // description: been converted to table comment;
+      "attr": {},           // attributes: table columns;
+      "index": {},          // indexes: unique & search;
+      "relation": {}        // relations: foreign keys;
+    }
+    
 
 
 ## Entity
