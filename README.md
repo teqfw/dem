@@ -2,7 +2,7 @@
 
 
 
-## What is DEM?
+## What is DEM??
 
 DEM is a database structure been wrote in JSON format. DEM is designed for distributed development of a project database. DEM can describe whole database or just a part of them. DEM should be used with classic relational DBMS (MariaDB/MySQL, Postgres, ...), it is not for NoSQL DBs.
 
