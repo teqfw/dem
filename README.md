@@ -6,6 +6,8 @@
 
 DEM is a database structure been wrote in JSON format. DEM is designed for distributed development of a project database. DEM can describe whole database or just a part of them. DEM should be used with classic relational DBMS (MariaDB/MySQL, Postgres, ...), it is not for NoSQL DBs.
 
+DEM is like XML mapping in [Doctrine](https://www.doctrine-project.org/projects/doctrine-orm/en/2.6/reference/xml-mapping.html#xml-mapping) or in [Hibernate](https://www.tutorialspoint.com/hibernate/hibernate_mapping_files.htm) but is focused on database structure only (PHP/Java objects structure is skipped).
+
 
 
 ## DEM root
@@ -37,23 +39,23 @@ Path is a chain of branches starting from `DEM` node. Path in DEM is like a path
 
 * `/user`
 * `/user/group`
-* `/sale`
-* `/sale/order`
+* `sale`
+* `../order`
 
 
 
-## .dat
+## dot-node
 
-All DEM nodes are branches except `.dat` nodes. `.dat` nodes contain main information about database structure. Assignment of this information depends from it placement in the DEM.
+All DEM nodes are branches except `.` nodes. `.` nodes contain main information about database structure. Assignment of this information depends from it placement in the DEM.
 
 
-### DEM[.dat]
+### DEM[.]
 
-`.dat` node directly under the `DEM` is a `string` and means that described structure should be placed into appropriate branch in common DEM when some DEM structures are merged:
+`.` node directly under the `DEM` is a `string` and means that described structure should be placed into appropriate branch in common DEM when some DEM structures are merged:
 
     {
       "DEM": {
-        ".dat": "/vendor/module/submodule",
+        ".": "/vendor/module/submodule",
         "customer": {}
       }
     }
@@ -74,37 +76,37 @@ This DEM will be converted into:
  
 before merge.
  
-`DEM[.dat]` always started from root. So 
+`DEM[.]` always started from root. So 
 
-    { "DEM": { ".dat": "vendor/module/submodule" } }
+    { "DEM": { ".": "vendor/module/submodule" } }
     
 is equal to
 
-    { "DEM": { ".dat": "/vendor/module/submodule" } }
+    { "DEM": { ".": "/vendor/module/submodule" } }
  
 We can create many modules with DEMs inside (and with own mounting points), then combine all of them into one DEM structure. This allows us to create a single database from many DEMs.
 
-If `DEM[.dat]` is omitted then all branches from this DEM will be mounted into the root. 
+If `DEM[.]` is omitted then all branches from this DEM will be mounted into the root. 
 
 
-### branch[.dat]
+### branch[.]
 
-`branch[.dat]` contains information about entity (table). Path to this branch is a table name:
+`branch[.]` contains information about entity (table). Path to this branch is a table name:
 
     {
       "DEM": {
-        ".dat": "/user",
+        ".": "/user",
         "group": {
-          ".dat": {}
+          ".": {}
         }
       }
     }
 
 Entity with name `/user/group` in DEM corresponds to table with name `user_group` in DB.
 
-`.dat` structure:
+`.` structure:
 
-    ".dat": {
+    ".": {
       "desc": "",           // description: been converted to table comment;
       "attr": {},           // attributes: table columns;
       "index": {},          // indexes: unique & search;
@@ -115,19 +117,19 @@ Entity with name `/user/group` in DEM corresponds to table with name `user_group
 
 ## Entity
 
-`.dat` node of a branch contains all information that is needed for table creation. Only branches with `.dat` node are converted into tables:
+`.` node of a branch contains all information that is needed for table creation. Only branches with `.` node are converted into tables:
 
     {
       "DEM": {
-        ".dat": "core",
+        ".": "core",
         "user": {
-          ".dat": {},
+          ".": {},
           "registry": {
-            ".dat": {}
+            ".": {}
           },
           "group": {
             "acl": {
-              ".dat": {}
+              ".": {}
             }
           }
         }
@@ -141,14 +143,68 @@ This means that 3 tables will be created:
 
 
 
+### Attribute
+
+Entity attribute is a table column. Table column has ([Doctrine](https://www.doctrine-project.org/projects/doctrine-orm/en/2.6/reference/xml-mapping.html#defining-fields), [Hibernate](http://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#basic)) own attributes:
+* name
+* comment
+* type
+* default
+* nullable
+* length
+* scale
+* precision
+
+
+    {
+      "DEM": {
+        ".": "core",
+        "user": {
+          ".": {
+          
+        "attr": {
+          "id": {
+            "type": "identity",
+            "desc": "Eatery ID"
+          },
+          "name": {
+            "type": "string",
+            "desc": "Eatery's default name (if not i18n)."
+          }
+          }
+        }
+      }
+    }
+
+#### Attribute Types
+
+Currently these types are available:
+
+* binary
+* boolean
+* datetime
+* decimal
+* identity
+* integer
+* reference
+* text
+
+#### Identity and Reference
+
+
+### Index
+### Relation
+
+
+
 
 ## Sample
 
     {
       "DEM": {
-        ".dat": "/vendor/module",
+        ".": "/vendor/module",
         "user": {
-          ".dat": {
+          ".": {
             "desc": "User data.",
             "attr": {
               "id": {
@@ -160,7 +216,9 @@ This means that 3 tables will be created:
                 "reference": true
               }
             },
-            "index": {},
+            "index": {
+            
+            },
             "relation": {
               "./group": {
                 "own": ["group_ref"],
@@ -170,7 +228,7 @@ This means that 3 tables will be created:
             }
           },
           "group": {
-            ".dat": {
+            ".": {
               "desc": "User Group data.",
               "attr": {
                 "id": {
