@@ -15,7 +15,6 @@ DEM is like XML mapping in [Doctrine](https://www.doctrine-project.org/projects/
     {"DEM": {}} 
 
 
-
 ## Branch
 
 Every node in DEM is a branch (`user`, `sale`) or nested branch (`user/group`, `sale/order`).
@@ -46,12 +45,28 @@ Path is a chain of branches starting from `DEM` node. Path in DEM is like a path
 
 ## dot-node
 
-All DEM nodes are branches except `.` nodes. `.` nodes contain main information about database structure. Assignment of this information depends from it placement in the DEM.
+All DEM nodes are branches except `.` nodes & `.comment` nodes. `.` nodes contain main information about database 
+structure.  Assignment of this information depends from it placement in the DEM.
+
+
+### .comment
+
+Any node named as `.comment` is a comment string:
+
+    {
+      "DEM": {
+        ".comment": "This is demo DEM.",
+        "branch": {
+          ".comment": "This is demo branch."
+        }
+      }
+    }
 
 
 ### DEM[.]
 
-`.` node directly under the `DEM` is a `string` and means that described structure should be placed into appropriate branch in common DEM when some DEM structures are merged:
+`.` node directly under the `DEM` is a `string` and means that described structure should be placed into appropriate
+ branch in common DEM when some DEM structures are merged:
 
     {
       "DEM": {
