@@ -1,95 +1,107 @@
 # @teqfw/dem
 
-DEM (Data Entity Model) is the storage-independent declarative modeling foundation
-for Tequila Framework. Applications and plugins contribute logical fragments;
-the host composes an effective model and selects a physical backend.
+Storage-independent DEM v2 logical compilation for TeqFW applications in Node.js
+and browsers. The package decodes trusted declarations, composes fragments with
+single semantic ownership, resolves host mappings and identity/reference types,
+validates logical types/indexes/relations/expressions, and analyzes dependencies.
+It has no database, filesystem, Node crypto, Buffer, Knex, or driver dependency.
 
-Version **0.1.0 is a package scaffold**. It provides metadata, verification,
-a reserved DI namespace, an empty declaration entry point, and version-matched
-agent guidance. It implements no compiler, model validation, persistence, or
-query API. It is not yet a replacement for `@teqfw/db`.
+## Compile through DI
 
-## Intended package boundaries
+Hosts register namespace roots from package metadata before resolving components.
+With `@teqfw/di` 2.11+ in Node.js:
 
-- `@teqfw/dem`: logical entities, attributes, types, identities, references,
-  relations, indexes, fragment composition, and storage-independent contracts.
-- `@teqfw/rdb`: planned relational projection and persistence through Knex for
-  SQLite, MariaDB/MySQL, and PostgreSQL.
-- `@teqfw/idb`: planned browser persistence and physical projection through IndexedDB.
+```js
+import Container from '@teqfw/di';
 
-The backend packages describe architectural direction; they are not dependencies
-of this scaffold. The same logical declarations are intended for Node.js and
-browsers. Independent applications may use independent databases. Synchronization,
-identical contents, and key coordination across backends are outside scope.
+const container = new Container();
+container.addNamespaceRoot('TeqFw_Dem_', '/absolute/node_modules/@teqfw/dem/src', '.mjs');
+const compiler = await container.get('TeqFw_Dem_Compile$');
+const result = await compiler.exec({
+    fragments: [{
+        fragmentId: 'app', packageName: 'app', filename: '/models/app.json',
+        declaration: {version: 2, entity: {
+            user: {attr: {id: {type: {id: 'core.identity'}}}},
+        }},
+    }],
+    mapEnvelope: {
+        mapId: 'app-map', packageName: 'app', filename: '/models/map.json',
+        declaration: {version: 2},
+    },
+});
+compiler.assertResult({value: result});
+console.log(result.graph.entities, result.fingerprint);
+```
 
-DEM v2 in [@teqfw/db](https://github.com/teqfw/db) is the technical baseline for
-future extraction. Its current SQL organization does not define DEM's intended
-boundaries. No production code has been moved in this bootstrap.
+A browser host registers a served ESM source URL in place of the absolute path
+and uses the browser build of DI. Filename fields are trusted evidence strings;
+DEM never opens them. Hosts select/acquire fragments and choose persistence.
 
-## Package organization
+`exec({fragments, mapEnvelope})` returns a Promise of a deeply frozen result:
+`{effective, fingerprint, model, provenance, graph, requirements, warnings}`.
+`effective` contains `{model, provenance, fingerprint}`; both fingerprints identify
+the same effective model. There is no physical plan. `assertResult({value})`
+accepts only successful results produced by that compiler instance. Copies and
+results from other instances fail. On invalid declarations, `exec` throws a frozen
+`DemCompilationError` with ordered `diagnostics` and `warnings`, without a usable
+model. Diagnostic codes, paths, details and sources support programmatic handling.
 
-- `src/`: reserved platform-independent native ESM JavaScript source root.
-- `types.d.ts`: canonical declaration entry point; no public types yet.
-- `skills/teqfw-dem/`: self-contained agent skill distributed with the package.
-- `test/package/`: package metadata, archive, and installed-consumer checks.
-- `bin/`: development-only document verification.
-- `docs/legacy/`: historical format documentation and sample, excluded from npm.
+See the [consumer guide](skills/teqfw-dem/references/scope.md) for declaration
+semantics, type wiring, supported components, and the compatibility boundary.
+Implementation-stage tokens are internal. The package root exports types only;
+use DI tokens for runtime access.
 
-`teqfw.fw.di.namespaces` reserves `TeqFw_Dem_` at `./src` with extension `.mjs`.
-It exposes no resolvable DEM components yet. The root export is type-only;
-`import '@teqfw/dem'` has no runtime entry point and source deep imports are closed.
-The `@teqfw/di` 2.x peer follows the current TeqFW composition boundary. No direct
-production dependencies or Node-specific runtime implementation are introduced.
-Node.js 22+ is the package development/verification baseline; browser support
-must be tested when runtime functionality is added.
+## Fingerprints and backend hints
 
-## Local verification
+`sha256-v1` sorts every enumerable own object key recursively, preserves array
+order, serializes JSON and hashes its UTF-8 bytes. Portable synchronous SHA-256
+preserves the existing DB algorithm for equivalent canonical inputs. Provenance
+is excluded. Comments, storage hints, map namespace and index phase remain in
+canonical inputs for existing schema-history compatibility. A different hint can
+therefore change the fingerprint even when a backend ignores it.
+
+Storage bindings, SQL map namespace, index method/options/phases and deferrability
+are preserved declaration data. DEM validates established v2 shapes and structural
+invariants; backends validate their supported physical realization and capabilities.
+Declared `requires` are collected, not negotiated against an implicit SQL adapter.
+Default identity remains signed 32-bit integer with native `byDefault` generation;
+host profiles may select established integer representations and `always` mode.
+UUID identity generation and synchronization between databases are outside scope.
+
+## Development
+
+Use Node.js 22+ and npm. For real browser verification, install Google Chrome or
+set `CHROME_PATH` to a Chromium executable.
 
 ```sh
 npm ci
 npm run verify
+npm run test:browser
 npm pack --dry-run
+teqfw-platform .
+teqfw-esm-validator src --profile base
 ```
 
-Tests pack and install the real archive into a temporary consumer without running
-install scripts, check its exact contents, and check the closed runtime surface.
-The consumer uses an empty npm cache and the DI peer from the locked local install,
-so verification does not depend on cached registry metadata.
-TypeScript checks JavaScript/JSDoc and declarations; it is development tooling,
-not a runtime language or build dependency. CI runs on Node.js 22 and 24.
+Tests cover standalone logical compilation and an actual archive installed into an
+isolated consumer. Browser verification compares independently compiled results
+against Node.js. Public CI checks Node.js 22/24 and Chrome without private context.
+No npm publication is performed by CI.
 
-## Maintainer cognitive context
+## Context and consumer skill
 
-Authorized maintainers mount the independent private context repository:
+The private cognitive context is an independent Git checkout ignored by product
+Git and excluded from npm. Authorized maintainers can mount it with:
 
 ```sh
 git clone git@github.com:flancer32/teqfw-dem-ctx.git ctx
 adsm-ctx validate .
 ```
 
-Read `ctx/AGENTS.md` and `ctx/docs/filesystem.md` before development. `/ctx/` is
-ignored by product Git and excluded by the npm file allowlist. It is not a
-submodule. Commit and push product and context repositories independently.
-The public package and CI work without access to the private context.
+The version-matched [consumer skill](skills/teqfw-dem/SKILL.md) is published under
+`skills/teqfw-dem/`. Hosts select and mount it into their own agent discovery
+location; installation does not alter host configuration.
 
-## Agent skill
+## License and history
 
-Hosts choose discovery explicitly. For a locally installed package:
-
-```sh
-mkdir -p .agents/skills
-ln -s ../../node_modules/@teqfw/dem/skills/teqfw-dem .agents/skills/teqfw-dem
-```
-
-A global skill installation is an alternative; prefer the local mount for guidance
-matched to the installed package. Installation does not modify host agent settings.
-
-## History and license
-
-The [legacy material](docs/legacy/README.md) describes an obsolete format and is
-not a supported schema or usage example. New implementation will use DEM v2 as
-its baseline, subject to explicitly documented extraction decisions.
-
-Licensed under [Apache-2.0](LICENSE). The maintainer authorized the transition
-from GPL-3.0 during this bootstrap. Earlier revisions retain their historical
-license notices. Nothing is published to npm as part of this task.
+Apache-2.0. The obsolete pre-v2 example is retained in
+[legacy documentation](docs/legacy/README.md), excluded from npm and unsupported.

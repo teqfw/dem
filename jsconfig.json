@@ -15,10 +15,11 @@
     "src/**/*.mjs",
     "bin/**/*.mjs",
     "test/**/*.mjs",
-    "types.d.ts"
+    "types.d.ts",
+    "node_modules/@teqfw/di/types.d.ts",
+    "node_modules/@teqfw/di/src"
   ],
   "exclude": [
-    "node_modules",
     "ctx"
   ]
 }

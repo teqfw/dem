@@ -1,7 +1,7 @@
 {
   "name": "@teqfw/dem",
-  "version": "0.1.0",
-  "description": "Storage-independent declarative Data Entity Model for TeqFW; initial package scaffold.",
+  "version": "0.2.0",
+  "description": "Storage-independent DEM v2 logical compiler, types, expressions, provenance, and fingerprints for TeqFW.",
   "type": "module",
   "files": [
     "skills/",
@@ -12,10 +12,11 @@
     "types.d.ts"
   ],
   "scripts": {
-    "test": "node --test test/package/*.test.mjs",
+    "test": "find test/unit test/integration test/package -name \"*.test.mjs\" -print0 | xargs -0 node --test",
     "typecheck": "tsc -p jsconfig.json",
     "verify": "npm test && npm run typecheck && node bin/verify-docs.mjs",
-    "prepublishOnly": "npm run verify"
+    "prepublishOnly": "npm run verify",
+    "test:browser": "node bin/verify-browser.mjs"
   },
   "repository": {
     "type": "git",

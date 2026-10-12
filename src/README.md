@@ -1,8 +1,5 @@
-# Source boundary
+# Logical runtime
 
-This directory is the `TeqFw_Dem_` namespace root. Future components use native
-`.mjs` JavaScript modules and JSDoc, with PascalCase namespace segments.
-
-The scaffold contains no runtime modules. Add components only with an accepted
-contract and meaningful tests. Logical code must work in Node.js and browsers;
-filesystem loading, SQL, IndexedDB, and host composition stay outside this layer.
+`TeqFw_Dem_` maps to this `.mjs` namespace root. Compile is the supported logical
+entry point. Registry and expression contracts are documented in the consumer
+skill. Compile/A and Dto/Compile are internal pipeline components.

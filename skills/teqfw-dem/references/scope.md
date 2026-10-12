@@ -1,27 +1,87 @@
-# Scope and integration
+# Logical contracts and integration
 
-Version 0.1.0 reserves `TeqFw_Dem_` through canonical
-`teqfw.fw.di.namespaces` metadata and `.mjs` source conventions. It has no runtime
-components, public types, bare-import entry point, or supported compiler API.
-The root export is type-only. Do not deep-import source files as public API.
+## Supported DI components
 
-The intended package owns logical declarations, distributed composition,
-validation, logical types, identity/reference semantics, and effective models.
-Relational projection, Knex, drivers, schema lifecycle, IndexedDB, and data access
-belong to separately maintained physical backends. The host selects fragments,
-composes the model, and selects a backend. No synchronization is implied.
+- `TeqFw_Dem_Compile$`: `await exec({fragments, mapEnvelope})` and `assertResult({value})`.
+- `TeqFw_Dem_Registry_Core$`: frozen `types`, `defaults`, `generations`, `operators`.
+- `TeqFw_Dem_Registry_CoreValue$`: `normalizeType({type, allowAny?})` and
+  `matches({type, value, allowAny?})` for typed runtime values.
+- `TeqFw_Dem_Dto_Query_Expression__Factory$`: `create(data)` returns an immutable
+  closed `attr`, `value`, or `call` node, rejecting unknown fields.
 
-Existing DEM v2 in `@teqfw/db` is a reference for future extraction. This version
-moves none of that code and provides no automatic migration for its consumers.
-Check installed versions and actual contracts before planning an extraction.
+Compilation-stage components and source/diagnostic factories are implementation
+support, not stable consumer extension APIs. No general provider registration
+API, query execution, connection, schema creation or browser persistence is supplied.
+Hosts may compose a registry replacement through DI but own its compatibility;
+only shipped core registry behavior is verified.
 
-Hosts own skill discovery. For a root `.agents/skills/` catalog:
+## Trusted inputs
 
-```sh
-mkdir -p .agents/skills
-ln -s ../../node_modules/@teqfw/dem/skills/teqfw-dem .agents/skills/teqfw-dem
-```
+Each fragment carries `fragmentId`, `packageName`, `filename`, and parsed
+`declaration`. The map carries `mapId`, `packageName`, `filename`, and declaration.
+Both declarations require integer `version: 2`. Revisions are derived from content,
+not accepted from caller assertions. Missing semantic dictionaries normalize to
+empty maps. Unknown declaration fields are rejected.
 
-A global skill installation is an alternative; prefer the local mount when
-version alignment matters. No install hook mounts the skill or alters host
-configuration. Skill delivery is separate from DI metadata and runtime identity.
+Fragments may supply a dot-delimited lowercase alphanumeric root namespace,
+entities, nested packages, declared external `refs`, and `requires` strings.
+Entity declarations contain `attr`, `index`, `relation`, and optional comments.
+Attributes separate `type: {id, params?}`, nullable, storage bindings, literal or
+registered function defaults, and registered generation. Defaults and generation
+are mutually exclusive. Structural package containers union disjoint children;
+semantic entities, attributes, indexes, relations and metadata have one owner.
+A conflict has no accepted winner, even for identical declarations.
+
+Map `ref` entries are indexed first by the owning fragment identity, then its
+external reference path, with `{path, attrs}` target mapping. Local references
+expand from fragment roots. Endpoints preserve declaration and map provenance.
+The optional map `identityProfile` supplies integer type and `core.identity`
+generation (`byDefault` or `always`). The default is signed 32-bit integer and
+`byDefault`. `core.identity` has no parameters and derives a primary key;
+`core.ref` has no parameters, participates exactly once in one relation, targets
+an identity attribute and derives its type without generation. UUID generation
+and the removed `allocated` mode are unsupported.
+
+Core types are binary, boolean, date, datetime, decimal, enum, integer, json,
+string, text, uuid, vector, identity, and ref. Normalized runtime types include
+explicit params. Binary runtime values use Uint8Array (Node Buffer is its subtype);
+JSON declaration binary defaults retain the existing string convention.
+Expressions use registered typed operators and supported contexts. Indexes retain
+ordered keys, primary/unique invariants, phases and provider hints. Relations
+require equal non-empty cardinality, compatible logical types and an exact ordered
+primary/unique target. Graph results retain SCC cycles and dependency-first order;
+cycles do not imply invalid declarations.
+
+## Output and failures
+
+Successful result fields are `effective`, `fingerprint`, `model`, `provenance`,
+`graph`, `requirements`, and `warnings`. There is no physical field. Outputs are
+deeply frozen and authentic only to the producing compiler instance. Errors carry
+ordered structured diagnostics and warnings; they expose no usable model.
+Machine-readable codes, paths, details and sources are the branching contract;
+English diagnostic messages are for humans.
+
+Declared capabilities are collected with provenance. The physical backend owns
+capability negotiation, SQL identifier validation, storage projection, physical
+representation compatibility and operation preflight. Existing storage, map
+namespace, phase and dialect hints remain in the canonical model and therefore
+in sha256-v1 for compatibility. Their presence does not make them universal
+logical storage behavior. Provenance does not contribute to fingerprints.
+
+## Types and browser hosts
+
+The root export is type-only. Consumers include their own source/types and
+`node_modules/@teqfw/dem/types.d.ts` plus its source paths in the checked program.
+Include type maps and referenced sources of other used plugins as well. Use
+`TeqFw_Dem_Compile` and exported `DemCompilationResult` for logical results;
+DB combined results additionally contain a physical plan and a combined fingerprint.
+
+A browser host uses served ESM namespace roots and the browser DI build. Runtime
+DEM uses standard JavaScript, structuredClone and TextEncoder, without Node globals
+or database dependencies. Node/Chrome verification compares complete logical
+results and fingerprints. Hosts own URL delivery and browser security policies.
+
+## Distribution
+
+Mount this published skill into the host's chosen discovery directory. Keep its
+reference beside it. Package installation has no discovery or configuration hook.

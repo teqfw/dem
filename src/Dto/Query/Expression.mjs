@@ -1,0 +1,85 @@
+// @ts-check
+
+/**
+ * @namespace TeqFw_Dem_Dto_Query_Expression
+ * @description Immutable closed attr/value/call query expression DTOs.
+ */
+
+const NS = 'TeqFw_Dem_Dto_Query_Expression';
+
+export default class Expression {
+    /** @type {TeqFw_Dem_ExpressionKind | undefined} */ kind;
+    /** @type {TeqFw_Dem_StringOptional} */ name;
+    /** @type {unknown} */ value;
+    /** @type {TeqFw_Dem_LogicalTypeOptional} */ type;
+    /** @type {TeqFw_Dem_StringOptional} */ operator;
+    /** @type {TeqFw_Dem_QueryExpressionArrayOptional} */ args;
+
+}
+
+export class Factory {
+    static namespace = NS;
+
+    /** Initialize structural expression validation. */
+    constructor() {
+        /** @param {any} value @returns {boolean} */
+        const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+        /** @param {any} value @param {any} visited @returns {any} */
+        const freeze = function (value, visited = new WeakSet()) {
+            if (ArrayBuffer.isView(value)) return value;
+            if (value && typeof value === 'object' && visited.has(value)) return value;
+            if (value && typeof value === 'object') visited.add(value);
+            if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+            for (const key of Reflect.ownKeys(value)) freeze(value[key], visited);
+            return Object.freeze(value);
+        };
+        /**
+         * @param {any} value
+         * @param {any} allowed
+         */
+        const closed = function (value, allowed) {
+            const unknown = Object.keys(value).filter((key) => !allowed.includes(key));
+            if (unknown.length) throw new TypeError(`Unknown expression field '${unknown.sort()[0]}'.`);
+        };
+
+        /** @param {any} data @returns {TeqFw_Dem_QueryExpression} */
+        this.create = function (data) {
+            if (data instanceof Expression) {
+                data = Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
+            }
+            if (!isObject(data)) throw new TypeError('Query expression must be an object.');
+            const result = new Expression();
+            if (data.kind === 'attr') {
+                closed(data, ['kind', 'name']);
+                if (typeof data.name !== 'string' || !data.name) throw new TypeError('Attribute expression requires a name.');
+                result.kind = 'attr';
+                result.name = data.name;
+            } else if (data.kind === 'value') {
+                closed(data, ['kind', 'type', 'value']);
+                if (!Object.prototype.hasOwnProperty.call(data, 'value')) throw new TypeError('Value expression requires a value field.');
+                result.kind = 'value';
+                result.value = structuredClone(data.value);
+                if (data.type !== undefined) {
+                    if (!isObject(data.type) || typeof data.type.id !== 'string' || !isObject(data.type.params ?? {})) {
+                        throw new TypeError('Value expression type must contain id and params.');
+                    }
+                    closed(data.type, ['id', 'params']);
+                    result.type = {id: data.type.id, params: structuredClone(data.type.params ?? {})};
+                }
+            } else if (data.kind === 'call') {
+                closed(data, ['args', 'kind', 'operator']);
+                if (typeof data.operator !== 'string' || !data.operator || !Array.isArray(data.args)) {
+                    throw new TypeError('Call expression requires operator and args.');
+                }
+                result.kind = 'call';
+                result.operator = data.operator;
+                result.args = data.args.map((/** @type {unknown} */ item) => this.create(item));
+            } else {
+                throw new TypeError(`Unknown query expression kind '${data.kind}'.`);
+            }
+            return freeze(result);
+        };
+    }
+}
+
+Object.freeze(Expression);

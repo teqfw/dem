@@ -22,3 +22,6 @@ jobs:
       - run: npm ci
       - run: npm run verify
       - run: npm pack --dry-run
+
+      - name: Verify actual browser runtime
+        run: npm run test:browser
