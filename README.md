@@ -53,6 +53,8 @@ npm pack --dry-run
 
 Tests pack and install the real archive into a temporary consumer without running
 install scripts, check its exact contents, and check the closed runtime surface.
+The consumer uses an empty npm cache and the DI peer from the locked local install,
+so verification does not depend on cached registry metadata.
 TypeScript checks JavaScript/JSDoc and declarations; it is development tooling,
 not a runtime language or build dependency. CI runs on Node.js 22 and 24.
 

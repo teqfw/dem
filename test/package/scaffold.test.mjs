@@ -32,6 +32,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
     try {
         const packed = JSON.parse(execFileSync('npm', [
             'pack', '--json', '--ignore-scripts', '--pack-destination', consumer,
+            '--cache', join(consumer, 'cache'),
         ], {cwd: root, encoding: 'utf8'}))[0];
         const expected = [
             'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json',
@@ -39,9 +40,12 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             'src/README.md', 'types.d.ts',
         ];
         assert.deepEqual(packed.files.map((/** @type {{path: string}} */ item) => item.path).sort(), expected);
-        writeFileSync(join(consumer, 'package.json'), JSON.stringify({name: 'dem-consumer', private: true, type: 'module'}));
+        writeFileSync(join(consumer, 'package.json'), JSON.stringify({
+            name: 'dem-consumer', private: true, type: 'module',
+            dependencies: {'@teqfw/di': `file:${join(root, 'node_modules/@teqfw/di')}`},
+        }));
         execFileSync('npm', ['install', join(consumer, packed.filename),
-            '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: consumer, stdio: 'pipe'});
+            '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--cache', join(consumer, 'cache')], {cwd: consumer, stdio: 'pipe'});
         const installed = join(consumer, 'node_modules/@teqfw/dem');
         assert.equal(readFileSync(join(installed, 'types.d.ts'), 'utf8'), readFileSync(join(root, 'types.d.ts'), 'utf8'));
         const require = createRequire(join(consumer, 'probe.mjs'));
