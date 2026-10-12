@@ -1,0 +1,74 @@
+{
+  "name": "@teqfw/dem",
+  "version": "0.1.0",
+  "description": "Storage-independent declarative Data Entity Model for TeqFW; initial package scaffold.",
+  "type": "module",
+  "files": [
+    "skills/",
+    "src/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "types.d.ts"
+  ],
+  "scripts": {
+    "test": "node --test test/package/*.test.mjs",
+    "typecheck": "tsc -p jsconfig.json",
+    "verify": "npm test && npm run typecheck && node bin/verify-docs.mjs",
+    "prepublishOnly": "npm run verify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teqfw/dem.git"
+  },
+  "keywords": [
+    "teqfw",
+    "data-model",
+    "dem",
+    "esm",
+    "tequila framework"
+  ],
+  "author": {
+    "name": "Alex Gusev",
+    "email": "alex@flancer64.com",
+    "url": "https://github.com/flancer64"
+  },
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "types.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types.d.ts"
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/teqfw/dem/issues"
+  },
+  "homepage": "https://github.com/teqfw/dem#readme",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "peerDependencies": {
+    "@teqfw/di": "^2.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  },
+  "teqfw": {
+    "fw": {
+      "di": {
+        "namespaces": [
+          {
+            "prefix": "TeqFw_Dem_",
+            "path": "./src",
+            "ext": ".mjs"
+          }
+        ]
+      }
+    }
+  }
+}

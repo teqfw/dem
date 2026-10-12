@@ -1,2 +1,9 @@
+/ctx/
+/node_modules/
+/*.tgz
+/coverage/
 /.idea/
+/.agents/
+/.codex/
+/.aws/
 /ttttest.json
