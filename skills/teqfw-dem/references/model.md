@@ -2,8 +2,7 @@
 
 This reference defines accepted product/design semantics. The
 [declaration contract](declarations.md) supplies accepted target JSON syntax and a
-complete composition example. [Runtime contracts](scope.md) describe executable
-v0.2.0 support separately.
+complete composition example. [Runtime components](scope.md) define supported public tokens.
 
 ## Inputs and authority
 
@@ -103,5 +102,5 @@ Node acquisition uses @teqfw/cli discovery, separate from the portable compiler.
 Supported environments are current Active/Maintenance LTS Node.js and stable
 Chrome/Chromium. Full Node verification and a minimal browser multi-schema/map
 composition with a matching Node fingerprint are required. Downstream delivers
-browser modules by URL. CLI discovery, metadata acquisition and the new declaration
-format are not implemented in v0.2.0; consult the runtime reference for integration.
+browser modules by URL. CLI-compatible discovery, metadata acquisition and format 1 are implemented in
+v0.2.0; consult the [runtime reference](scope.md) for component boundaries.

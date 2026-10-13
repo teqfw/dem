@@ -1,118 +1,59 @@
 // @ts-check
-
 /**
  * @namespace TeqFw_Dem_Compile
- * @description Side-effect-free orchestration for versioned DEM compilation.
+ * @description Side-effect-free orchestration of logical DEM compilation.
  */
-
 export default class Compile {
     /**
      * @param {object} deps
-     * @param {TeqFw_Dem_Compile_A_DecodeV2} deps.decodeV2
+     * @param {TeqFw_Dem_Compile_A_Decode} deps.decode
      * @param {TeqFw_Dem_Compile_A_Compose} deps.compose
-     * @param {TeqFw_Dem_Compile_A_MapRefs} deps.mapRefs
+     * @param {TeqFw_Dem_Compile_A_Resolve} deps.resolve
      * @param {TeqFw_Dem_Compile_A_Validate} deps.validate
-     * @param {TeqFw_Dem_Compile_A_ValidateNames} deps.validateNames
      * @param {TeqFw_Dem_Compile_A_Graph} deps.graph
+     * @param {TeqFw_Dem_Compile_A_Canonical} deps.canonical
      * @param {TeqFw_Dem_Compile_A_Fingerprint} deps.fingerprint
-     * @param {TeqFw_Dem_Dto_Compile_Diagnostic__Factory} deps.diagnostic
+     * @param {TeqFw_Dem_Util_Data} deps.data
+     * @param {TeqFw_Dem_Dto_Compile_Diagnostic} deps.diagnostic
      */
-    constructor({decodeV2, compose, mapRefs, validate, validateNames, graph, fingerprint, diagnostic}) {
+    constructor({ decode, compose, resolve, validate, graph, canonical, fingerprint, data, diagnostic }) {
         const successful = new WeakSet();
-
         /**
-         * @param {TeqFw_Dem_DiagnosticArray} diagnostics
-         * @param {TeqFw_Dem_DiagnosticArray} warnings
-         * @returns {TeqFw_Dem_Error}
-         */
-        const createError = function (diagnostics, warnings) {
-            const error = new Error(`DEM compilation failed with ${diagnostics.length} error(s).`);
-            error.name = 'DemCompilationError';
-            Object.defineProperties(error, {
-                diagnostics: {enumerable: true, value: Object.freeze([...diagnostics])},
-                warnings: {enumerable: true, value: Object.freeze([...warnings])},
-            });
-            return Object.freeze(error);
-        };
-
-        /**
-         * Reject values that were not produced successfully by this compiler instance.
          * @param {object} deps
          * @param {unknown} deps.value
          * @returns {TeqFw_Dem_CompilationResult}
          */
-        this.assertResult = function ({value}) {
-            if (!value || typeof value !== 'object' || !successful.has(value)) {
-                throw new TypeError('A successful DEM compilation result is required.');
-            }
+        this.assertResult = function ({ value }) {
+            if (!value || typeof value !== 'object' || !successful.has(value))
+                throw new TypeError('A result from this compiler is required.');
             return /** @type {TeqFw_Dem_CompilationResult} */ (value);
         };
-
         /**
-         * @param {object} deps
-         * @param {TeqFw_Dem_InputEnvelopeArray} deps.fragments
-         * @param {TeqFw_Dem_InputEnvelope} deps.mapEnvelope
+         * @param {object} input
+         * @param {ReadonlyArray<TeqFw_Dem_Envelope>} input.schemas
+         * @param {TeqFw_Dem_Envelope} [input.map]
          * @returns {Promise<TeqFw_Dem_CompilationResult>}
-         * @throws {TeqFw_Dem_Error}
          */
-        this.exec = async function ({fragments, mapEnvelope}) {
-            const input = Array.isArray(fragments) ? fragments : [];
-            const sorted = input.map((item) => ({
-                declaration: item?.declaration,
-                filename: item?.filename,
-                fragmentId: item?.fragmentId,
-                packageName: item?.packageName,
-                revision: fingerprint.exec({value: item?.declaration ?? null}),
-            })).sort((a, b) => {
-                const fragment = String(a.fragmentId ?? '').localeCompare(String(b.fragmentId ?? ''));
-                return fragment || String(a.filename ?? '').localeCompare(String(b.filename ?? ''));
-            });
-            const trustedMap = mapEnvelope && typeof mapEnvelope === 'object' ? {
-                ...mapEnvelope,
-                revision: fingerprint.exec({value: mapEnvelope.declaration ?? null}),
-            } : mapEnvelope;
-            const nameDiagnostics = validateNames.exec({fragments: sorted, mapEnvelope: trustedMap});
-            const decoded = sorted.map((envelope) => decodeV2.exec({envelope}));
-            const composed = compose.exec({decoded});
-            const mapped = mapRefs.exec({composed, mapEnvelope: trustedMap});
-            const validated = validate.exec({mapped});
-            /** @type {TeqFw_Dem_ValidatedDem & {graph: TeqFw_Dem_Graph}} */
-            const analyzed = graph.exec({validated});
-            /** @type {TeqFw_Dem_DiagnosticArray} */
-            const allDiagnostics = [...nameDiagnostics, ...analyzed.diagnostics];
-            const ordered = diagnostic.sort(allDiagnostics);
-            const errors = ordered.filter((item) => item.severity === 'error');
-            const warnings = diagnostic.sort(ordered.filter((item) => item.severity === 'warning'));
-            if (errors.length > 0) throw createError(errors, warnings);
-            /** @param {unknown} value */
-            const freeze = function (value) {
-                if (!value || typeof value !== 'object' || Object.isFrozen(value)) return;
-                for (const item of Object.values(value)) freeze(item);
-                Object.freeze(value);
+        this.exec = async function (input) {
+            const work = decode.exec(input);
+            /** @returns {void} */
+            const check = function () {
+                if (work.diagnostics.length)
+                    throw diagnostic.error(work.diagnostics);
             };
-            const fingerprintValue = fingerprint.exec({value: analyzed.model});
-            const effective = {fingerprint: fingerprintValue, model: analyzed.model, provenance: analyzed.provenance};
-            const result = {
-                effective, fingerprint: fingerprintValue, graph: analyzed.graph,
-                model: analyzed.model, provenance: analyzed.provenance,
-                requirements: [...new Set(analyzed.model.requires ?? [])].sort(), warnings,
-            };
-            freeze(result);
+            check();
+            compose.exec(work);
+            check();
+            resolve.exec(work);
+            check();
+            const model = validate.exec(work);
+            check();
+            const logical = canonical.exec(model);
+            /** @type {TeqFw_Dem_CompilationResult} */
+            const result = data.freeze(JSON.parse(data.serialize({ model, canonical: logical, fingerprint: fingerprint.exec({ value: logical }), provenance: work.provenance, graph: graph.exec(model), warnings: [] })));
             successful.add(result);
             return result;
         };
     }
 }
-
-export const __deps__ = Object.freeze({
-    default: Object.freeze({
-        decodeV2: 'TeqFw_Dem_Compile_A_DecodeV2$',
-        compose: 'TeqFw_Dem_Compile_A_Compose$',
-        mapRefs: 'TeqFw_Dem_Compile_A_MapRefs$',
-        validate: 'TeqFw_Dem_Compile_A_Validate$',
-        validateNames: 'TeqFw_Dem_Compile_A_ValidateNames$',
-        graph: 'TeqFw_Dem_Compile_A_Graph$',
-        fingerprint: 'TeqFw_Dem_Compile_A_Fingerprint$',
-        diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic__Factory$',
-    }),
-});
+export const __deps__ = Object.freeze({ default: Object.freeze({ decode: 'TeqFw_Dem_Compile_A_Decode$', compose: 'TeqFw_Dem_Compile_A_Compose$', resolve: 'TeqFw_Dem_Compile_A_Resolve$', validate: 'TeqFw_Dem_Compile_A_Validate$', graph: 'TeqFw_Dem_Compile_A_Graph$', canonical: 'TeqFw_Dem_Compile_A_Canonical$', fingerprint: 'TeqFw_Dem_Compile_A_Fingerprint$', data: 'TeqFw_Dem_Util_Data$', diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic$' }) });

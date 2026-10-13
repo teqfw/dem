@@ -1,22 +1,12 @@
 // @ts-check
-/** Shared trusted inputs for independently executed Node and browser scenarios. */
-export function scenario() {
+/** Multiple independently owned schemas and an explicit host dependency binding. */
+export function scenario(){
     return {
-        fragments: [
-            {fragmentId: 'identity', packageName: 'identity', filename: '/identity.json', declaration: {
-                version: 2, namespace: 'domain', requires: ['provider.hint'],
-                entity: {user: {attr: {id: {type: {id: 'core.identity'}}, name: {type: {id: 'core.string', params: {length: 64}}}}, index: {}, relation: {}}},
-            }},
-            {fragmentId: 'content', packageName: 'content', filename: '/content.json', declaration: {
-                version: 2, refs: {'/external/user': ['key']}, entity: {post: {
-                    attr: {id: {type: {id: 'core.identity'}}, owner: {type: {id: 'core.ref'}}},
-                    relation: {owner: {attrs: ['owner'], ref: {path: '/external/user', attrs: ['key']}}},
-                }},
-            }},
+        schemas:[
+            {packageName:'@example/accounts',filename:'etc/dem-schema.json',document:{$format:1,'/vnd/accounts/user':{attributes:[{name:'user_key',type:{name:'identity'}}]}}},
+            {packageName:'@example/sale',filename:'etc/dem-schema.json',document:{$format:1,$dependencies:{user:{attributes:['id']}},'/vnd/sale/order':{attributes:[{name:'id',type:{name:'identity'}},{name:'user_id',type:{name:'ref'}}],relations:{owner:{attributes:['user_id'],target:{dependency:'user',attributes:['id']}}}}}},
+            {packageName:'@example/customer',filename:'etc/dem-schema.json',document:{$format:1,$dependencies:{user:{attributes:['id']}},'/vnd/customer/address':{attributes:[{name:'id',type:{name:'identity'}},{name:'owner_id',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner_id'],target:{dependency:'user',attributes:['id']}}}}}},
         ],
-        mapEnvelope: {mapId: 'app', packageName: 'app', filename: '/map.json', declaration: {
-            version: 2, namespace: 'sqlhint',
-            ref: {content: {'/external/user': {path: '/domain/user', attrs: {key: 'id'}}}},
-        }},
+        map:{packageName:'@example/host',filename:'etc/dem-map.json',document:{$format:1,sources:{'@example/accounts':{rename:{'/vnd/accounts/':'/app/accounts/'}},'@example/sale':{rename:{'/vnd/sale/':'/app/sale/'},bind:{user:{path:'/app/accounts/user',attributes:{id:'user_key'}}}},'@example/customer':{bind:{user:{path:'/app/accounts/user',attributes:{id:'user_key'}}}}},identityProfiles:{'/app/accounts/user':{user_key:{type:'uuid'}}}}},
     };
 }

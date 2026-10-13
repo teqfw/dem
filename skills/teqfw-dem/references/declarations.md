@@ -2,8 +2,8 @@
 
 ## Status and representation
 
-This is the accepted target schema/map contract, not executable v0.2.0 syntax.
-Current behavior is separately described in [runtime contracts](scope.md).
+This format-1 contract is implemented by package v0.2.0. Runtime component
+boundaries are described in [runtime components](scope.md).
 Logical nodes form a flat dictionary of absolute paths: package keys end with `/`,
 entity keys do not. Parent packages are derived; explicit package entries describe
 empty packages with optional comments. Logical and npm package names are independent.

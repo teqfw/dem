@@ -13,14 +13,12 @@ target identities' profiles. Storage projection belongs to downstream plugins.
   [Accepted logical model](references/model.md).
 - For new declaration design, read the
   [Schema/map contract and complete example](references/declarations.md), then
-  [ordinary types](references/types.md) as needed. These are target requirements,
-  not executable v0.2.0 support.
-- For implementing the new compiler, acquisition or fingerprint contract, read
+  [ordinary types](references/types.md) as needed. Package v0.2.0 implements these contracts.
+- For implementing or integrating the compiler, acquisition or fingerprint contract, read
   [target API](references/target-api.md), [configuration](references/configuration.md)
   and [canonical identity](references/canonical.md).
 - For installed-package integration or implementation changes, read
-  [v0.2.0 runtime contracts](references/scope.md) and check installed metadata.
+  [Runtime components](references/scope.md) and check installed metadata.
   Resolve supported `TeqFw_Dem_` components through DI.
 
-Keep accepted target requirements and executable support distinct when
-advising consumers. This skill's references are usable without private context.
+Use the declaration and API contracts for code and test generation. This skill's references are usable without private context.

@@ -1,144 +1,57 @@
 // @ts-check
-
 /**
  * @namespace TeqFw_Dem_Dto_Compile_Diagnostic
- * @description Structured and deterministically sortable DEM compiler diagnostic.
- */
-
-const NS = 'TeqFw_Dem_Dto_Compile_Diagnostic';
-
-/**
- * Structured compiler diagnostic.
+ * @description Deterministic source-linked errors without a usable partial model.
  */
 export default class Diagnostic {
-    /** @type {string} */
-    code;
-    /** @type {TeqFw_Dem_Object} */
-    details;
-    /** @type {string} */
-    message;
-    /** @type {string} */
-    path;
-    /** @type {'error'|'warning'} */
-    severity;
-    /** @type {TeqFw_Dem_SourceArray} */
-    sources;
-    /** @type {TeqFw_Dem_DiagnosticStage} */
-    stage;
-
     /**
      * @param {object} deps
-     * @param {string} deps.code
-     * @param {TeqFw_Dem_Object} deps.details
-     * @param {string} deps.message
-     * @param {string} deps.path
-     * @param {TeqFw_Dem_DiagnosticSeverity} deps.severity
-     * @param {TeqFw_Dem_SourceArray} deps.sources
-     * @param {TeqFw_Dem_DiagnosticStage} deps.stage
+     * @param {TeqFw_Dem_Util_Data} deps.data
      */
-    constructor({code, details, message, path, severity, sources, stage}) {
-        this.code = code;
-        this.details = details;
-        this.message = message;
-        this.path = path;
-        this.severity = severity;
-        this.sources = sources;
-        this.stage = stage;
-    }
-}
-
-/**
- * @memberOf TeqFw_Dem_Dto_Compile_Diagnostic
- */
-export class Factory {
-    static namespace = NS;
-
-    /**
-     * Initialize the factory.
-     */
-    constructor() {
-        /** @type {Record<string, number>} */
-        const stageOrder = Object.freeze({
-            parse: 0,
-            decode: 1,
-            composition: 2,
-            logical: 3,
-            graph: 4,
-            dialect: 5,
-            preflight: 6,
-            plan: 7,
-            query: 8,
-        });
-
+    constructor({ data }) {
         /**
-         * @param {any} value
-         * @returns {any}
+         * @param {string} code
+         * @param {TeqFw_Dem_SourceNullable} source
+         * @param {string} [pointer]
+         * @param {Record<string,any>} [details]
+         * @returns {TeqFw_Dem_Diagnostic}
          */
-        const copy = function (value) {
-            if (Array.isArray(value)) return Object.freeze(value.map(copy));
-            if (value && typeof value === 'object') {
-                /** @type {TeqFw_Dem_Object} */
-                const res = {};
-                for (const key of Object.keys(value).sort()) res[key] = copy(value[key]);
-                return Object.freeze(res);
-            }
-            return value;
+        this.create = function (code, source, pointer = '', details = {}) {
+            return { code, severity: 'error', source, pointer, details };
         };
-
         /**
-         * @param {any} source
-         * @returns {string}
+         * @param {Array<TeqFw_Dem_Diagnostic>} diagnostics
+         * @returns {Array<TeqFw_Dem_Diagnostic>}
          */
-        const sourceKey = function (source) {
-            return `${source?.fragmentId ?? ''}\u0000${source?.filename ?? ''}\u0000${source?.sourcePointer ?? ''}`;
-        };
-
-        /**
-         * @param {object} deps
-         * @param {string} deps.code
-         * @param {TeqFw_Dem_Object} [deps.details]
-         * @param {string} deps.message
-         * @param {string} [deps.path]
-         * @param {TeqFw_Dem_DiagnosticSeverity} [deps.severity]
-         * @param {TeqFw_Dem_SourceArray} [deps.sources]
-         * @param {string} deps.stage
-         * @returns {TeqFw_Dem_Dto_Compile_Diagnostic}
-         */
-        this.create = function ({code, details = {}, message, path = '', severity = 'error', sources = [], stage}) {
-            if (typeof code !== 'string' || code.length === 0) throw new TypeError('Diagnostic code is required.');
-            if (typeof message !== 'string' || message.length === 0) throw new TypeError('Diagnostic message is required.');
-            if (!(stage in stageOrder)) throw new TypeError(`Unknown diagnostic stage '${stage}'.`);
-            if (severity !== 'error' && severity !== 'warning') throw new TypeError(`Unknown diagnostic severity '${severity}'.`);
-            const res = new Diagnostic({
-                code, details: copy(details), message,
-                path: typeof path === 'string' ? path : '', severity,
-                sources: Object.freeze([...sources].sort((a, b) => sourceKey(a).localeCompare(sourceKey(b))).map(copy)),
-                stage: /** @type {TeqFw_Dem_DiagnosticStage} */ (stage),
+        this.sort = function (diagnostics) {
+            const fields = ['code', 'source', 'pointer', 'details'];
+            /**
+             * @param {TeqFw_Dem_Diagnostic} x
+             * @returns {Array<string>}
+             */
+            const tuple = function (/** @type {TeqFw_Dem_Diagnostic} */ x) {
+                return fields.map(k => k === 'source' ?
+                    (x.source ? x.source.packageName + '\0' + x.source.filename : '') :
+                    k === 'details' ? data.serialize(x.details) : String(x[ /** @type {'code'|'pointer'} */(k)]));
+            };
+            const unique = [...new Map(diagnostics.map(x => [data.serialize(x), x])).values()];
+            return unique.sort((a, b) => {
+                const left = tuple(a), right = tuple(b);
+                for (let i = 0; i < left.length; i++)
+                    if (left[i] !== right[i])
+                        return left[i] < right[i] ? -1 : 1;
+                return 0;
             });
-            return Object.freeze(res);
         };
-
         /**
-         * @param {TeqFw_Dem_DiagnosticArray} values
-         * @returns {TeqFw_Dem_DiagnosticArray}
+         * @param {Array<TeqFw_Dem_Diagnostic>} diagnostics
+         * @param {string} [name]
+         * @returns {TeqFw_Dem_CompilationError}
          */
-        this.sort = function (values) {
-            const res = [...values];
-            res.sort((a, b) => {
-                const stage = (stageOrder[a.stage] ?? Number.MAX_SAFE_INTEGER)
-                    - (stageOrder[b.stage] ?? Number.MAX_SAFE_INTEGER);
-                if (stage !== 0) return stage;
-                const path = String(a.path ?? '').localeCompare(String(b.path ?? ''));
-                if (path !== 0) return path;
-                const code = String(a.code ?? '').localeCompare(String(b.code ?? ''));
-                if (code !== 0) return code;
-                const left = (a.sources ?? []).map(sourceKey).join('\u0001');
-                const right = (b.sources ?? []).map(sourceKey).join('\u0001');
-                return left.localeCompare(right);
-            });
-            return Object.freeze(res);
+        this.error = function (diagnostics, name = 'DemCompilationError') {
+            const result = Object.assign(new Error(name), { name, diagnostics: this.sort(diagnostics), warnings: [] });
+            return data.freeze(result);
         };
     }
 }
-
-Object.freeze(Diagnostic);
+export const __deps__ = Object.freeze({ default: Object.freeze({ data: 'TeqFw_Dem_Util_Data$' }) });

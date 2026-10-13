@@ -1,6 +1,6 @@
 # Logical Type Contract
 
-Accepted target requirements; not v0.2.0 syntax. A type uses `{name, params?}`.
+Implemented logical type contract for package v0.2.0. A type uses `{name, params?}`.
 All numeric parameters are safe JSON integers. Unknown parameters fail. Defaults
 below are materialized in normalized types. No parameter selects a backend type.
 

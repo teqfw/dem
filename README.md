@@ -1,16 +1,15 @@
 # @teqfw/dem
 
-Domain Entity Model (DEM) composes plugin-owned logical schema fragments under
-host-application rules. Storage-independent DEM v2 compilation runs in Node.js
-and browsers. The package decodes trusted declarations, composes fragments with
-single semantic ownership, resolves host mappings and identity/reference types,
-validates logical types/indexes/relations/expressions, and analyzes dependencies.
-It has no database, filesystem, Node crypto, Buffer, Knex, or driver dependency.
+Domain Entity Model composes plugin-owned schema fragments into one complete,
+consistent logical model. The host resolves namespace collisions, binds explicit
+external dependencies and selects identity profiles. DEM runs in Node.js and
+browsers; storage partitioning, projection, generation algorithms and data
+operations belong to downstream packages.
 
 ## Compile through DI
 
-Hosts register namespace roots from package metadata before resolving components.
-With `@teqfw/di` 2.11+ in Node.js:
+Register namespace roots before resolving components. The package root exports
+types only; runtime access uses TeqFW DI tokens.
 
 ```js
 import Container from '@teqfw/di';
@@ -19,65 +18,62 @@ const container = new Container();
 container.addNamespaceRoot('TeqFw_Dem_', '/absolute/node_modules/@teqfw/dem/src', '.mjs');
 const compiler = await container.get('TeqFw_Dem_Compile$');
 const result = await compiler.exec({
-    fragments: [{
-        fragmentId: 'app', packageName: 'app', filename: '/models/app.json',
-        declaration: {version: 2, entity: {
-            user: {attr: {id: {type: {id: 'core.identity'}}}},
-        }},
+    schemas: [{
+        packageName: '@example/app',
+        filename: 'etc/dem-schema.json',
+        document: {
+            $format: 1,
+            '/app/user': {attributes: [{name: 'id', type: {name: 'identity'}}]},
+        },
     }],
-    mapEnvelope: {
-        mapId: 'app-map', packageName: 'app', filename: '/models/map.json',
-        declaration: {version: 2},
-    },
 });
 compiler.assertResult({value: result});
-console.log(result.graph.entities, result.fingerprint);
+console.log(result.model.entities, result.fingerprint);
 ```
 
-A browser host registers a served ESM source URL in place of the absolute path
-and uses the browser build of DI. Filename fields are trusted evidence strings;
-DEM never opens them. Hosts select/acquire fragments and choose persistence.
+The immutable result contains model, canonical content, fingerprint, provenance,
+dependency graph and warnings. Invalid inputs reject with a frozen
+DemCompilationError containing source-linked diagnostics and no usable model.
+Identity defaults to int/regular and derives a primary key; refs inherit their
+resolved target identity profile. Host profiles select uuid or int with qualitative
+small/regular/large capacity, without choosing physical types or bit widths.
 
-`exec({fragments, mapEnvelope})` returns a Promise of a deeply frozen result:
-`{effective, fingerprint, model, provenance, graph, requirements, warnings}`.
-`effective` contains `{model, provenance, fingerprint}`; both fingerprints identify
-the same effective model. There is no physical plan. `assertResult({value})`
-accepts only successful results produced by that compiler instance. Copies and
-results from other instances fail. On invalid declarations, `exec` throws a frozen
-`DemCompilationError` with ordered `diagnostics` and `warnings`, without a usable
-model. Diagnostic codes, paths, details and sources support programmatic handling.
+Logical package paths use `/`, lowercase names and underscores. Package addresses
+end with `/`; entity addresses do not. Package directories merge, entities never
+merge. Local references preserve their original dependencies through path remapping.
+External entity/attribute contracts always require explicit host binding.
 
-See the [consumer guide](skills/teqfw-dem/references/scope.md) for declaration
-semantics, type wiring, supported components, and the implementation boundary.
-Implementation-stage tokens are internal. The package root exports types only;
-use DI tokens for runtime access.
+The fingerprint is `dem-sha256-1:` plus a SHA-256 digest of canonical logical JSON.
+It excludes comments, origins, empty packages, assembly steps and attribute
+projection order. Ordered key/index/relation members remain significant.
 
-## Current runtime and product boundary
+See the [declaration contract and examples](skills/teqfw-dem/references/declarations.md),
+[logical types](skills/teqfw-dem/references/types.md),
+[compiler API](skills/teqfw-dem/references/target-api.md) and
+[canonical identity](skills/teqfw-dem/references/canonical.md).
 
-`sha256-v1` sorts every enumerable own object key recursively, preserves array
-order, serializes JSON and hashes its UTF-8 bytes. Portable synchronous SHA-256
-hashes equivalent canonical inputs identically across runtimes. Provenance
-is excluded. Comments, storage hints, map namespace and index phase remain in
-the current canonical input. A different hint can
-therefore change the fingerprint even when a backend ignores it.
+## Acquire declarations in Node.js
 
-The product contract is logical-only: fragments describe domain meaning, host
-maps bind them into one complete model, and other plugins partition/project it.
-Physical fields in the current runtime are an implementation gap to remove.
-Default schema/map file discovery and general renaming are not implemented.
+```js
+const acquisition = await container.get('TeqFw_Dem_Acquire$');
+const inputs = await acquisition.exec({hostRoot: '/absolute/application'});
+const compiled = await compiler.exec(inputs);
+```
 
-Storage bindings, SQL map namespace, index method/options/phases and deferrability
-are currently accepted declaration data. DEM validates version 2 shapes and structural
-invariants; backends validate their supported physical realization and capabilities.
-Declared `requires` are collected, not negotiated against an implicit SQL adapter.
-Default identity remains signed 32-bit integer with native `byDefault` generation;
-host profiles may select established integer representations and `always` mode.
-UUID identity generation and synchronization between databases are outside scope.
+Acquire reuses the package-registry discovery mechanism used by @teqfw/cli.
+The default files are `etc/dem-schema.json` and the host's `etc/dem-map.json`.
+Override package-relative paths independently under `package.json` → `teqfw.dem`.
+Missing implicit defaults are allowed; explicitly configured missing files fail.
+Only the host's map is active. See [configuration](skills/teqfw-dem/references/configuration.md).
+
+The portable compiler imports no filesystem or CLI modules. Browser hosts supply
+parsed envelopes, register served ESM namespace roots and use the browser DI
+build. Module URL delivery remains the host/downstream responsibility.
 
 ## Development
 
-Use Node.js 22+ and npm. For real browser verification, install Google Chrome or
-set `CHROME_PATH` to a Chromium executable.
+Support current Active/Maintenance LTS Node.js and stable Chrome/Chromium.
+Set `CHROME_PATH` when the browser executable is not `google-chrome`.
 
 ```sh
 npm ci
@@ -85,27 +81,26 @@ npm run verify
 npm run test:browser
 npm pack --dry-run
 teqfw-platform .
-teqfw-esm-validator src --profile base
+teqfw-esm-validator . --profile base
 ```
 
-Tests cover standalone logical compilation and an actual archive installed into an
-isolated consumer. Browser verification compares independently compiled results
-against Node.js. Public CI checks Node.js 22/24 and Chrome without private context.
-No npm publication is performed by CI.
+Tests cover logical composition, acquisition, exact normalization, independent
+canonical/hash fixtures and a real installed archive. CI performs full Node
+verification and one minimal browser composition/fingerprint check.
 
 ## Context and consumer skill
 
-The private cognitive context is an independent Git checkout ignored by product
-Git and excluded from npm. Authorized maintainers can mount it with:
+The private cognitive context is an independent Git checkout excluded from npm.
+Authorized maintainers can mount it with:
 
 ```sh
 git clone git@github.com:flancer32/teqfw-dem-ctx.git ctx
 adsm-ctx validate .
 ```
 
-The version-matched [consumer skill](skills/teqfw-dem/SKILL.md) is published under
-`skills/teqfw-dem/`. Hosts select and mount it into their own agent discovery
-location; installation does not alter host configuration.
+The [consumer skill](skills/teqfw-dem/SKILL.md) ships under `skills/teqfw-dem/`.
+Hosts select and mount it into their agent discovery location; installation does
+not alter host configuration.
 
 ## License
 

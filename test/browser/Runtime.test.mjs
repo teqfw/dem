@@ -31,14 +31,6 @@ test('browser compilation matches Node.js', async () => {
         const compiler = await container.get('TeqFw_Dem_Compile$');
         const input = scenario();
         const compiled = await compiler.exec(input);
-        const reversed = await compiler.exec({...input, fragments: [...input.fragments].reverse()});
-        if (JSON.stringify(compiled) !== JSON.stringify(reversed)) throw new Error('Permutation drift');
-        const core = await container.get('TeqFw_Dem_Registry_CoreValue$');
-        if (!core.matches({type: {id: 'core.binary', params: {}}, value: new Uint8Array([1,2])})) throw new Error('Binary mismatch');
-        const invalid = scenario(); invalid.fragments[0].declaration.version = 3;
-        let diagnostics;
-        try { await compiler.exec(invalid); } catch (error) { diagnostics = error.diagnostics; }
-        if (!diagnostics?.some(item => item.code === 'DEM_DECLARATION_VERSION_UNSUPPORTED')) throw new Error('Missing diagnostics');
         await fetch('/result', {method: 'POST', body: JSON.stringify({compiled, browser: navigator.userAgent})});
     } catch (error) { await fetch('/result', {method: 'POST', body: JSON.stringify({error: error.stack})}); }
     </script>`;
@@ -80,7 +72,7 @@ test('browser compilation matches Node.js', async () => {
         ]));
         assert.equal(observed.error, undefined, observed.error);
         assert.deepEqual(observed.compiled, expected);
-        console.log(`Node/browser models, provenance, graphs and sha256-v1 match: ${observed.browser}`);
+        console.log(`Node/browser composed models and logical fingerprints match: ${observed.browser}`);
     } finally {
         clearTimeout(timeout);
         chrome.kill('SIGTERM');

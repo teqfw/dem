@@ -1,213 +1,93 @@
 // @ts-check
-
 /**
  * @namespace TeqFw_Dem_Compile_A_Compose
- * @description Composes decoded DEM fragments with single-owner semantics and trusted provenance.
+ * @description Apply origin-scoped path rules and compose a collision-free shared hierarchy.
  */
-
 export default class Compose {
     /**
      * @param {object} deps
-     * @param {TeqFw_Dem_Dto_Compile_Diagnostic__Factory} deps.diagnostic
-     * @param {TeqFw_Dem_Dto_Compile_Source__Factory} deps.source
+     * @param {TeqFw_Dem_Compile_A_Path} deps.path
+     * @param {TeqFw_Dem_Dto_Compile_Diagnostic} deps.diagnostic
+     * @param {TeqFw_Dem_Util_Data} deps.data
      */
-    constructor({diagnostic, source}) {
+    constructor({ path, diagnostic, data }) {
         /**
-         * @param {string} value
-         * @returns {string}
+         * @param {TeqFw_Dem_Work} work
+         * @returns {TeqFw_Dem_Work}
          */
-        const escapePointer = function (value) {
-            return value.replaceAll('~', '~0').replaceAll('/', '~1');
-        };
-
-        /**
-         * @param {unknown} value
-         * @returns {unknown}
-         */
-        const copy = function (value) {
-            if (Array.isArray(value)) return value.map(copy);
-            if (value && typeof value === 'object') {
-                const object = /** @type {TeqFw_Dem_Object} */ (value);
-                /** @type {TeqFw_Dem_Object} */
-                const res = {};
-                for (const key of Object.keys(object).sort()) res[key] = copy(object[key]);
-                return res;
-            }
-            return value;
-        };
-
-        /**
-         * @param {object} deps
-         * @param {TeqFw_Dem_DecodedFragmentArray} deps.decoded
-         * @returns {any}
-         */
-        this.exec = function ({decoded}) {
-            /** @type {TeqFw_Dem_DiagnosticArrayMutable} */
-            const diagnostics = [];
-            /** @type {TeqFw_Dem_ComposedDem['externalRefs']} */
-            const externalRefs = {};
-            const invalid = new Set();
-            /** @type {TeqFw_Dem_ComposedModel} */
-            const model = {version: 2, namespace: '', requires: [], deprecated: {}, entity: {}, package: {}};
-            /** @type {TeqFw_Dem_StringMap} */
-            const ownerByPath = {};
-            /** @type {TeqFw_Dem_ComposedDem['provenance']} */
-            const provenance = {};
-            /** @type {TeqFw_Dem_ComposedDem['provenance']} */
-            const conflictSources = {};
-
+        this.exec = function (work) {
             /**
-             * @param {any} item
-             * @param {string} canonicalPath
-             * @returns {any}
+             * @param {string} code
+             * @param {TeqFw_Dem_SourceNullable} source
+             * @param {string} ptr
+             * @param {Record<string,any>} [details]
+             * @returns {number}
              */
-            const makeSource = function (item, canonicalPath) {
-                return source.create({
-                    filename: item.envelope.filename,
-                    fragmentId: item.envelope.fragmentId,
-                    packageName: item.envelope.packageName,
-                    revision: item.envelope.revision,
-                    sourcePointer: item.pointers[canonicalPath] ?? canonicalPath,
-                });
+            const fail = function (/** @type {string} */ code, /** @type {TeqFw_Dem_SourceNullable} */ source, /** @type {string} */ ptr, /** @type {Record<string,any>} */ details = {}) {
+                return work.diagnostics.push(diagnostic.create(code, source, ptr, details));
             };
-
-            /**
-             * @param {string} path
-             * @param {any} evidence
-             */
-            const appendProvenance = function (path, evidence) {
-                const values = provenance[path] ?? [];
-                const key = `${evidence.fragmentId}\u0000${evidence.filename}\u0000${evidence.sourcePointer}`;
-                if (!values.some((item) => `${item.fragmentId}\u0000${item.filename}\u0000${item.sourcePointer}` === key)) {
-                    values.push(evidence);
-                    values.sort((a, b) => {
-                        const left = `${a.fragmentId}\u0000${a.filename}\u0000${a.sourcePointer}`;
-                        const right = `${b.fragmentId}\u0000${b.filename}\u0000${b.sourcePointer}`;
-                        return left.localeCompare(right);
-                    });
-                }
-                provenance[path] = values;
-            };
-
-            /**
-             * @param {string} path
-             * @param {any} item
-             */
-            const conflict = function (path, item) {
-                invalid.add(path);
-                const values = conflictSources[path] ?? [...(provenance[path] ?? [])];
-                const evidence = makeSource(item, path);
-                const key = `${evidence.fragmentId}\u0000${evidence.filename}\u0000${evidence.sourcePointer}`;
-                if (!values.some((entry) => `${entry.fragmentId}\u0000${entry.filename}\u0000${entry.sourcePointer}` === key)) {
-                    values.push(evidence);
-                }
-                conflictSources[path] = values;
-                appendProvenance(path, evidence);
-            };
-
-            /**
-             * @param {any} entity
-             * @param {string} path
-             * @param {any} item
-             * @param {boolean} claim
-             */
-            const semanticEntity = function (entity, path, item, claim) {
-                const paths = [path];
-                for (const name of Object.keys(entity.attr ?? {}).sort()) {
-                    const attrPath = `${path}/attr/${escapePointer(name)}`;
-                    paths.push(attrPath);
-                    const attr = entity.attr[name];
-                    for (const dialect of Object.keys(attr.storage ?? {}).sort()) {
-                        paths.push(`${attrPath}/storage/${escapePointer(dialect)}`);
+            for (const name of Object.keys(work.map.sources))
+                if (!work.schemas.some(s => s.source.packageName === name))
+                    fail('DEM_MAP', work.mapSource, '/sources', { packageName: name });
+            for (const schema of work.schemas) {
+                const originalPackages = new Set(schema.packages);
+                for (const original of Object.keys(schema.nodes))
+                    for (const parent of path.parents(original))
+                        originalPackages.add(parent);
+                const rules = (Object.hasOwn(work.map.sources, schema.source.packageName) ? work.map.sources[schema.source.packageName].rename : undefined) ?? {};
+                /** @type {Record<string,string>} */
+                const rename = Object.create(null);
+                for (const [from, to] of Object.entries(rules)) {
+                    try {
+                        if (!from.startsWith('/') || typeof to !== 'string' || !to.startsWith('/'))
+                            throw new TypeError();
+                        const start = path.normalize(from), end = path.normalize(to);
+                        if (start.endsWith('/') !== end.endsWith('/') || !(Object.hasOwn(schema.nodes, start) || originalPackages.has(start)) || Object.hasOwn(rename, start))
+                            throw new TypeError();
+                        rename[start] = end;
                     }
-                    if (attr.default !== undefined) paths.push(`${attrPath}/default`);
-                    if (attr.generation !== undefined) paths.push(`${attrPath}/generation`);
-                }
-                for (const name of Object.keys(entity.index ?? {}).sort()) paths.push(`${path}/index/${escapePointer(name)}`);
-                for (const name of Object.keys(entity.relation ?? {}).sort()) paths.push(`${path}/relation/${escapePointer(name)}`);
-                for (const semanticPath of paths) {
-                    if (claim && !ownerByPath[semanticPath]) {
-                        ownerByPath[semanticPath] = item.envelope.fragmentId;
-                        appendProvenance(semanticPath, makeSource(item, semanticPath));
-                    } else if (!claim && ownerByPath[semanticPath]) {
-                        conflict(semanticPath, item);
+                    catch {
+                        fail('DEM_MAP', work.mapSource, '/sources', { packageName: schema.source.packageName, from, to });
                     }
                 }
-            };
-
-            /**
-             * @param {any} target
-             * @param {any} incoming
-             * @param {string} path
-             * @param {any} item
-             */
-            const mergeContainer = function (target, incoming, path, item) {
-                if (Object.prototype.hasOwnProperty.call(incoming, 'comment')) {
-                    const commentPath = `${path}/comment`;
-                    if (ownerByPath[commentPath]) {
-                        conflict(commentPath, item);
-                        delete target.comment;
-                    } else {
-                        target.comment = incoming.comment;
-                        ownerByPath[commentPath] = item.envelope.fragmentId;
-                        appendProvenance(commentPath, makeSource(item, commentPath));
-                    }
-                }
-                for (const name of Object.keys(incoming.entity ?? {}).sort()) {
-                    const entityPath = `${path}/entity/${escapePointer(name)}`;
-                    if (ownerByPath[entityPath]) {
-                        semanticEntity(incoming.entity[name], entityPath, item, false);
-                        delete target.entity[name];
-                    } else {
-                        target.entity[name] = copy(incoming.entity[name]);
-                        semanticEntity(incoming.entity[name], entityPath, item, true);
-                    }
-                }
-                for (const name of Object.keys(incoming.package ?? {}).sort()) {
-                    const packagePath = `${path}/package/${escapePointer(name)}`;
-                    if (!target.package[name]) target.package[name] = {entity: {}, package: {}};
-                    mergeContainer(target.package[name], incoming.package[name], packagePath, item);
-                }
-            };
-
-            const sorted = [...decoded].sort((a, b) => {
-                const fragment = String(a.envelope?.fragmentId ?? '').localeCompare(String(b.envelope?.fragmentId ?? ''));
-                return fragment || String(a.envelope?.filename ?? '').localeCompare(String(b.envelope?.filename ?? ''));
-            });
-            const requirements = new Set(/** @type {string[]} */ ([]));
-            for (const item of sorted) {
-                diagnostics.push(...(item.diagnostics ?? []));
-                if (!item.declaration || !item.envelope) continue;
-                externalRefs[item.envelope.fragmentId ?? ''] = {
-                    refs: /** @type {Record<string, string[]>} */ (copy(item.declaration.refs ?? {})),
-                    pointers: /** @type {TeqFw_Dem_StringMap} */ (copy(item.pointers)),
-                    envelope: item.envelope,
+                const selectors = Object.keys(rename);
+                for (const a of selectors)
+                    for (const b of selectors)
+                        if (a !== b && a.endsWith('/') && b.startsWith(a))
+                            fail('DEM_MAP', work.mapSource, '/sources', { packageName: schema.source.packageName, overlap: [a, b] });
+                /**
+                 * @param {string} original
+                 * @returns {string}
+                 */
+                const transform = function (original) {
+                    const match = selectors.find(k => original === k || k.endsWith('/') && original.startsWith(k));
+                    return match ? rename[match] + original.slice(match.length) : original;
                 };
-                for (const capability of item.declaration.requires ?? []) {
-                    requirements.add(capability);
-                    appendProvenance(`/requires/${escapePointer(capability)}`, makeSource(item, `/requires/${escapePointer(capability)}`));
+                schema.correspondence = Object.create(null);
+                for (const original of schema.packages) {
+                    const effective = transform(original);
+                    for (const parent of path.parents(effective))
+                        work.packages.push(parent);
                 }
-                mergeContainer(model, item.declaration, '', item);
+                for (const [original, node] of Object.entries(schema.nodes)) {
+                    const effective = transform(original);
+                    schema.correspondence[original] = effective;
+                    for (const parent of path.parents(effective))
+                        work.packages.push(parent);
+                    if (Object.hasOwn(work.entities, effective)) {
+                        fail('DEM_COLLISION', schema.source, node.pointer, { path: effective });
+                        continue;
+                    }
+                    work.entities[effective] = { schema, original, pointer: node.pointer, raw: node.raw, relations: Object.create(null) };
+                    work.provenance.entities[effective] = { ...schema.source, originalPath: original };
+                    work.provenance.pathMappings.push({ packageName: schema.source.packageName, originalPath: original, effectivePath: effective });
+                }
             }
-            model.requires = [...requirements].sort();
-            for (const path of Object.keys(conflictSources).sort()) {
-                diagnostics.push(diagnostic.create({
-                    code: 'DEM_COMPOSITION_OWNER_CONFLICT',
-                    details: {owners: [...new Set(conflictSources[path].map((item) => item.fragmentId))].sort()},
-                    message: 'More than one fragment declares the same semantic node.',
-                    path,
-                    sources: conflictSources[path],
-                    stage: 'composition',
-                }));
-            }
-            return {diagnostics, externalRefs, invalid, model, ownerByPath, provenance};
+            work.entities = Object.fromEntries(Object.entries(work.entities).sort(([a], [b]) => a < b ? -1 : 1));
+            work.provenance.entities = Object.fromEntries(Object.entries(work.provenance.entities).sort(([a], [b]) => a < b ? -1 : 1));
+            work.provenance.pathMappings.sort((a, b) => data.serialize([a.packageName, a.originalPath]) < data.serialize([b.packageName, b.originalPath]) ? -1 : 1);
+            return work;
         };
     }
 }
-
-export const __deps__ = Object.freeze({
-    default: Object.freeze({
-        diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic__Factory$',
-        source: 'TeqFw_Dem_Dto_Compile_Source__Factory$',
-    }),
-});
+export const __deps__ = Object.freeze({ default: Object.freeze({ path: 'TeqFw_Dem_Compile_A_Path$', diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic$', data: 'TeqFw_Dem_Util_Data$' }) });

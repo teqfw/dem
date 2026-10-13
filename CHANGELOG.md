@@ -2,10 +2,9 @@
 
 ## 0.2.0
 
-- Logical declaration decoding, composition, reference binding, validation and
-  dependency analysis in Node.js and browsers.
-- Immutable authenticated results, structured diagnostics, DI/type contracts,
-  core value/expression components and portable fingerprints.
-- Archive installation checks, source type checks and real browser verification.
-
-See README.md for the product boundary and current implementation limits.
+- Compose format-1 schema fragments into a single validated logical model.
+- Transform logical paths before resolving local and explicitly bound external dependencies.
+- Resolve identity/ref profiles, literal defaults, keys, indexes and relations.
+- Produce immutable authenticated results, canonical logical fingerprints and dependency graphs.
+- Acquire declaration files using TeqFW package discovery and package-relative metadata.
+- Run full Node verification, isolated archive-consumer checks and minimal browser parity checks.

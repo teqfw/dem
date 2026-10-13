@@ -1,7 +1,6 @@
 # Canonical Logical Identity
 
-Accepted target contract. This is independent of the current sha256-v1 runtime
-field coverage. Inputs are successful normalized [target models](target-api.md).
+Implemented canonical contract for package v0.2.0. Inputs are successful normalized [target models](target-api.md).
 
 ## Canonical object
 
@@ -121,5 +120,4 @@ The published model has packages ["/","/app/"] and retains id in its attribute
 array. Graph edges is []; components is [["/app/item"]]. No warnings occur.
 Explicit primaryKey=["id"], nullable=false, generation=false and an explicit
 int/regular map produce the same canonical bytes. Identity nullable=true fails
-with DEM_IDENTITY; primaryKey=["missing"] fails with DEM_KEY. These are expected
-fixtures, not evidence that the target runtime is implemented.
+with DEM_IDENTITY; primaryKey=["missing"] fails with DEM_KEY. These fixtures are independently verified by integration tests.

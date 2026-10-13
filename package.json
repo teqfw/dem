@@ -71,5 +71,8 @@
         ]
       }
     }
+  },
+  "dependencies": {
+    "@teqfw/cli": "^2.5.0"
   }
 }

@@ -17,14 +17,14 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.license, 'Apache-2.0');
     assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}});
     assert.equal(manifest.types, 'types.d.ts');
-    assert.equal(manifest.dependencies, undefined);
+    assert.ok(manifest.dependencies['@teqfw/cli']);
     assert.equal(manifest.teqfw.namespaces, undefined);
     assert.deepEqual(manifest.teqfw.fw.di.namespaces, [
         {prefix: 'TeqFw_Dem_', path: './src', ext: '.mjs'},
     ]);
     assert.ok(readdirSync(join(root, 'src')).includes('Compile.mjs'));
     const skill = readFileSync(join(root, 'skills/teqfw-dem/SKILL.md'), 'utf8');
-    assert.ok(skill.includes(`package version ${manifest.version}`));
+    assert.ok(skill.includes('Domain Entity Model'));
 });
 
 test('real archive installs into a consumer, preserves declarations, and excludes private content', () => {
@@ -36,7 +36,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
         ], {cwd: root, encoding: 'utf8'}))[0];
         const expected = [
             'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json',
-            'skills/teqfw-dem/SKILL.md', 'skills/teqfw-dem/references/scope.md',
+            ...readdirSync(join(root, 'skills'), {recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()).map(entry=>'skills/'+join(entry.parentPath,entry.name).slice(join(root,'skills').length+1)),
             'types.d.ts',
             ...readdirSync(join(root, 'src'), {recursive: true, withFileTypes: true})
                 .filter((entry) => entry.isFile())
@@ -47,6 +47,9 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             name: 'dem-consumer', private: true, type: 'module',
             dependencies: {
                 '@teqfw/di': `file:${join(root, 'node_modules/@teqfw/di')}`,
+                '@teqfw/cli': `file:${join(root, 'node_modules/@teqfw/cli')}`,
+                '@teqfw/cfg': `file:${join(root, 'node_modules/@teqfw/cfg')}`,
+                '@teqfw/log': `file:${join(root, 'node_modules/@teqfw/log')}`,
                 '@types/node': `file:${join(root, 'node_modules/@types/node')}`,
                 'undici-types': `file:${join(root, 'node_modules/undici-types')}`,
             },
@@ -71,13 +74,12 @@ container.addNamespaceRoot('TeqFw_Dem_', new URL('./node_modules/@teqfw/dem/src'
 const compiler = await container.get('TeqFw_Dem_Compile$');
 /** @type {import('@teqfw/dem').DemCompilationResult} */
 const result = await compiler.exec({
-    fragments: [{fragmentId: 'consumer', packageName: 'consumer', filename: '/model.json', declaration: {
-        version: 2, entity: {item: {attr: {id: {type: {id: 'core.identity'}}}}},
+    schemas: [{packageName: 'consumer', filename: 'etc/dem-schema.json', document: {
+        $format: 1, '/app/item': {attributes: [{name: 'id', type: {name: 'identity'}}]},
     }}],
-    mapEnvelope: {mapId: 'host', packageName: 'host', filename: '/map.json', declaration: {version: 2}},
 });
 if (compiler.assertResult({value: result}) !== result || !Object.isFrozen(result.model)) throw new Error('Invalid result');
-if (result.graph.entities[0] !== '/item' || 'physical' in result) throw new Error('Logical boundary failed');
+if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw new Error('Logical boundary failed');
 `);
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');
         writeFileSync(join(consumer, 'probe.mjs'), probe);

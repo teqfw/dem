@@ -1,6 +1,6 @@
 # Target Compiler and Acquisition API
 
-Accepted implementation contract, not the currently executable v0.2.0 API.
+Implemented compiler/acquisition contract for package v0.2.0.
 Runtime components use the `TeqFw_Dem_` DI namespace and native ESM conventions.
 
 ## Portable compiler
