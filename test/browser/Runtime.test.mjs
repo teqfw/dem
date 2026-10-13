@@ -23,9 +23,9 @@ test('browser compilation matches Node.js', async () => {
     let receive;
     const result = new Promise((resolveResult) => { receive = resolveResult; });
     const page = `<!doctype html><meta charset="utf-8"><script type="module">
-    import Container from '/node_modules/@teqfw/di/dist/esm.js';
-    import {scenario} from '/test/browser/Scenario.mjs';
     try {
+        const {default: Container} = await import('/node_modules/@teqfw/di/dist/esm.js');
+        const {scenario} = await import('/test/browser/Scenario.mjs');
         const container = new Container();
         container.addNamespaceRoot('TeqFw_Dem_', location.origin + '/src', '.mjs');
         const compiler = await container.get('TeqFw_Dem_Compile$');
@@ -34,7 +34,10 @@ test('browser compilation matches Node.js', async () => {
         await fetch('/result', {method: 'POST', body: JSON.stringify({compiled, browser: navigator.userAgent})});
     } catch (error) { await fetch('/result', {method: 'POST', body: JSON.stringify({error: error.stack})}); }
     </script>`;
+    /** @type {string[]} */
+    const requests = [];
     const server = createServer(async (request, response) => {
+        requests.push(`${request.method} ${request.url}`);
         if (request.url === '/result' && request.method === 'POST') {
             let body = '';
             for await (const part of request) body += part;
@@ -58,16 +61,18 @@ test('browser compilation matches Node.js', async () => {
         '--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
         '--no-first-run', '--no-default-browser-check', `--user-data-dir=${profile}`,
         `http://127.0.0.1:${address.port}/`,
-    ], {stdio: 'ignore'});
+    ], {stdio: ['ignore', 'ignore', 'pipe']});
+    let stderr = '';
+    chrome.stderr.on('data', (chunk) => { stderr = (stderr + chunk.toString()).slice(-16000); });
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     let timeout;
     try {
         const observed = /** @type {{compiled?: unknown; error?: string; browser: string}} */ (await Promise.race([
             result,
             new Promise((_, reject) => {
-                timeout = setTimeout(() => reject(new Error('Browser verification timed out.')), 30000);
+                timeout = setTimeout(() => reject(new Error(`Browser verification timed out. Requests: ${JSON.stringify(requests)}\nChrome stderr:\n${stderr}`)), 30000);
                 chrome.once('error', reject);
-                chrome.once('exit', (code) => reject(new Error(`Browser exited before results: ${code}`)));
+                chrome.once('exit', (code, signal) => reject(new Error(`Browser exited before results: ${code ?? signal}\nChrome stderr:\n${stderr}`)));
             }),
         ]));
         assert.equal(observed.error, undefined, observed.error);
@@ -78,8 +83,8 @@ test('browser compilation matches Node.js', async () => {
         chrome.kill('SIGTERM');
         await new Promise((resolveClosed) => server.close(() => resolveClosed(undefined)));
         await new Promise((resolveExit) => {
-            if (chrome.exitCode !== null || chrome.signalCode !== null) resolveExit(undefined);
-            else chrome.once('exit', () => resolveExit(undefined));
+            if (chrome.exitCode !== null || chrome.signalCode !== null || chrome.pid === undefined) resolveExit(undefined);
+            else chrome.once('close', () => resolveExit(undefined));
         });
         await rm(profile, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
     }
