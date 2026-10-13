@@ -1,6 +1,7 @@
 # @teqfw/dem
 
-Storage-independent DEM v2 logical compilation for TeqFW applications in Node.js
+Domain Entity Model (DEM) composes plugin-owned logical schema fragments under
+host-application rules. Storage-independent DEM v2 compilation runs in Node.js
 and browsers. The package decodes trusted declarations, composes fragments with
 single semantic ownership, resolves host mappings and identity/reference types,
 validates logical types/indexes/relations/expressions, and analyzes dependencies.
@@ -47,21 +48,26 @@ results from other instances fail. On invalid declarations, `exec` throws a froz
 model. Diagnostic codes, paths, details and sources support programmatic handling.
 
 See the [consumer guide](skills/teqfw-dem/references/scope.md) for declaration
-semantics, type wiring, supported components, and the compatibility boundary.
+semantics, type wiring, supported components, and the implementation boundary.
 Implementation-stage tokens are internal. The package root exports types only;
 use DI tokens for runtime access.
 
-## Fingerprints and backend hints
+## Current runtime and product boundary
 
 `sha256-v1` sorts every enumerable own object key recursively, preserves array
 order, serializes JSON and hashes its UTF-8 bytes. Portable synchronous SHA-256
-preserves the existing DB algorithm for equivalent canonical inputs. Provenance
+hashes equivalent canonical inputs identically across runtimes. Provenance
 is excluded. Comments, storage hints, map namespace and index phase remain in
-canonical inputs for existing schema-history compatibility. A different hint can
+the current canonical input. A different hint can
 therefore change the fingerprint even when a backend ignores it.
 
+The product contract is logical-only: fragments describe domain meaning, host
+maps bind them into one complete model, and other plugins partition/project it.
+Physical fields in the current runtime are an implementation gap to remove.
+Default schema/map file discovery and general renaming are not implemented.
+
 Storage bindings, SQL map namespace, index method/options/phases and deferrability
-are preserved declaration data. DEM validates established v2 shapes and structural
+are currently accepted declaration data. DEM validates version 2 shapes and structural
 invariants; backends validate their supported physical realization and capabilities.
 Declared `requires` are collected, not negotiated against an implicit SQL adapter.
 Default identity remains signed 32-bit integer with native `byDefault` generation;

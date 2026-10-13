@@ -1,4 +1,8 @@
-# Logical contracts and integration
+# Version 0.2.0 runtime contracts
+
+This reference describes implemented v0.2.0 behavior, including currently accepted physical
+fields. The [accepted model boundary](model.md) is logical-only. Proposed schema/map
+file conventions are not runtime discovery support; `dem-host.json` is outside DEM.
 
 ## Supported DI components
 
@@ -19,7 +23,8 @@ only shipped core registry behavior is verified.
 
 Each fragment carries `fragmentId`, `packageName`, `filename`, and parsed
 `declaration`. The map carries `mapId`, `packageName`, `filename`, and declaration.
-Both declarations require integer `version: 2`. Revisions are derived from content,
+`fragmentId` is a required runtime bookkeeping field, not a logical namespace
+or a product-level identity. Both declarations require integer `version: 2`. Revisions are derived from content,
 not accepted from caller assertions. Missing semantic dictionaries normalize to
 empty maps. Unknown declaration fields are rejected.
 
@@ -40,7 +45,7 @@ generation (`byDefault` or `always`). The default is signed 32-bit integer and
 `byDefault`. `core.identity` has no parameters and derives a primary key;
 `core.ref` has no parameters, participates exactly once in one relation, targets
 an identity attribute and derives its type without generation. UUID generation
-and the removed `allocated` mode are unsupported.
+is unsupported.
 
 Core types are binary, boolean, date, datetime, decimal, enum, integer, json,
 string, text, uuid, vector, identity, and ref. Normalized runtime types include
@@ -55,18 +60,20 @@ cycles do not imply invalid declarations.
 ## Output and failures
 
 Successful result fields are `effective`, `fingerprint`, `model`, `provenance`,
-`graph`, `requirements`, and `warnings`. There is no physical field. Outputs are
+`graph`, `requirements`, and `warnings`. `effective` contains model, provenance
+and fingerprint; both fingerprint fields agree. There is no physical plan field. Outputs are
 deeply frozen and authentic only to the producing compiler instance. Errors carry
-ordered structured diagnostics and warnings; they expose no usable model.
+ordered structured diagnostics and warnings in a frozen `DemCompilationError`;
+they expose no usable model.
 Machine-readable codes, paths, details and sources are the branching contract;
 English diagnostic messages are for humans.
 
 Declared capabilities are collected with provenance. The physical backend owns
 capability negotiation, SQL identifier validation, storage projection, physical
-representation compatibility and operation preflight. Existing storage, map
-namespace, phase and dialect hints remain in the canonical model and therefore
-in sha256-v1 for compatibility. Their presence does not make them universal
-logical storage behavior. Provenance does not contribute to fingerprints.
+representation compatibility and operation preflight. Storage, map namespace, phase and dialect settings currently enter the canonical
+model and sha256-v1. These fields must be removed to satisfy the logical-only
+product boundary; they are not universal logical behavior. Provenance does not contribute to fingerprints. `sha256-v1` hashes UTF-8 JSON
+with recursively sorted enumerable own object keys and preserves array order.
 
 ## Types and browser hosts
 

@@ -1,16 +1,26 @@
 ---
 name: teqfw-dem
-description: Use when integrating, configuring, testing, reviewing, or modifying @teqfw/dem logical DEM v2 compilation, identity/reference mapping, typed expressions, provenance, or portable fingerprints.
+description: Use when designing, integrating, reviewing or modifying @teqfw/dem logical schema fragments, host binding rules, model compilation or consumer contracts. Storage partitioning and projection belong to downstream plugins.
 ---
 
-# @teqfw/dem
+# Domain Entity Model
 
-This skill matches package version 0.2.0. Read the host instructions and verify
-installed metadata before integrating. Runtime consumers resolve the supported
-`TeqFw_Dem_` DI components; physical source paths and compilation stages are internal.
+DEM composes plugin fragments into one complete, consistent logical schema.
+Hosts bind explicit dependencies and select identity profiles; refs inherit their
+target identities' profiles. Storage projection belongs to downstream plugins.
 
-Hosts own trusted input acquisition, fragment selection, application mapping and
-backend selection. DEM compilation has no persistence side effects or dialect
-adapter requirement. Preserve explicit version 2, single ownership, diagnostics,
-identity semantics and sha256-v1 compatibility. Read
-[Logical contracts and integration](references/scope.md) before changing consumers.
+- For product semantics and composition invariants, read
+  [Accepted logical model](references/model.md).
+- For new declaration design, read the
+  [Schema/map contract and complete example](references/declarations.md), then
+  [ordinary types](references/types.md) as needed. These are target requirements,
+  not executable v0.2.0 support.
+- For implementing the new compiler, acquisition or fingerprint contract, read
+  [target API](references/target-api.md), [configuration](references/configuration.md)
+  and [canonical identity](references/canonical.md).
+- For installed-package integration or implementation changes, read
+  [v0.2.0 runtime contracts](references/scope.md) and check installed metadata.
+  Resolve supported `TeqFw_Dem_` components through DI.
+
+Keep accepted target requirements and executable support distinct when
+advising consumers. This skill's references are usable without private context.

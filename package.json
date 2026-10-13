@@ -1,7 +1,7 @@
 {
   "name": "@teqfw/dem",
   "version": "0.2.0",
-  "description": "Storage-independent DEM v2 logical compiler, types, expressions, provenance, and fingerprints for TeqFW.",
+  "description": "Domain Entity Model: compose and validate plugin schema fragments into a complete logical data model for TeqFW applications.",
   "type": "module",
   "files": [
     "skills/",
