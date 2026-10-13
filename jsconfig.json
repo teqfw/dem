@@ -13,7 +13,6 @@
   },
   "include": [
     "src/**/*.mjs",
-    "bin/**/*.mjs",
     "test/**/*.mjs",
     "types.d.ts",
     "node_modules/@teqfw/di/types.d.ts",

@@ -101,7 +101,6 @@ The version-matched [consumer skill](skills/teqfw-dem/SKILL.md) is published und
 `skills/teqfw-dem/`. Hosts select and mount it into their own agent discovery
 location; installation does not alter host configuration.
 
-## License and history
+## License
 
-Apache-2.0. The obsolete pre-v2 example is retained in
-[legacy documentation](docs/legacy/README.md), excluded from npm and unsupported.
+Apache-2.0.
