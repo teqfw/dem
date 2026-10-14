@@ -15,7 +15,7 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.name, '@teqfw/dem');
     assert.equal(manifest.type, 'module');
     assert.equal(manifest.license, 'Apache-2.0');
-    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}});
+    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './conformance':'./conformance/Repository.mjs'});
     assert.equal(manifest.types, 'types.d.ts');
     assert.ok(manifest.dependencies['@teqfw/cli']);
     assert.equal(manifest.teqfw.namespaces, undefined);
@@ -35,7 +35,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             '--cache', join(consumer, 'cache'),
         ], {cwd: root, encoding: 'utf8'}))[0];
         const expected = [
-            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json',
+            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'conformance/Repository.mjs',
             ...readdirSync(join(root, 'skills'), {recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()).map(entry=>'skills/'+join(entry.parentPath,entry.name).slice(join(root,'skills').length+1)),
             'types.d.ts',
             ...readdirSync(join(root, 'src'), {recursive: true, withFileTypes: true})
@@ -79,6 +79,15 @@ const result = await compiler.exec({
     }}],
 });
 if (compiler.assertResult({value: result}) !== result || !Object.isFrozen(result.model)) throw new Error('Invalid result');
+/** @type {import('@teqfw/dem').DemSelection} */
+const selection = (/** @type {TeqFw_Dem_Dto_Query_Selection__Factory} */ (await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$'))).create({entity:result.model.entities['/app/item'],selection:{limit:0}});
+if (selection.limit !== 0) throw new Error('Invalid selection');
+/** @type {import('@teqfw/dem').DemRepositoryProvider} */
+const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
+try { await provider.get({path:'/app/item'}); throw new Error('Provider should require host substitution'); }
+catch (error) { if (!(error instanceof Error) || error.name !== 'DemRepositoryError') throw error; }
+const {register} = await import('@teqfw/dem/conformance');
+if (typeof register !== 'function') throw new Error('Missing published conformance');
 if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw new Error('Logical boundary failed');
 `);
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');

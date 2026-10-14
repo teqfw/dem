@@ -111,3 +111,6 @@ file access, JSON parsing/duplicates or package discovery/selection failures.
 A missing implicit file is optional. Permissions/unreadability are errors.
 No symlink sandbox is promised: containment rules are lexical package-relative
 path rules; linked npm packages remain supported.
+
+Portable CRUD/List is a separate [entity-access contract](repository.md); it does
+not change these compiler/acquisition envelopes or canonical content.

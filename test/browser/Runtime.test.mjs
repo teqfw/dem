@@ -31,6 +31,19 @@ test('browser compilation matches Node.js', async () => {
         const compiler = await container.get('TeqFw_Dem_Compile$');
         const input = scenario();
         const compiled = await compiler.exec(input);
+        const normalize = await container.get('TeqFw_Dem_Repository_Normalize$');
+        const selection = await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$');
+        const entity = compiled.model.entities['/app/accounts/user'];
+        const record = normalize.record({entity,record:{user_key:'ABCDEF12-3456-7890-ABCD-EF1234567890'},mode:'complete'});
+        if (record.user_key !== 'abcdef12-3456-7890-abcd-ef1234567890') throw new Error('Browser record normalization failed');
+        const query = selection.create({entity,selection:{limit:0}});
+        if (query.limit !== 0 || query.orderBy[0].attribute !== 'user_key') throw new Error('Browser selection failed');
+        const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
+        try { await provider.get({path:'/app/accounts/user'}); throw new Error('Unselected provider succeeded'); }
+        catch (error) { if (error.code !== 'UNSUPPORTED') throw error; }
+        const repository = await container.get('TeqFw_Dem_Api_Repository$');
+        try { await repository.read({key:{kind:'primary',values:{user_key:record.user_key}}}); throw new Error('Unselected repository succeeded'); }
+        catch (error) { if (error.code !== 'UNSUPPORTED') throw error; }
         await fetch('/result', {method: 'POST', body: JSON.stringify({compiled, browser: navigator.userAgent})});
     } catch (error) { await fetch('/result', {method: 'POST', body: JSON.stringify({error: error.stack})}); }
     </script>`;

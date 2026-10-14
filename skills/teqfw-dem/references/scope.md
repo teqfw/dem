@@ -19,8 +19,15 @@ fingerprint bytes. There are no physical declarations or version-2 compatibility
   expression descriptions. Value types use name/params. This factory performs
   structural validation; it neither validates operator signatures nor executes queries.
 
+- `TeqFw_Dem_Api_RepositoryProvider$`: host-substituted get({path}) contract.
+- `TeqFw_Dem_Api_Repository$`: create/read/update/delete/list contract.
+- `TeqFw_Dem_Repository_Normalize$`: logical value/record/key normalization.
+- `TeqFw_Dem_Repository_Error$`: stable operation-error construction.
+- `TeqFw_Dem_Dto_Query_Selection__Factory$`: entity-aware portable selection validation.
+
 Compile/A, Dto/Compile and Util components are internal, not extension APIs.
-No provider registration, connection, query execution or persistence API is supplied.
+Portable [Repository contracts](repository.md) define access without executing persistence.
+No provider registration or connection management is supplied.
 
 ## Type wiring and browsers
 

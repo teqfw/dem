@@ -4,7 +4,7 @@ Domain Entity Model composes plugin-owned schema fragments into one complete,
 consistent logical model. The host resolves namespace collisions, binds explicit
 external dependencies and selects identity profiles. DEM runs in Node.js and
 browsers; storage partitioning, projection, generation algorithms and data
-operations belong to downstream packages.
+execution belongs to downstream packages. DEM defines portable CRUD/List contracts.
 
 ## Compile through DI
 
@@ -51,6 +51,29 @@ See the [declaration contract and examples](skills/teqfw-dem/references/declarat
 [logical types](skills/teqfw-dem/references/types.md),
 [compiler API](skills/teqfw-dem/references/target-api.md) and
 [canonical identity](skills/teqfw-dem/references/canonical.md).
+
+## Access entities through a portable repository
+
+The host selects a provider implementation through TeqFW DI preprocessing.
+Application code depends only on DEM:
+
+```js
+const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
+const repository = await provider.get({path: '/app/user'});
+const {record} = await repository.read({key: {kind: 'primary', values: {id: '42'}}});
+const selectionFactory = await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$');
+const selection = selectionFactory.create({
+    entity: result.model.entities['/app/user'], selection: {limit: 20},
+});
+const {records} = await repository.list({selection});
+```
+
+Repository supports create/read/update/delete/list with explicit named parameters.
+Single-record addressing uses complete primary or named unique keys. Logical
+normalization, filtering operators, ordering, nulls, pagination, results and errors
+are defined in [Portable entity access](skills/teqfw-dem/references/repository.md).
+No backend ships here. Future backends can import the reusable behavioral suite
+from `@teqfw/dem/conformance` and run it against real storage.
 
 ## Acquire declarations in Node.js
 

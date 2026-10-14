@@ -1,5 +1,12 @@
 # Release Notes
 
+## Unreleased
+
+- Define portable single-entity Repository and DI repository-provider contracts.
+- Validate and normalize logical records, complete keys and immutable selections.
+- Specify filtering, ordering, pagination, results, errors and backend constraints.
+- Publish a reusable real-backend conformance suite and application consumer guidance.
+
 ## 0.2.0
 
 - Compose format-1 schema fragments into a single validated logical model.

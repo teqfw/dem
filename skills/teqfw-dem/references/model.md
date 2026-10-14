@@ -14,8 +14,8 @@ it cannot add, remove, rename or reorder a plugin's attributes.
 
 `dem-schema.json` describes a fragment; `dem-map.json` describes host logical
 composition rules. Future `dem-host.json` belongs to downstream storage projection,
-not DEM. DEM does not partition data sources, select physical types/dialects,
-execute data operations or manage transactions. Downstream owns physical
+not DEM. DEM defines [portable entity access](repository.md), but does not partition
+data sources, select physical types/dialects, execute persistence or manage transactions. Downstream owns physical
 representation, capability checks, generation, persistence and storage addresses.
 
 ## Dependencies and identities

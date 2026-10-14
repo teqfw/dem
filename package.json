@@ -1,9 +1,10 @@
 {
   "name": "@teqfw/dem",
   "version": "0.2.0",
-  "description": "Domain Entity Model: compose and validate plugin schema fragments into a complete logical data model for TeqFW applications.",
+  "description": "Domain Entity Model: logical schema compilation and portable entity repository contracts for TeqFW applications.",
   "type": "module",
   "files": [
+    "conformance/",
     "skills/",
     "src/",
     "CHANGELOG.md",
@@ -43,7 +44,8 @@
   "exports": {
     ".": {
       "types": "./types.d.ts"
-    }
+    },
+    "./conformance": "./conformance/Repository.mjs"
   },
   "bugs": {
     "url": "https://github.com/teqfw/dem/issues"
