@@ -89,6 +89,10 @@ if (evaluator.exec({entity:result.model.entities['/app/item'],records:[{id:'10'}
 const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
 try { await provider.get({path:'/app/item'}); throw new Error('Provider should require host substitution'); }
 catch (error) { if (!(error instanceof Error) || error.name !== 'DemRepositoryError') throw error; }
+/** @type {import('@teqfw/dem').DemRepositoryBatch} */
+const atomic=await container.get('TeqFw_Dem_Api_RepositoryBatch$');
+try {await atomic.execute({operations:[]});throw new Error('Batch should require host substitution');}
+catch(error) {if(!(error instanceof Error) || error.name!=='DemRepositoryError')throw error;}
 const {register} = await import('@teqfw/dem/conformance');
 if (typeof register !== 'function') throw new Error('Missing published conformance');
 const {exercise} = await import('@teqfw/dem/conformance/values');

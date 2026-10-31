@@ -34,7 +34,7 @@ test('selection rejects unsupported types, malformed operators and mismatched li
  const eq=(name,value,type)=>({kind:'call',operator:'eq',args:[{kind:'attr',name},{kind:'value',value,...(type?{type}:{})}]});
  for(const where of [eq('amount','1',{name:'text'}),eq('missing','1'),{kind:'call',operator:'not',args:[]},{kind:'call',operator:'eq',args:[]}]) assert.throws(()=>factory.create({entity,selection:{where}}),{code:'INVALID_INPUT'});
  const keyless={attributes:[{name:'payload',type:{name:'json',params:{}},nullable:false,generation:false}],primaryKey:null,uniqueKeys:{}};
- assert.throws(()=>factory.create({entity:keyless,selection:{}}),{code:'UNSUPPORTED'});
+ assert.deepEqual(factory.create({entity:keyless,selection:{}}).orderBy,[{attribute:'payload',direction:'asc',nulls:'last'}]);
  const composite={...entity,primaryKey:['amount','name']};
  const result=factory.create({entity:composite,selection:{}});
  assert.deepEqual(result.orderBy.map(o=>o.attribute),['amount','id','name']);

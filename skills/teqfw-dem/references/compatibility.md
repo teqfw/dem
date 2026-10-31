@@ -1,39 +1,65 @@
 # Cross-backend capability matrix
 
-The strategy is to maximize shared functionality through native or software
-realizations. DEM defines logical behavior; adapters choose physical representations.
-The matrix describes current implementation, not fundamental engine limitations.
+DEM defines logical behavior. Adapters use native facilities or reversible software
+realizations to maximize shared functionality. RDB's explicit `projection:'portable'`
+mode provides the broadest common surface; `native` remains its default and retains
+existing physical layouts. These modes are separate layouts, not interchangeable
+views of existing tables.
 
-| Capability | IndexedDB | SQLite | PostgreSQL | MariaDB |
-| --- | --- | --- | --- | --- |
-| Core DEM value storage | Structured logical values | Native columns plus exact text/blob codecs | Native integer/numeric/bytea plus reversible text codecs | Native integer/decimal plus reversible binary codecs |
-| Signed/unsigned 64-bit ordinary integers | Exact strings | Exact text | bigint / numeric(20,0) | bigint / bigint unsigned; string driver results |
-| Decimal | Exact strings | Exact text | numeric up to supported typmod; text fallback | decimal within 65 digits/38 scale; binary text fallback |
-| Text/binary payload beyond 512 bytes | Yes | Yes | Yes | Yes for unindexed columns; indexed values remain bounded |
-| JSON and dense/bit/sparse vectors | Logical JSON | Serialized text | Serialized text | Serialized binary UTF8 |
-| Nanosecond datetime | Canonical string | Canonical text | Canonical text | Canonical binary UTF8 |
-| UUID identities | Generated and explicit | Generated and explicit | Generated and explicit | Generated and explicit |
-| Integer identity capacity | Exact persistent counter | Native signed 64-bit | Native signed 64-bit | Native unsigned 64-bit |
-| Keys | Transactional software checks | Native constraints | Native constraints | Native constraints, finite index width |
-| Relations | Descriptive default; optional checked mode | Native foreign keys | Native foreign keys | Native foreign keys |
-| Selection semantics | Shared software evaluator | Native simple cases, shared fallback | Native simple cases, shared fallback | Native simple cases, shared fallback |
-| Schema lifecycle | Versioned snapshots and structural updates | Explicit initial creation | Explicit initial creation | Explicit initial creation with DDL cleanup |
+| Capability | IndexedDB | RDB portable (SQLite / PostgreSQL / MariaDB) | RDB native |
+| --- | --- | --- | --- |
+| All core DEM values | Structured logical values | Per-attribute native columns plus reversible codecs | Native columns plus reversible codecs |
+| Exact integers and decimals | Canonical strings | Native numeric where lossless, text/binary fallback | Same for ordinary values |
+| Integer identities and refs | Persistent exact counters | Persistent exact counters and textual values | Signed 64-bit SQLite/PG; unsigned 64-bit MariaDB |
+| Long/composite/structured logical keys | Software checks | Software checks; private UUID row key | Physical key and index limits apply |
+| Valid scalar strings including NUL | Yes | JSON-encoded textual scalars | PostgreSQL native text rejects NUL |
+| JSON / binary / dense, bit, sparse vectors | Yes | Yes | Yes, MariaDB indexed payload limited to 512 bytes |
+| Null/default/key semantics | DEM normalization and checks | DEM normalization and checks | DEM normalization plus native constraints |
+| Relations | Descriptive default; optional checked mode | Checked default; optional descriptive mode | Checked native constraints |
+| All-core comparison and ordering | Shared evaluator | Shared evaluator | Native eligible cases; shared fallback |
+| Atomic command batches | One IDB data transaction | One SQL transaction | One outer SQL transaction |
+| Schema history and additive evolution | Versioned snapshots | Versioned snapshots | Initial creation only |
+| Query optimization | Eligible key/equality index lookup; safe fallback | Scope lock and logical snapshot evaluation | Native eligible queries; logical fallback |
 
-Selection fallback applies to extended numeric and structured/date-time entities
-whose native ordering or conversion is not portable. Simple native SQL selections
-remain available. Physical indexes and execution speed are not shared guarantees.
+Use checked relations in both adapters when strict conformance is required. Data
+operations serialize conservatively in the portable profile; performance and native
+index coverage are not shared guarantees. Every physical engine still has storage,
+object-count, transaction and resource limits. No artificial native integer or index
+width restriction is imposed on portable logical keys. Large workloads can require
+substantial memory because software operations materialize logical records.
 
-Current gaps include unbounded logical identity values beyond native numeric limits, unbounded indexed
-MariaDB values, common schema evolution, multi-operation atomicity and query
-planning beyond eligible exact-key/equality lookup. Non-well-formed UTF16 text is explicitly unsupported
-by the RDB codec; PostgreSQL text also rejects zero characters. These are known
-representation gaps to investigate, not a target restriction on the logical model.
-No automatic synchronization or cross-source transaction is supplied.
+Binary compares decoded bytes. Dense/bit vectors compare numeric elements; sparse
+vectors compare conceptual dense values with absent entries zero. JSON compares
+canonical serialization by Unicode scalar sequence, not domain numeric or similarity
+semantics. All core types support deterministic ordering, including keyless records.
+JSON/vector negative zero canonicalizes to zero. Lone UTF16 surrogates are rejected
+by DEM itself; valid Unicode scalars and NUL are covered by the portable workload.
 
-The shared `@teqfw/dem/conformance/values` workload produces a full logical
-transcript. DEM-RDB's `test:compare` compares that transcript against real browser
-IndexedDB and each enabled SQL engine. This proves only the covered action trace;
-strict repository, lifecycle, concurrency and failure tests remain separate gates.
+Structural evolution preserves removed physical data, supports additive tables,
+columns and logical defaults, and records complete model snapshots. Physical type
+changes requiring value migration reject. Hosts close stale repositories and reopen
+against the accepted model. MariaDB DDL is not transactional: schema updates require
+host quiescence; failed attempts clean up their additions where possible, while
+process interruption or failed cleanup can require operator repair. No online DDL
+atomicity is promised. Projection switching requires explicit host migration.
+
+The separate optional RepositoryBatch contract supports ordered existing CRUD/list
+commands with one commit and rollback on failure. Arbitrary async transaction
+callbacks, implicit references to generated results, joins, aggregation, similarity
+search, automatic value migrations, synchronization and cross-store transactions
+are outside the current common API. Bulk work uses explicit command batches. These
+boundaries preserve a usable common interface rather than expose incompatible
+engine-specific transaction lifetimes or unchosen domain semantics.
+
+## Verification reach
+
+`@teqfw/dem/conformance` supplies strict repository checks. The `conformance/values`
+export supplies value, atomic, extended-representation and evolution transcripts.
+DEM-RDB `test:compare` compares them with real Chrome IndexedDB and enabled SQL
+engines. Engine tests separately cover failure injection, concurrency and native
+numeric limits. Passing these checks proves the covered scenarios, not every
+possible engine configuration or schema. Missing engine credentials are skips;
+release verification must inspect the actual executed matrix.
 
 ## Physical facilities consulted
 
@@ -45,7 +71,5 @@ strict repository, lifecycle, concurrency and failure tests remain separate gate
 - [MariaDB long binary data](https://mariadb.com/docs/server/reference/data-types/string-data-types/longblob)
 - [IndexedDB](https://www.w3.org/TR/IndexedDB/)
 
-PostgreSQL pgvector is an optional physical optimization, not a prerequisite for
-logical vector storage. Its float32 representation is not a lossless replacement
-for all JavaScript float64 values. Native similarity search is a distinct potential
-API from ordinary vector persistence and is not currently in the shared contract.
+Optional pgvector can optimize a future similarity API; float32 storage is not a
+lossless replacement for every JavaScript float64 vector value.

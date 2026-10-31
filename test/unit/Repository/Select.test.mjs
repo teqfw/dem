@@ -5,6 +5,7 @@ import Select from '../../../src/Repository/Select.mjs';
 
 const entity = /** @type {TeqFw_Dem_Entity} */({attributes:[{name:'value',type:{name:'decimal'},nullable:true,generation:false}],primaryKey:null,uniqueKeys:{},relations:{},indexes:{}});
 const evaluator = new Select({
+    data:/** @type {any} */({serialize:JSON.stringify}),
     errors:/** @type {any} */({create:(/** @type {any} */ opts)=>Object.assign(new Error(opts.message),{code:opts.code})}),
     normalize:/** @type {any} */({record:(/** @type {any} */ {record}) => structuredClone(record)}),
     selection:/** @type {any} */({create:(/** @type {any} */ {selection}) => ({orderBy:[{attribute:'value',direction:'asc',nulls:'last'}],offset:0,limit:null,...selection})}),

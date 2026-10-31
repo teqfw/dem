@@ -134,3 +134,17 @@ Adapters can share exact in-memory selection behavior through
 normalizes detached records and applies DEM filters, ordering and pagination
 without persistence. `@teqfw/dem/conformance/values` supplies a common all-type
 workload and logical transcript for direct comparisons of real backends.
+
+## Isomorphic data access
+
+The same compiled model and repository commands can be used with DEM-IDB in the
+browser and DEM-RDB in Node. RDB offers an explicit portable projection for broad
+logical key/value support and versioned structural evolution. See the published
+[compatibility matrix](skills/teqfw-dem/references/compatibility.md) and
+[repository contract](skills/teqfw-dem/references/repository.md).
+
+Hosts may map the separate optional `TeqFw_Dem_Api_RepositoryBatch$` contract to
+their configured adapter provider. execute({operations:[{path,method,params}]})
+returns {results} after one commit; failures roll back the batch. Existing CRUD/list
+parameter/result shapes are retained. DEM owns logical planning, while adapters
+own persistence and generation. No implicit synchronization is supplied.

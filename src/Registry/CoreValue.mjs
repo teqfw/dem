@@ -186,7 +186,7 @@ export default class CoreValue {
                                 fail();
                             indices.add(item.index);
                         }
-                        return { dimensions: p.dimensions, entries: [...value.entries].sort((a, b) => a.index - b.index) };
+                        return { dimensions: p.dimensions, entries: [...value.entries].sort((a, b) => a.index - b.index).map(item=>({index:item.index,value:item.value})) };
                     }
                     if (!Array.isArray(value) || value.length !== p.dimensions || !value.every(v => p.element === 'bit' ? v === 0 || v === 1 : typeof v === 'number' && Number.isFinite(v)))
                         fail();
@@ -194,7 +194,7 @@ export default class CoreValue {
                 }
                 default: return fail();
             }
-            return structuredClone(value);
+            return ['json','vector'].includes(type.name) ? JSON.parse(data.serialize(value)) : structuredClone(value);
         };
         /**
          * @param {object} deps

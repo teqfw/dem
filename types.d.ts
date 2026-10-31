@@ -1,3 +1,6 @@
+export type DemBatchOperation = TeqFw_Dem_BatchOperation;
+export type DemBatchResult = TeqFw_Dem_BatchResult;
+export type DemRepositoryBatch = TeqFw_Dem_Api_RepositoryBatch;
 export type DemOrder = TeqFw_Dem_Order;
 export type DemRecordResult = TeqFw_Dem_RecordResult;
 export type DemRecordResultNullable = TeqFw_Dem_RecordResultNullable;
@@ -35,10 +38,14 @@ declare global {
     type TeqFw_Dem_Acquire__Class = typeof import("./src/Acquire.mjs").default;
     type TeqFw_Dem_AcquisitionResult = {schemas:TeqFw_Dem_Envelope[];map?:TeqFw_Dem_Envelope};
     type TeqFw_Dem_Api_Repository = import("./src/Api/Repository.mjs").default;
+    type TeqFw_Dem_Api_RepositoryBatch = import("./src/Api/RepositoryBatch.mjs").default;
+    type TeqFw_Dem_Api_RepositoryBatch__Class = typeof import("./src/Api/RepositoryBatch.mjs").default;
     type TeqFw_Dem_Api_RepositoryProvider = import("./src/Api/RepositoryProvider.mjs").default;
     type TeqFw_Dem_Api_RepositoryProvider__Class = typeof import("./src/Api/RepositoryProvider.mjs").default;
     type TeqFw_Dem_Api_Repository__Class = typeof import("./src/Api/Repository.mjs").default;
     type TeqFw_Dem_Attribute = {name: string; type: TeqFw_Dem_Type; nullable: boolean; generation: boolean; default?: unknown};
+    type TeqFw_Dem_BatchOperation = {path:string;method:'create';params:{record:TeqFw_Dem_Record}}|{path:string;method:'read';params:{key:TeqFw_Dem_Key}}|{path:string;method:'delete';params:{key:TeqFw_Dem_Key}}|{path:string;method:'update';params:{key:TeqFw_Dem_Key;changes:TeqFw_Dem_Record}}|{path:string;method:'list';params:{selection:unknown}};
+    type TeqFw_Dem_BatchResult = {results:Array<TeqFw_Dem_RecordResultNullable|TeqFw_Dem_DeleteResult|TeqFw_Dem_ListResult>};
     type TeqFw_Dem_Canonical = {domain:string;entities:Record<string,TeqFw_Dem_CanonicalEntity>};
     type TeqFw_Dem_CanonicalAttribute = {type:TeqFw_Dem_Type;nullable:boolean;generation:boolean;default?:unknown};
     type TeqFw_Dem_CanonicalEntity = {attributes:Record<string,TeqFw_Dem_CanonicalAttribute>;primaryKey:string[]|null;uniqueKeys:Record<string,string[]>;indexes:Record<string,{attributes:string[]}>;relations:Record<string,TeqFw_Dem_Relation>};
@@ -102,6 +109,8 @@ declare global {
     type TeqFw_Dem_Relation = {attributes: string[]; target: {path: string; attributes: string[]}};
     type TeqFw_Dem_RepositoryError = Error & {name:string;code:TeqFw_Dem_RepositoryErrorCode};
     type TeqFw_Dem_RepositoryErrorCode = 'INVALID_INPUT'|'UNSUPPORTED'|'NOT_FOUND'|'CONFLICT'|'RELATION'|'STORAGE';
+    type TeqFw_Dem_Repository_Batch = import("./src/Repository/Batch.mjs").default;
+    type TeqFw_Dem_Repository_Batch__Class = typeof import("./src/Repository/Batch.mjs").default;
     type TeqFw_Dem_Repository_Error = import("./src/Repository/Error.mjs").default;
     type TeqFw_Dem_Repository_Error__Class = typeof import("./src/Repository/Error.mjs").default;
     type TeqFw_Dem_Repository_Normalize = import("./src/Repository/Normalize.mjs").default;

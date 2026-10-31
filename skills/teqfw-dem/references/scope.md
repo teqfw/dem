@@ -20,6 +20,8 @@ fingerprint bytes. There are no physical declarations or version-2 compatibility
   structural validation; it neither validates operator signatures nor executes queries.
 
 - `TeqFw_Dem_Api_RepositoryProvider$`: host-substituted get({path}) contract.
+- `TeqFw_Dem_Api_RepositoryBatch$`: optional host-substituted atomic execute contract.
+- `TeqFw_Dem_Repository_Batch$`: disposable logical batch snapshot validation/planning.
 - `TeqFw_Dem_Api_Repository$`: create/read/update/delete/list contract.
 - `TeqFw_Dem_Repository_Normalize$`: logical value/record/key normalization.
 - `TeqFw_Dem_Repository_Error$`: stable operation-error construction.

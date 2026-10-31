@@ -44,6 +44,9 @@ test('browser compilation matches Node.js', async () => {
         const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
         try { await provider.get({path:'/app/accounts/user'}); throw new Error('Unselected provider succeeded'); }
         catch (error) { if (error.code !== 'UNSUPPORTED') throw error; }
+        const atomic = await container.get('TeqFw_Dem_Api_RepositoryBatch$');
+        try { await atomic.execute({operations:[]}); throw new Error('Unselected batch succeeded'); }
+        catch (error) { if (error.code !== 'UNSUPPORTED') throw error; }
         const repository = await container.get('TeqFw_Dem_Api_Repository$');
         try { await repository.read({key:{kind:'primary',values:{user_key:record.user_key}}}); throw new Error('Unselected repository succeeded'); }
         catch (error) { if (error.code !== 'UNSUPPORTED') throw error; }

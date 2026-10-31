@@ -18,3 +18,10 @@ test('invalid type parameters and literal values are rejected',()=>{
     for(const type of [{name:'integer',params:{bits:128}},{name:'identity',params:{bits:32}},{name:'vector',params:{dimensions:2,element:'bit',sparse:true}},{name:'enum',params:{values:['a','a']}},{name:'datetime',params:{precision:10}},{name:'string'},{name:'decimal',params:{precision:2,scale:3}},{name:'text',params:null}])assert.equal(values.normalizeType({type}),null);
     for(const [type,value] of /** @type {[any,any][]} */([[{name:'date'},'2023-02-29'],[{name:'datetime'},'2024-01-01T00:00:60'],[{name:'datetime',params:{timezone:true}},'2024-01-01T00:00:00+14:01'],[{name:'binary'},'AR=='],[{name:'integer',params:{bits:8}},128],[{name:'vector',params:{dimensions:2,element:'float',sparse:true}},{dimensions:2,entries:[{index:0,value:1},{index:0,value:2}]}]]))assert.equal(values.matches({type,value}),false);
 });
+
+
+test('JSON property enumeration has the same canonical shape before persistence',()=>{
+    const output=values.normalizeValue({type:{name:'json'},value:{z:-0,a:{y:1,b:2}}});
+    assert.deepEqual(Object.keys(output),['a','z']);assert.deepEqual(Object.keys(output.a),['b','y']);
+    assert.equal(Object.is(output.z,-0),false);
+});

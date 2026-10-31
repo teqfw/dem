@@ -28,11 +28,6 @@ export class Factory {
          */
         const invalid = function (message) { throw errors.create({code:'INVALID_INPUT',message}); };
         /**
-         * @param {TeqFw_Dem_Attribute} attribute
-         * @returns {boolean}
-         */
-        const orderable = function (attribute) { return !['binary','json','vector'].includes(attribute.type.name); };
-        /**
          * @param {object} deps
          * @param {TeqFw_Dem_Entity} deps.entity
          * @param {unknown} deps.selection
@@ -71,7 +66,6 @@ export class Factory {
                 if (!['eq','ne','lt','lte','gt','gte'].includes(op)) throw errors.create({code:'UNSUPPORTED',message:'Unsupported operator: ' + op});
                 if (args.length !== 2 || args[0].kind !== 'attr' || args[1].kind !== 'value') return invalid('Comparison requires attribute then literal.');
                 const attr = attribute(args[0].name);
-                if (!orderable(attr)) throw errors.create({code:'UNSUPPORTED',message:'Non-scalar comparisons are unsupported.'});
                 const literal = args[1];
                 // Identity literals omit type: Expression deliberately only accepts name/params.
                 if (literal.type && data.serialize(literal.type) !== data.serialize({name:attr.type.name,params:attr.type.params ?? {}})) return invalid('Literal type must match attribute type exactly.');
@@ -88,14 +82,13 @@ export class Factory {
             result.orderBy = (input.orderBy ?? []).map((/** @type {any} */ item) => {
                 if (!data.isObject(item) || Object.keys(item).some(k => !['attribute','direction','nulls'].includes(k))
                     || !['asc','desc'].includes(item.direction) || !['first','last'].includes(item.nulls)) return invalid('Ordering requires attribute, direction and nulls.');
-                if (!orderable(attribute(item.attribute))) throw errors.create({code:'UNSUPPORTED',message:'Unsupported ordering type.'});
+                attribute(item.attribute);
                 return {attribute:item.attribute,direction:item.direction,nulls:item.nulls};
             });
             if (new Set(result.orderBy.map(o=>o.attribute)).size !== result.orderBy.length) return invalid('Duplicate ordering attribute.');
             const candidates = [entity.primaryKey, ...Object.keys(entity.uniqueKeys).sort().map(k=>entity.uniqueKeys[k])];
-            const tie = candidates.find(key => key?.length && key.every(name=> !attribute(name).nullable && orderable(attribute(name))));
+            const tie = candidates.find(key => key?.length && key.every(name=> !attribute(name).nullable));
             const fallback = entity.attributes.slice().sort((a,b)=>a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-            if (!tie && fallback.some(a=>!orderable(a))) throw errors.create({code:'UNSUPPORTED',message:'Entity has no portable total ordering.'});
             for (const name of tie ?? fallback.map(a=>a.name)) {
                 if (!result.orderBy.some(o=>o.attribute === name)) result.orderBy.push({attribute:name,direction:'asc',nulls:'last'});
             }

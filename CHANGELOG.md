@@ -20,3 +20,11 @@
 
 - Share exact logical selection evaluation through Repository/Select.
 - Publish an all-core-type workload and observation transcript for actual IDB/RDB comparisons.
+
+## Unreleased
+
+- Add optional atomic repository command batches and shared snapshot planning.
+- Define comparisons and deterministic ordering for JSON, binary and vectors.
+- Canonicalize JSON/vector negative zero and detach sparse entries.
+- Extend cross-backend workloads with atomicity, long keys, wide identities, Unicode
+  scalars and structural evolution/history.

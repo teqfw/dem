@@ -113,26 +113,30 @@ Expression Factory still owns structural validation; Selection adds semantics.
 | and / or | at least two boolean calls | two-valued conjunction/disjunction |
 | not | one boolean call | boolean negation |
 | isNull / isNotNull | one attr | explicit null test |
-| eq / ne | attr then literal | exact scalar equality/inequality |
-| lt / lte / gt / gte | attr then literal | scalar comparison |
+| eq / ne | attr then literal | exact normalized equality/inequality |
+| lt / lte / gt / gte | attr then literal | logical value comparison |
 
 Every comparison involving null is false, including ne. Thus `not(eq(attr,x))`
 includes null values; `ne(attr,x)` excludes them. There is no SQL unknown value.
 Literals normalize to the selected attribute's type; an optional explicit type
 must exactly equal its normalized name/params. Identity/ref literals omit type.
 No cross-type coercion, attr-to-attr comparison or nested scalar calls are allowed.
-Binary, JSON and vector comparison/sorting are unsupported; null tests remain valid.
+All core types support comparisons and sorting. Binary compares decoded bytes
+lexicographically; dense and bit vectors compare numeric elements lexicographically.
+Sparse vectors compare their conceptual dense numeric values, treating absent
+entries as zero without allocating a dense vector. JSON compares canonical DEM
+serialization by Unicode scalar sequence; this is a deterministic representation
+order, not numeric JSON ordering, containment or similarity search.
 
 Sorting compares integers/decimals/int identities numerically with exact precision;
 booleans false before true; strings/text/enums/uuid by Unicode scalar sequence,
 case-sensitive with no locale; dates and canonical datetimes chronologically.
 Order items explicitly state attribute, asc/desc direction and first/last nulls.
 Null placement is independent of direction. Duplicate sort attributes reject.
-Append ascending missing members of an orderable non-null primary key, otherwise
+Append ascending missing members of a non-null primary key, otherwise
 first eligible named unique key by key-name order, as tie-breakers. If no such key
-exists, append every attribute by name; all must be orderable. Equal full records
-may remain tied because their observable values are indistinguishable. Reject
-UNSUPPORTED when a keyless entity has no portable total order.
+exists, append every attribute by name. Equal full records
+may remain tied because their observable values are indistinguishable. All core types participate in this deterministic fallback order.
 
 Filtering precedes sorting, followed by offset then limit. Offset defaults to zero;
 omitted or null limit is unbounded; zero limit returns no records. Both numbers
@@ -192,3 +196,25 @@ replaces the strict conformance suite, lifecycle and concurrency checks.
 The shared value workload also verifies linked identities beyond JavaScript's safe
 integer range and concurrent generation. SQL implementations must preserve values
 before driver conversion rather than converting a rounded Number back to a string.
+
+## Atomic command batches
+
+The optional `TeqFw_Dem_Api_RepositoryBatch$` contract exposes
+`execute({operations:[{path,method,params}]})`. Host preprocessing maps it to the
+same configured backend as RepositoryProvider. Operations form a nonempty ordered
+array; method is create/read/update/delete/list and params use the method shapes
+above. The result is `{results:[...]}` in command order, published after one data
+transaction commits. Any command failure rolls back the batch. Each result is
+detached from subsequent commands. Dependent keys must be explicit; generated
+result references, arbitrary async callbacks and schema commands are excluded.
+Bulk writes can be expressed as batches. Separate calls have no shared transaction.
+
+`TeqFw_Dem_Repository_Batch$` validates commands and plans a disposable logical
+snapshot; adapters own persistence, transaction scope and generation. This helper
+does not create an in-memory backend. JSON and vectors normalize numeric negative
+zero to zero; sparse entry objects are detached from caller inputs.
+
+The values conformance export also supplies atomic, extended-representation and
+evolution workloads (`exerciseAtomic`, `exerciseExtended`, `exerciseEvolution`).
+Evolution compares additive defaults, retained removed entities, stale providers,
+idempotent application and schema snapshots through adapter lifecycle APIs.
