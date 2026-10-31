@@ -21,6 +21,7 @@ export const schema = Object.freeze({$format:1,
         {name:'uuid',type:{name:'uuid'}},
         {name:'note',type:{name:'text'},nullable:true},
     ],uniqueKeys:{code:['code']}},
+    '/portable/large':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/portable/large',attributes:['id']}}}},
     '/portable/uuid':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},
 });
 export const map = Object.freeze({$format:1,identityProfiles:{'/portable/uuid':{id:{type:'uuid'}}}});
@@ -54,8 +55,19 @@ export async function exercise({provider,assert}) {
     assert.equal(conflict,'CONFLICT');
     assert.deepEqual(await repo.list({selection:{limit:0}}),{records:[]});
     assert.deepEqual(await repo.delete({key:{kind:'primary',values:{id:second.record.id}}}),{deleted:true});
+    const large=await provider.get({path:'/portable/large'});
+    const parent=await large.create({record:{id:'9007199254740993',owner:null}});
+    const child=await large.create({record:{owner:parent.record.id}});
+    assert.equal(child.record.id,'9007199254740994');
+    assert.deepEqual(await large.read({key:{kind:'primary',values:{id:child.record.id}}}),child);
+    const largeRecords=await large.list({selection:{}});
+    assert.deepEqual(largeRecords.records.map((/** @type {any} */ row)=>row.id),['9007199254740993','9007199254740994']);
+    await Promise.all(Array.from({length:8},()=>large.create({record:{owner:parent.record.id}})));
+    const largeConcurrent=await large.list({selection:{}});
+    assert.equal(largeConcurrent.records.length,10);
+    assert.equal(new Set(largeConcurrent.records.map((/** @type {any} */ row)=>row.id)).size,10);
     const uuid=await provider.get({path:'/portable/uuid'});
     const generated=(await uuid.create({record:{name:'generated'}})).record;
     assert.match(generated.id,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    return {record,read,ordered,orderedText,filtered,updated,conflict,remaining:await repo.list({selection:{}}),uuidGenerated:true};
+    return {record,read,ordered,orderedText,filtered,updated,conflict,remaining:await repo.list({selection:{}}),largeRecords,largeConcurrent,uuidGenerated:true};
 }

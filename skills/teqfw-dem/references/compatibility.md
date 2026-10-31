@@ -13,7 +13,7 @@ The matrix describes current implementation, not fundamental engine limitations.
 | JSON and dense/bit/sparse vectors | Logical JSON | Serialized text | Serialized text | Serialized binary UTF8 |
 | Nanosecond datetime | Canonical string | Canonical text | Canonical text | Canonical binary UTF8 |
 | UUID identities | Generated and explicit | Generated and explicit | Generated and explicit | Generated and explicit |
-| Integer identity capacity | Exact persistent counter | Native safe-integer baseline | Current int32 baseline | Current int32 baseline |
+| Integer identity capacity | Exact persistent counter | Native signed 64-bit | Native signed 64-bit | Native unsigned 64-bit |
 | Keys | Transactional software checks | Native constraints | Native constraints | Native constraints, finite index width |
 | Relations | Descriptive default; optional checked mode | Native foreign keys | Native foreign keys | Native foreign keys |
 | Selection semantics | Shared software evaluator | Native simple cases, shared fallback | Native simple cases, shared fallback | Native simple cases, shared fallback |
@@ -23,9 +23,9 @@ Selection fallback applies to extended numeric and structured/date-time entities
 whose native ordering or conversion is not portable. Simple native SQL selections
 remain available. Physical indexes and execution speed are not shared guarantees.
 
-Current gaps include larger integer identity capacity in RDB, unbounded indexed
+Current gaps include unbounded logical identity values beyond native numeric limits, unbounded indexed
 MariaDB values, common schema evolution, multi-operation atomicity and query
-planning beyond full scans. Non-well-formed UTF16 text is explicitly unsupported
+planning beyond eligible exact-key/equality lookup. Non-well-formed UTF16 text is explicitly unsupported
 by the RDB codec; PostgreSQL text also rejects zero characters. These are known
 representation gaps to investigate, not a target restriction on the logical model.
 No automatic synchronization or cross-source transaction is supplied.

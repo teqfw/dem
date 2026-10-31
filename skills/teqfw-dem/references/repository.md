@@ -187,3 +187,8 @@ establish bounded cross-backend parity. It covers large texts/binary, nested JSO
 float/bit/sparse vectors, exact decimals, unsigned 64-bit values, nanosecond datetime,
 UUID identity generation and ordinary CRUD/List. It supplements rather than
 replaces the strict conformance suite, lifecycle and concurrency checks.
+
+
+The shared value workload also verifies linked identities beyond JavaScript's safe
+integer range and concurrent generation. SQL implementations must preserve values
+before driver conversion rather than converting a rounded Number back to a string.
