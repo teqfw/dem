@@ -15,3 +15,8 @@
 - Produce immutable authenticated results, canonical logical fingerprints and dependency graphs.
 - Acquire declaration files using TeqFW package discovery and package-relative metadata.
 - Run full Node verification, isolated archive-consumer checks and minimal browser parity checks.
+
+## Isomorphic data work
+
+- Share exact logical selection evaluation through Repository/Select.
+- Publish an all-core-type workload and observation transcript for actual IDB/RDB comparisons.

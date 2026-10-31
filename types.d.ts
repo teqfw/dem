@@ -106,6 +106,8 @@ declare global {
     type TeqFw_Dem_Repository_Error__Class = typeof import("./src/Repository/Error.mjs").default;
     type TeqFw_Dem_Repository_Normalize = import("./src/Repository/Normalize.mjs").default;
     type TeqFw_Dem_Repository_Normalize__Class = typeof import("./src/Repository/Normalize.mjs").default;
+    type TeqFw_Dem_Repository_Select = import("./src/Repository/Select.mjs").default;
+    type TeqFw_Dem_Repository_Select__Class = typeof import("./src/Repository/Select.mjs").default;
     type TeqFw_Dem_SchemaWork = {source:TeqFw_Dem_Source;dependencies:Record<string,any>;nodes:Record<string,{raw:any;pointer:string}>;packages:string[];correspondence:Record<string,string>;bindings:Record<string,any>};
     type TeqFw_Dem_Selection = {where?:TeqFw_Dem_QueryExpression;orderBy:TeqFw_Dem_Order[];limit:number|null;offset:number};
     type TeqFw_Dem_Source = {packageName: string; filename: string};

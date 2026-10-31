@@ -45,7 +45,8 @@
     ".": {
       "types": "./types.d.ts"
     },
-    "./conformance": "./conformance/Repository.mjs"
+    "./conformance": "./conformance/Repository.mjs",
+    "./conformance/values": "./conformance/Values.mjs"
   },
   "bugs": {
     "url": "https://github.com/teqfw/dem/issues"

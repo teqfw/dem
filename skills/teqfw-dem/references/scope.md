@@ -41,3 +41,7 @@ JavaScript, structuredClone and TextEncoder, with no Node shim or database.
 Acquire is not part of the portable dependency graph. Hosts own module delivery.
 
 The published skill is self-contained. Installation has no host configuration hook.
+
+`TeqFw_Dem_Repository_Select$` is a portable in-memory selection evaluator for
+adapter fallback execution. Its exec method and shared value workload are defined
+in the [repository reference](repository.md). It does not own stored data.

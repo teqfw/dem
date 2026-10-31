@@ -24,3 +24,8 @@ target identities' profiles. Storage projection belongs to downstream plugins.
   Resolve supported `TeqFw_Dem_` components through DI.
 
 Use the declaration and API contracts for code and test generation. This skill's references are usable without private context.
+
+For cross-backend design and current realizations, consult the
+[compatibility matrix](references/compatibility.md). Prefer reversible realization
+and shared observable behavior; distinguish storing a type from native indexing
+or specialized operations on that type.

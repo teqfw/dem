@@ -128,3 +128,9 @@ not alter host configuration.
 ## License
 
 Apache-2.0.
+
+Adapters can share exact in-memory selection behavior through
+`TeqFw_Dem_Repository_Select$` (`exec({entity, records, selection})`). The component
+normalizes detached records and applies DEM filters, ordering and pagination
+without persistence. `@teqfw/dem/conformance/values` supplies a common all-type
+workload and logical transcript for direct comparisons of real backends.

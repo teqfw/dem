@@ -38,6 +38,9 @@ test('browser compilation matches Node.js', async () => {
         if (record.user_key !== 'abcdef12-3456-7890-abcd-ef1234567890') throw new Error('Browser record normalization failed');
         const query = selection.create({entity,selection:{limit:0}});
         if (query.limit !== 0 || query.orderBy[0].attribute !== 'user_key') throw new Error('Browser selection failed');
+        const evaluator = await container.get('TeqFw_Dem_Repository_Select$');
+        const evaluated = evaluator.exec({entity,records:[record],selection:{}});
+        if (evaluated.records[0].user_key !== record.user_key) throw new Error('Browser selection evaluation failed');
         const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
         try { await provider.get({path:'/app/accounts/user'}); throw new Error('Unselected provider succeeded'); }
         catch (error) { if (error.code !== 'UNSUPPORTED') throw error; }

@@ -170,3 +170,20 @@ persistence mock. Backend projects run this suite for their real implementations
 and extend it for supported ordinary types, generation/capacity limits, concurrent
 constraint races, capability rejection and failure injection. Passing DEM unit
 checks alone is not evidence of backend conformance.
+
+## Shared in-memory selection evaluation
+
+`TeqFw_Dem_Repository_Select$` exposes `exec({entity, records, selection})`, returning
+`{records}`. It validates the selection and complete logical records, detaches
+values, filters, sorts and paginates using the semantics above. It has no storage
+or runtime-specific imports. Backends may use it when translating a selection to
+native operations would lose precision or change ordering. This component is not
+an in-memory repository engine and provides no persistence or transactions.
+
+`@teqfw/dem/conformance/values` publishes `schema`, host `map` and
+`exercise({provider, assert})`, a shared all-core-type workload returning a logical
+observation transcript. Run it against actual providers and compare transcripts to
+establish bounded cross-backend parity. It covers large texts/binary, nested JSON,
+float/bit/sparse vectors, exact decimals, unsigned 64-bit values, nanosecond datetime,
+UUID identity generation and ordinary CRUD/List. It supplements rather than
+replaces the strict conformance suite, lifecycle and concurrency checks.
