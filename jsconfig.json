@@ -16,7 +16,8 @@
     "test/**/*.mjs",
     "types.d.ts",
     "node_modules/@teqfw/di/types.d.ts",
-    "node_modules/@teqfw/di/src"
+    "node_modules/@teqfw/di/src",
+    "conformance/application/*.mjs"
   ],
   "exclude": [
     "ctx"

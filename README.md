@@ -148,3 +148,9 @@ their configured adapter provider. execute({operations:[{path,method,params}]})
 returns {results} after one commit; failures roll back the batch. Existing CRUD/list
 parameter/result shapes are retained. DEM owns logical planning, while adapters
 own persistence and generation. No implicit synchronization is supplied.
+
+A runnable unchanged application component is published at
+`conformance/application/Workflow.mjs`, with its logical schema alongside it. It
+depends only on DEM contracts. DEM-RDB's `test:application` compares its execution
+in SQLite and real browser IndexedDB through two host Composition Roots; see the
+[application guidance](skills/teqfw-dem/references/repository.md#unchanged-application-example).

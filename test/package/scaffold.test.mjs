@@ -15,7 +15,7 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.name, '@teqfw/dem');
     assert.equal(manifest.type, 'module');
     assert.equal(manifest.license, 'Apache-2.0');
-    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './conformance':'./conformance/Repository.mjs', './conformance/values':'./conformance/Values.mjs'});
+    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './conformance':'./conformance/Repository.mjs', './conformance/values':'./conformance/Values.mjs', './conformance/application':'./conformance/application/Workflow.mjs', './conformance/application/schema':'./conformance/application/Schema.mjs'});
     assert.equal(manifest.types, 'types.d.ts');
     assert.ok(manifest.dependencies['@teqfw/cli']);
     assert.equal(manifest.teqfw.namespaces, undefined);
@@ -35,7 +35,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             '--cache', join(consumer, 'cache'),
         ], {cwd: root, encoding: 'utf8'}))[0];
         const expected = [
-            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'conformance/Repository.mjs', 'conformance/Values.mjs',
+            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'conformance/Repository.mjs', 'conformance/Values.mjs', 'conformance/application/Workflow.mjs', 'conformance/application/Schema.mjs',
             ...readdirSync(join(root, 'skills'), {recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()).map(entry=>'skills/'+join(entry.parentPath,entry.name).slice(join(root,'skills').length+1)),
             'types.d.ts',
             ...readdirSync(join(root, 'src'), {recursive: true, withFileTypes: true})
@@ -97,6 +97,9 @@ const {register} = await import('@teqfw/dem/conformance');
 if (typeof register !== 'function') throw new Error('Missing published conformance');
 const {exercise} = await import('@teqfw/dem/conformance/values');
 if (typeof exercise !== 'function') throw new Error('Missing published shared value workload');
+const {default: Workflow, __deps__: appDeps} = await import('@teqfw/dem/conformance/application');
+const {source: appSource} = await import('@teqfw/dem/conformance/application/schema');
+if (typeof Workflow !== 'function' || appSource.document.$format !== 1 || appDeps.default.provider !== 'TeqFw_Dem_Api_RepositoryProvider$') throw new Error('Missing portable application example');
 if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw new Error('Logical boundary failed');
 `);
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');

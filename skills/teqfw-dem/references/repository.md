@@ -218,3 +218,22 @@ The values conformance export also supplies atomic, extended-representation and
 evolution workloads (`exerciseAtomic`, `exerciseExtended`, `exerciseEvolution`).
 Evolution compares additive defaults, retained removed entities, stale providers,
 idempotent application and schema snapshots through adapter lifecycle APIs.
+
+## Unchanged application example
+
+The published `conformance/application/Workflow.mjs` is a compact task-triage
+application component, resolved as `Demo_Workflow$` after the host registers its
+directory under `Demo_`. Its only injected tokens are RepositoryProvider and the
+Selection factory. exec({model}) uses a logical entity path and returns complete
+CRUD/list observations. The companion Schema module supplies the same compiler
+input to both hosts. Exports are `@teqfw/dem/conformance/application` and
+`@teqfw/dem/conformance/application/schema`. These are example artifacts, not a new
+repository API or an application framework.
+
+DEM-RDB test/compare/application/Node.mjs and DEM-IDB
+test/browser/application/Browser.mjs are the environment-specific Composition Roots.
+They compile, configure and initialize actual storage, map the provider/configuration
+contracts through DI preprocessing, resolve the unchanged application and dispose
+resources. Neither root uses DI test substitution. DEM-RDB test:application checks
+identical module bytes, models/fingerprints and complete results against real Chrome
+IndexedDB; no identifier rewriting is performed. See the adapter READMEs for commands.
