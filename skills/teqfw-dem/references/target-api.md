@@ -1,11 +1,11 @@
-# Target Compiler and Acquisition API
+# Compiler and Acquisition API
 
-Unless explicitly marked as a future target, this is the implemented compiler/acquisition contract for package v0.2.0.
+This is the implemented compiler/acquisition contract at the current repository revision.
 Runtime components use the `TeqFw_Dem_` DI namespace and native ESM conventions.
 
 ## Portable compiler
 
-`TeqFw_Dem_Compile$.exec({schemas, map?})` returns a Promise. Schemas is a required
+`TeqFw_Dem_Compile$.exec({schemas, map?, selection?})` returns a Promise. Schemas is a required
 array of `{packageName, filename, document}` envelopes; map is an optional envelope
 of the same shape. Document is parsed JSON following the
 [declaration contract](declarations.md). PackageName is a non-empty npm package
@@ -22,20 +22,21 @@ prove that raw duplicates were absent.
 Success is an immutable object with exactly:
 
 - `model`: `{packages, entities}`. Packages is a lexically sorted array of normalized
-  absolute package paths including derived parents and explicit empty packages;
-  non-empty models include `/`. Entities is a dictionary by effective entity path.
+  absolute package paths. Omitted selection retains derived parents and explicit empty
+  packages; explicit selection retains only ancestors of selected effective entities.
+  Non-empty models include `/`. Entities is a dictionary by effective entity path.
 - `canonical`: canonical logical data defined in [canonical identity](canonical.md).
 - `fingerprint`: identifier computed from canonical, not model presentation order.
 - `provenance`: `{entities, map, pathMappings, bindings}`. Entities maps effective paths to
   `{packageName, filename, originalPath}`. Map is its source `{packageName,filename}`
   or null. `pathMappings` is an array of `{packageName,originalPath,effectivePath}`
-  for all entities, sorted by package then original path. `bindings` is an array
-  of `{packageName,dependency,path,attributes}` recording resolved alias maps,
+  for selected entities, sorted by package then original path. `bindings` is an array
+  of `{packageName,dependency,path,attributes}` recording relevant resolved alias maps,
   sorted by package then dependency. These two arrays retain applied path/binding
   evidence without making it logical content.
 - `graph`: `{edges, components}`. Edges is a sorted array of distinct
   `{from,to}` effective entity dependency pairs, including local and external relations.
-  Sort edges by from then to. Components is the strongly connected partition of all entities: each component
+  Sort edges by from then to. Components is the strongly connected partition of selected entities: each component
   sorted by path, components sorted by their first path. Cycles are allowed.
 - `warnings`: a deterministically sorted diagnostic array; no warning conditions
   are mandated for format 1, so an empty array is valid.
@@ -115,15 +116,10 @@ path rules; linked npm packages remain supported.
 Portable CRUD/List is a separate [entity-access contract](repository.md); it does
 not change these compiler/acquisition envelopes or canonical content.
 
-## Accepted entity-selection target (not implemented)
+## Entity selection
 
-This section is the normative future contract. Package v0.2.0 implements only the
-[portable compiler above](#portable-compiler); passing `selection` to it fails.
-The accepted additive signature is:
-
-```js
-compiler.exec({schemas, map?, selection?})
-```
+The optional `selection` argument on the [portable compiler](#portable-compiler)
+controls membership in each independently compiled model.
 
 `schemas` and `map` retain their envelope, format and JSON-data contracts above.
 `selection`, if present, is an array of closed JSON objects with exactly two
@@ -240,8 +236,8 @@ canonical algorithm remain unchanged. For explicit selection:
   ordering; exclusion alone emits no warning. Existing source-linked errors and
   stage gating apply; no selector index may affect diagnostics.
 
-When selection is omitted, preserve v0.2.0's `model.packages`, including explicitly
-empty package nodes, and the model, canonical content, fingerprint, graph and
+When selection is omitted, the compiler preserves the previous `model.packages`,
+including explicitly empty package nodes, and the model, canonical content, fingerprint, graph and
 warnings for previously successful calls. `provenance.bindings` now omits unused bindings even when supplied;
 other provenance remains unchanged. The deliberate semantic relaxation is that an
 external contract unused by all selected entities no longer needs a binding even in omitted-selection calls; calls
@@ -252,9 +248,8 @@ identity. An input with no entity selection and an empty package remains compati
 
 ### Complete usage examples
 
-These examples show the **future** API and are not runnable against v0.2.0. They
-use the existing format-1 documents and compiler envelopes. Assume `compiler` is
-the resolved `TeqFw_Dem_Compile$` instance. Each call below can be made after the
+These examples use the implemented API, format-1 documents and compiler envelopes.
+Assume `compiler` is the resolved `TeqFw_Dem_Compile$` instance. Each call below can be made after the
 shared fixture; no declaration is edited between calls.
 
 ```js

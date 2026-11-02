@@ -41,7 +41,7 @@ small/regular/large capacity, without choosing physical types or bit widths.
 Logical package paths use `/`, lowercase names and underscores. Package addresses
 end with `/`; entity addresses do not. Package directories merge, entities never
 merge. Local references preserve their original dependencies through path remapping.
-External entity/attribute contracts always require explicit host binding.
+External entity/attribute contracts used by selected entities require explicit host binding.
 
 The fingerprint is `dem-sha256-1:` plus a SHA-256 digest of canonical logical JSON.
 It excludes comments, origins, empty packages, assembly steps and attribute
@@ -87,10 +87,14 @@ Acquire reuses the package-registry discovery mechanism used by @teqfw/cli.
 The default files are `etc/dem-schema.json` and the host's `etc/dem-map.json`.
 Override package-relative paths independently under `package.json` → `teqfw.dem`.
 Missing implicit defaults are allowed; explicitly configured missing files fail.
-Acquire reads the one configured host map; separate compiler invocations can use
-different caller-supplied maps. The current compiler processes whole descriptors,
-not entity-level host selections, and requires bindings for all declared external
-dependencies. See [configuration](skills/teqfw-dem/references/configuration.md).
+Acquire reads the one configured host map and selects packages, not entities.
+The compiler accepts optional `selection` entries `{packageName, entityPath}`
+using original canonical entity paths. Omit it to select all entities or pass `[]`
+for an empty model. Independent calls can select different entities and use different
+caller-supplied maps and identity profiles. Selected dependencies must be resolved
+explicitly; contracts used only by excluded entities need no binding. See the
+[compiler API and examples](skills/teqfw-dem/references/target-api.md#entity-selection)
+and [configuration](skills/teqfw-dem/references/configuration.md).
 
 The portable compiler imports no filesystem or CLI modules. Browser hosts supply
 parsed envelopes, register served ESM namespace roots and use the browser DI
@@ -113,7 +117,8 @@ teqfw-esm-validator . --profile base
 
 Tests cover logical composition, acquisition, exact normalization, independent
 canonical/hash fixtures and a real installed archive. CI performs full Node
-verification and one minimal browser composition/fingerprint check.
+verification and one minimal browser composition/fingerprint check; the latter
+does not provide dedicated coverage of compiler entity selection.
 
 ## Context and consumer skill
 

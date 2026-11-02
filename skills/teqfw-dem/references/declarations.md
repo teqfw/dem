@@ -197,9 +197,9 @@ Schema root permits `$format`, `$comment`, `$dependencies` and absolute node pat
 A package node permits only `$comment`. Parents derive from entity paths; empty
 packages are accepted but excluded from fingerprint content. A dependency object
 contains required `attributes`: a non-empty list of unique attribute aliases.
-In v0.2.0 all declared dependencies require host bindings even if unused by a
-relation. The [accepted selection target](target-api.md#accepted-entity-selection-target-not-implemented)
-requires binding only contracts used by selected entities, even when selection is omitted.
+Only contracts used by selected entities require host bindings, including when
+selection is omitted. Supplied unused bindings must still be structurally valid.
+See the [entity selection contract](target-api.md#entity-selection).
 
 An entity requires a non-empty `attributes` array. Optional fields are `$comment`,
 `primaryKey`, `uniqueKeys`, `indexes` and `relations`. Attribute names are unique.

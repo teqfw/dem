@@ -22,8 +22,9 @@ representation, capability checks, generation and persistence.
 ## Dependencies and identities
 
 External entity dependencies and required attribute aliases are explicit and
-scoped to the originating npm package. The current compiler requires the host to
-bind each contract to an actual entity and map aliases to actual attributes. Same-named dependencies from two
+scoped to the originating npm package. The host binds each contract used by a
+selected entity to an actual selected entity and maps aliases to actual attributes.
+Same-named dependencies from two
 plugins may bind to one identity or different identities. Coincidental path/name
 matches cannot substitute for a declared contract and binding.
 
@@ -108,14 +109,11 @@ composition with a matching Node fingerprint are required. Downstream delivers
 browser modules by URL. DI-registry discovery, metadata acquisition and format 1
 are implemented in v0.2.0; consult the [runtime reference](scope.md) for component boundaries.
 
-## Entity-level target and current boundary
+## Entity selection and integration boundary
 
-The accepted direction lets the host select entities for each independent model by
+The compiler lets the host select entities for each independent model by
 `(packageName, original entity path)`, reuse entities, and supply model-specific
 maps and profiles. Selected dependencies must be explicitly satisfied; unused
-external contracts add no binding obligation. The current v0.2.0 compiler instead
-accepts whole descriptors and requires all declared external bindings, even unused
-ones. Entity selection, a common browser/Node declaration source and HTTP model
-delivery are not implemented. The host controls publication and placement. The
-[exact accepted selection API and examples](target-api.md#accepted-entity-selection-target-not-implemented)
-specify the subsequent compiler change.
+external contracts add no binding obligation. A common browser/Node declaration
+source and HTTP model delivery are not implemented. The host controls publication
+and placement. See the [selection API and examples](target-api.md#entity-selection).
