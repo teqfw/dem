@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.3.0 — 2026-11-02
+
+- Add per-compilation entity selection so one acquired declaration set can produce
+  independent server and browser Effective Models.
+- Verify the selected models with real SQLite and Chrome IndexedDB, including their
+  combined Node Host and browser model delivery path.
+
 ## 0.2.0 — 2026-11-01
 
 Initial npm release.
