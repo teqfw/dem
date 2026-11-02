@@ -8,25 +8,54 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import Container from '@teqfw/di';
 import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
-import {select, withHostFixture} from '../fixtures/HostComposition.mjs';
+import knex from 'knex';
+import {browserMap, browserSelection, serverMap, serverSelection, withHostFixture} from '../fixtures/HostComposition.mjs';
 
 /** @typedef {{error?: string, model?: unknown, fingerprint?: string, contentType?: string, paths?: string[], relationPath?: string, identityProfiles?: unknown, normalizedRecord?: Record<string, string>, unselectedStatus?: number, browser?: string, entityStores?: string[], crud?: unknown, databaseName?: string, backendClosed?: boolean, databaseDeleted?: boolean, cleanupErrors?: string[]}} BrowserReport */
 
-test('Node Host delivers its selected browser model through TeqFW Web to Chromium', {timeout: 60000}, () => withHostFixture(async hostRoot => {
+test('Node Host keeps SQLite active while delivering its selected browser model to Chromium', {timeout: 60000}, () => withHostFixture(async hostRoot => {
     const root = fileURLToPath(new URL('../../', import.meta.url));
-    const profileRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dem-delivery-chrome-'));
-    const container = new Container();
-    let server;
+    const sqliteRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dem-delivery-sqlite-'));
+    /** @type {string | undefined} */ let profileRoot;
+    /** @type {import('knex').Knex | undefined} */ let database;
+    /** @type {any} */ let server;
+    /** @type {any} */ let backend;
+    /** @type {any} */ let provider;
     /** @type {import('node:child_process').ChildProcess | undefined} */
     let chrome;
     let started = false;
     /** @type {ReturnType<typeof setTimeout> | undefined} */
     let timeout;
+    /** @type {string[]} */ const cleanupErrors = [];
+    let backendClosed = false;
+    let providerClosed = false;
+    let databaseDestroyed = false;
+    let sqliteDeleted = false;
+    let serverStopped = false;
+    let chromeTerminated = false;
+    let profileDeleted = false;
+    /** @param {string} label @param {() => Promise<void>} action */
+    const cleanup = async (label, action) => {
+        try {
+            await action();
+        } catch (error) {
+            cleanupErrors.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    };
     try {
+        const container = new Container({preprocessors: ['Host_Sqlite__Preprocessor$']});
         const namespaceRegistry = new NamespaceRegistry({fs, path, appRoot: root});
         for (const {prefix, dirAbs, ext} of await namespaceRegistry.build()) {
             container.addNamespaceRoot(prefix, dirAbs, ext);
         }
+
+        // DEM-RDB is a development dependency for this scenario; the Host owns its namespace and config.
+        const rdbRoot = path.join(root, 'node_modules/@teqfw/dem-rdb');
+        const rdbPackage = JSON.parse(await fs.readFile(path.join(rdbRoot, 'package.json'), 'utf8'));
+        for (const item of rdbPackage.teqfw.fw.di.namespaces) {
+            container.addNamespaceRoot(item.prefix, path.resolve(rdbRoot, item.path), item.ext ?? '.mjs');
+        }
+        container.addNamespaceRoot('Host_', path.join(root, 'test/fixtures'), '.mjs');
 
         // Web is a development dependency for this scenario, so register its package namespace explicitly.
         const webRoot = path.join(root, 'node_modules/@teqfw/web');
@@ -46,47 +75,34 @@ test('Node Host delivers its selected browser model through TeqFW Web to Chromiu
 
         /** @type {TeqFw_Dem_Acquire} */
         const acquire = await container.get('TeqFw_Dem_Acquire$');
-        const acquired = await acquire.exec({hostRoot});
+        let acquisitionCalls = 0;
+        const acquireDeclarations = async () => {
+            acquisitionCalls += 1;
+            return await acquire.exec({hostRoot});
+        };
+        const acquired = await acquireDeclarations();
+        assert.equal(acquisitionCalls, 1);
         assert.equal(acquired.schemas.length, 1);
         assert.equal(acquired.schemas[0].packageName, '@example/catalog');
+        const declaration = /** @type {Record<string, unknown>} */ (acquired.schemas[0].document);
+        assert.equal(Object.keys(declaration).filter(key => key.startsWith('/')).filter(key => key === '/vnd/catalog/customer').length, 1);
         /** @type {TeqFw_Dem_Compile} */
         const compiler = await container.get('TeqFw_Dem_Compile$');
-        const serverModel = await compiler.exec({
-            schemas: acquired.schemas,
-            selection: [
-                select('/vnd/catalog/customer'),
-                select('/vnd/catalog/ledger_event'),
-                select('/vnd/catalog/order'),
-            ],
-            map: {
-                packageName: 'host-app',
-                filename: 'host-config/server-map.json',
-                document: {
-                    $format: 1,
-                    sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/server/'}}},
-                    identityProfiles: {
-                        '/models/server/customer': {id: {type: 'int', capacity: 'large'}},
-                        '/models/server/ledger_event': {id: {type: 'int', capacity: 'large'}},
-                        '/models/server/order': {id: {type: 'int', capacity: 'large'}},
-                    },
-                },
-            },
-        });
-        const browserModel = await compiler.exec({
-            schemas: acquired.schemas,
-            selection: [select('/vnd/catalog/cart'), select('/vnd/catalog/customer')],
-            map: {
-                packageName: 'host-app',
-                filename: 'host-config/browser-map.json',
-                document: {
-                    $format: 1,
-                    sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/browser/'}}},
-                    identityProfiles: {
-                        '/models/browser/cart': {id: {type: 'uuid'}},
-                        '/models/browser/customer': {id: {type: 'uuid'}},
-                    },
-                },
-            },
+        let compilationCalls = 0;
+        const compile = async (/** @type {Parameters<TeqFw_Dem_Compile['exec']>[0]} */ options) => {
+            compilationCalls += 1;
+            return await compiler.exec(options);
+        };
+        const serverModel = await compile({schemas: acquired.schemas, selection: serverSelection, map: serverMap});
+        const browserModel = await compile({schemas: acquired.schemas, selection: browserSelection, map: browserMap});
+        assert.equal(compilationCalls, 2);
+
+        profileRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dem-delivery-chrome-'));
+        database = knex({
+            client: 'sqlite3',
+            connection: {filename: path.join(sqliteRoot, 'host.sqlite')},
+            useNullAsDefault: true,
+            pool: {min: 1, max: 1},
         });
 
         assert.deepEqual(Object.keys(serverModel.model.entities), [
@@ -106,12 +122,44 @@ test('Node Host delivers its selected browser model through TeqFW Web to Chromiu
             path: '/models/browser/customer',
             attributes: ['id'],
         });
-        assert.deepEqual(serverModel.model.entities['/models/server/customer'].attributes[0].type.profile, {
+        for (const entity of Object.values(serverModel.model.entities)) {
+            assert.deepEqual(entity.attributes[0].type.profile, {type: 'int', capacity: 'large'});
+        }
+        assert.deepEqual(serverModel.model.entities['/models/server/order'].attributes[1].type.profile, {
             type: 'int',
             capacity: 'large',
         });
         assert.deepEqual(browserModel.model.entities['/models/browser/customer'].attributes[0].type.profile, {type: 'uuid'});
+        assert.deepEqual(serverModel.provenance.entities['/models/server/customer'], browserModel.provenance.entities['/models/browser/customer']);
         assert.notEqual(serverModel.fingerprint, browserModel.fingerprint);
+
+        /** @param {string} entityPath */
+        const sqliteTable = entityPath => 'dem_' + Buffer.from(entityPath, 'utf8').toString('hex');
+        const configuration = await container.get('Host_Sqlite__Configuration$');
+        configuration.set({model: serverModel.model, knex: database});
+        const adapter = await container.get('TeqFw_DemRdb_Adapter$');
+        backend = await adapter.open({model: serverModel.model, knex: database});
+        await backend.createSchema();
+
+        const tables = await database('sqlite_master').select('name').where({type: 'table'}).orderBy('name');
+        assert.deepEqual(tables.map(row => row.name), [
+            '/models/server/customer',
+            '/models/server/ledger_event',
+            '/models/server/order',
+        ].map(sqliteTable).sort());
+        assert.equal(tables.some(row => row.name === sqliteTable('/models/server/cart')), false);
+
+        provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
+        const customers = await provider.get({path: '/models/server/customer'});
+        const orders = await provider.get({path: '/models/server/order'});
+        const serverCustomer = {id: 101, name: 'Server Ada'};
+        const serverOrder = {id: 201, customer_id: 101};
+        assert.deepEqual(await customers.create({record: serverCustomer}), {record: {id: '101', name: 'Server Ada'}});
+        assert.deepEqual(await orders.create({record: serverOrder}), {record: {id: '201', customer_id: '101'}});
+        const serverCustomerBeforeBrowser = await customers.read({key: {kind: 'primary', values: {id: 101}}});
+        const serverOrderBeforeBrowser = await orders.read({key: {kind: 'primary', values: {id: 201}}});
+        assert.deepEqual(serverCustomerBeforeBrowser, {record: {id: '101', name: 'Server Ada'}});
+        assert.deepEqual(serverOrderBeforeBrowser, {record: {id: '201', customer_id: '101'}});
 
         /** @type {(report: BrowserReport) => void} */
         let receiveReport;
@@ -232,17 +280,63 @@ test('Node Host delivers its selected browser model through TeqFW Web to Chromiu
         assert.equal(report.backendClosed, true);
         assert.equal(report.databaseDeleted, true);
         assert.deepEqual(report.cleanupErrors, []);
+
+        // The host-side provider must remain usable after the browser finishes its independent CRUD.
+        assert.deepEqual(await customers.read({key: {kind: 'primary', values: {id: 101}}}), serverCustomerBeforeBrowser);
+        assert.deepEqual(await orders.read({key: {kind: 'primary', values: {id: 201}}}), serverOrderBeforeBrowser);
+        assert.deepEqual(await orders.list({selection: {}}), {records: [{id: '201', customer_id: '101'}]});
     } finally {
         clearTimeout(timeout);
         if (chrome) {
             const child = chrome;
-            child.kill('SIGTERM');
-            await new Promise(resolve => {
-                if (child.exitCode !== null || child.signalCode !== null || child.pid === undefined) resolve(undefined);
-                else child.once('close', () => resolve(undefined));
+            await cleanup('Chrome termination', async () => {
+                if (child.exitCode === null && child.signalCode === null && child.pid !== undefined) {
+                    await new Promise(resolve => {
+                        const killTimer = setTimeout(() => child.kill('SIGKILL'), 5000);
+                        child.once('close', () => {
+                            clearTimeout(killTimer);
+                            resolve(undefined);
+                        });
+                        child.kill('SIGTERM');
+                    });
+                }
+                chromeTerminated = child.exitCode !== null || child.signalCode !== null || child.pid === undefined;
+                if (!chromeTerminated) throw new Error('Chrome process is still running.');
             });
         }
-        if (started) await server.stop();
-        await fs.rm(profileRoot, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
+        if (provider) await cleanup('DEM-RDB provider close', async () => {
+            await provider.close();
+            providerClosed = true;
+        });
+        if (backend) await cleanup('DEM-RDB backend close', async () => {
+            await backend.close();
+            backendClosed = true;
+        });
+        const db = database;
+        if (db) await cleanup('Knex destroy', async () => {
+            await db.destroy();
+            databaseDestroyed = true;
+        });
+        if (started) await cleanup('TeqFW Web stop', async () => {
+            await server.stop();
+            serverStopped = true;
+        });
+        const profile = profileRoot;
+        if (profile) await cleanup('Chrome profile removal', async () => {
+            await fs.rm(profile, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
+            profileDeleted = !(await fs.stat(profile).then(() => true, () => false));
+        });
+        await cleanup('SQLite directory removal', async () => {
+            await fs.rm(sqliteRoot, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
+            sqliteDeleted = !(await fs.stat(sqliteRoot).then(() => true, () => false));
+        });
     }
+    assert.equal(providerClosed, true);
+    assert.equal(backendClosed, true);
+    assert.equal(databaseDestroyed, true);
+    assert.equal(sqliteDeleted, true);
+    assert.equal(serverStopped, true);
+    assert.equal(chromeTerminated, true);
+    assert.equal(profileDeleted, true);
+    assert.deepEqual(cleanupErrors, []);
 }));

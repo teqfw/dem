@@ -92,3 +92,21 @@ export const serverMap = {
         },
     },
 };
+
+export const browserSelection = [
+    select('/vnd/catalog/cart'),
+    select('/vnd/catalog/customer'),
+];
+
+export const browserMap = {
+    packageName: 'host-app',
+    filename: 'host-config/browser-map.json',
+    document: {
+        $format: 1,
+        sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/browser/'}}},
+        identityProfiles: {
+            '/models/browser/cart': {id: {type: 'uuid'}},
+            '/models/browser/customer': {id: {type: 'uuid'}},
+        },
+    },
+};
