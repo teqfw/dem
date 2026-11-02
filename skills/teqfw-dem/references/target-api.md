@@ -1,6 +1,6 @@
 # Target Compiler and Acquisition API
 
-Implemented compiler/acquisition contract for package v0.2.0.
+Unless explicitly marked as a future target, this is the implemented compiler/acquisition contract for package v0.2.0.
 Runtime components use the `TeqFw_Dem_` DI namespace and native ESM conventions.
 
 ## Portable compiler
@@ -115,10 +115,215 @@ path rules; linked npm packages remain supported.
 Portable CRUD/List is a separate [entity-access contract](repository.md); it does
 not change these compiler/acquisition envelopes or canonical content.
 
-## Model membership direction
+## Accepted entity-selection target (not implemented)
 
-The current API compiles whole supplied descriptors and validates bindings for all
-external contracts, including unused ones. Host entity-level selection and the
-policy of resolving only dependencies relevant to selected entities are accepted
-targets, not current API features. Node Acquire has no per-call map selector; a
-caller can supply a distinct map for each separate compiler invocation.
+This section is the normative future contract. Package v0.2.0 implements only the
+[portable compiler above](#portable-compiler); passing `selection` to it fails.
+The accepted additive signature is:
+
+```js
+compiler.exec({schemas, map?, selection?})
+```
+
+`schemas` and `map` retain their envelope, format and JSON-data contracts above.
+`selection`, if present, is an array of closed JSON objects with exactly two
+required non-empty string properties: `packageName` and `entityPath`. Each pair
+addresses a schema envelope by its exact `packageName` and an entity in that
+schema by its original, absolute, canonical entity path, before any map. Canonical
+means the existing logical-path normalizer returns the input unchanged; `/`, a
+trailing slash, a relative path, redundant `/`, `.` or `..`, invalid characters
+and traversal are invalid selectors. The path must name an entity, not a package.
+Schema keys may themselves use format-1 normalization; select their resulting
+canonical original paths. Case and npm package names are compared exactly.
+
+- Omit `selection` to select all entities in all supplied schemas. To select all
+  entities of just one package, enumerate that package's entity pairs; there is no
+  wildcard or package selector. Omitted and `null` are not equivalent.
+- An explicit empty array selects no entities. Non-array or `null` is invalid.
+  With no conflicting host rules, it produces an empty model even when schemas
+  contain entities. No supplied descriptor is mutated or copied by the caller.
+- Entries must be unique by the pair. Unknown package names, unknown entity paths,
+  duplicate pairs, missing/extra fields and invalid property types fail. Selector
+  order has no significance. Compile multiple models by independent repeated calls,
+  each with its own `selection` and optional `map`; calls neither share composition
+  state nor create a registry. The same pair can occur in separate calls.
+- Selection shape/address failures use `DEM_INPUT`, severity `error`, source `null`
+  and pointer `""`, because selection is an API argument, not a document. `details`
+  is `{reason, packageName?, entityPath?}`: `reason` is `selection-type`,
+  `selector-shape`, `selector-path`, `selector-duplicate`, `selector-package` or
+  `selector-entity`; include packageName/entityPath only when each is a string in
+  the offending selector. Do not include array indices. Deduplicate exact
+  diagnostics and sort by the existing diagnostic ordering. For one selector,
+  apply these checks in the listed order after the array check; report only its
+  first failure. Duplicate detection follows shape/path validation and precedes
+  existence checks. Independent invalid selectors aggregate; permutations yield
+  identical diagnostics. Group identical validly shaped pairs before existence
+  checks. For duplicates report one `selector-duplicate` diagnostic per duplicate pair, including both
+  strings, and skip existence checks for that pair. For an unknown package use
+  `selector-package`; for a known package and unknown entity use `selector-entity`.
+
+### Validation and composition
+
+First validate the complete API/envelope structure and the format-1 structure,
+JSON types, member names, required fields and declared node path syntax of every
+supplied schema and map, including excluded entities and unused dependency/binding rules.
+Validate map rule syntax including absolute path normalization, closed objects,
+profile value grammar, binding alias names, exact declared alias keys and distinct
+valid attribute-name values, even for an irrelevant binding. Relation local-path
+syntax and dependency-name syntax are checked even for excluded entities; target
+existence, declared-contract lookup and logical type/key checks are semantic and
+run only for selected entities. Unknown map source or binding dependency name, malformed syntax and overlapping rename rules remain
+errors. Already-parsed input cannot prove absence of duplicate raw JSON members.
+Independent document shape errors aggregate subject to existing stage short-circuit
+rules; they use their existing source and document JSON Pointer. If shape decoding
+fails, do not issue speculative selection or later-stage diagnostics.
+
+Next validate `selection` against decoded original schema paths. The selection is a
+set of pairs; derive it as all decoded entities if omitted. Apply origin-scoped
+rename rules only after selection. An entity rename key must name a selected original
+entity; unknown or excluded entity keys fail `DEM_MAP`. A namespace rename key
+must identify an original explicitly declared or derived source namespace; it may
+have zero selected descendants and then has no effect. Existing no-overlap rules
+apply even to unused rules. Map source names still must identify supplied schemas.
+Identity profiles address effective selected entity paths and actual identity names;
+excluded/unknown paths or non-identity attributes fail `DEM_MAP`, invalid profile
+values fail `DEM_TYPE`. Detect path collisions only among selected entities; a
+collision is `DEM_COLLISION`, never resolved by input or selector order.
+
+For a selected local relation, normalize the target in the referring entity's
+original package, look it up in that same source's selected originals, then route
+to its effective path. A missing or excluded target is `DEM_TARGET` with the
+referring schema source and relation pointer; it is never auto-selected. For a
+selected external relation, its dependency must be declared by that source and
+its target aliases must be declared; otherwise `DEM_DEPENDENCY`. A contract is
+relevant iff at least one selected relation in that source references it. Each
+relevant contract, including one also used by excluded entities, requires an
+explicit binding of **all** declared aliases to distinct actual attributes of one
+selected effective target. A missing binding is `DEM_DEPENDENCY` at the schema's
+`/$dependencies/<name>` pointer. A well-formed relevant binding whose target or
+attribute is missing or excluded is `DEM_TARGET` at the map's `/sources` pointer;
+incompatible types and key/ref requirements retain existing diagnostics. Source
+and pointer conventions remain those of the existing API.
+
+A declared contract used by no selected relation needs no binding. An optional
+binding supplied for it must pass the complete syntax and alias checks above but
+its target and attributes are not looked up, it does not generate a graph edge or
+binding provenance, and it cannot create a missing-target error. A binding for an
+undeclared contract remains `DEM_MAP`, even if no entity is selected. Semantic
+checks on excluded entities, such as unresolved relation endpoints, invalid types,
+keys or identity compatibility, are not performed; their structural grammar still
+must be valid. Graph cycles of selected entities are analyzed under the existing
+rules and are not categorically prohibited. Missing dependencies are never included,
+inferred or repaired; failure returns diagnostics and no usable partial model.
+
+### Result, identity and compatibility
+
+The success envelope, immutable ownership, `assertResult`, failure envelope and
+canonical algorithm remain unchanged. For explicit selection:
+
+- `model.entities` contains exactly the selected entities at effective paths.
+  `model.packages` is the sorted distinct ancestor packages of these effective
+  paths, including `/` for any selected entity. Explicit empty source packages and
+  paths belonging only to excluded entities are not emitted. `selection: []`
+  yields `{packages: [], entities: {}}`, subject to input validation above.
+- `canonical` and `fingerprint` use the existing `dem-logical-1` and
+  `dem-sha256-1` contracts on selected effective content. Excluded entities,
+  unused contracts/descriptors, selector order, packages, provenance and mapping
+  steps do not enter canonical identity. Equal final logical content gives equal
+  canonical bytes and fingerprint; hashes remain subject to the existing collision
+  limitation. A malformed unused descriptor still fails before output.
+- `provenance.entities` and `pathMappings` cover selected entities only;
+  `bindings` covers resolved relevant bindings only. `provenance.map` remains the
+  supplied map's source or null, even for an empty selection. Existing sorting and
+  shapes apply. `graph` contains only selected effective entities and their resolved
+  edges/components, with existing sorting. `warnings` retains existing shape and
+  ordering; exclusion alone emits no warning. Existing source-linked errors and
+  stage gating apply; no selector index may affect diagnostics.
+
+When selection is omitted, preserve v0.2.0's `model.packages`, including explicitly
+empty package nodes, and the model, canonical content, fingerprint, graph and
+warnings for previously successful calls. `provenance.bindings` now omits unused bindings even when supplied;
+other provenance remains unchanged. The deliberate semantic relaxation is that an
+external contract unused by all selected entities no longer needs a binding even in omitted-selection calls; calls
+that formerly failed solely for such a missing binding may now succeed. Present
+malformed rules still fail. Explicitly enumerating every entity and omitting
+selection can therefore differ in empty-package presentation, but not canonical
+identity. An input with no entity selection and an empty package remains compatible.
+
+### Complete usage examples
+
+These examples show the **future** API and are not runnable against v0.2.0. They
+use the existing format-1 documents and compiler envelopes. Assume `compiler` is
+the resolved `TeqFw_Dem_Compile$` instance. Each call below can be made after the
+shared fixture; no declaration is edited between calls.
+
+```js
+const schema = {
+    packageName: '@example/app', filename: 'etc/dem-schema.json',
+    document: {
+        $format: 1,
+        $dependencies: {account: {attributes: ['id']}},
+        '/demo/a': {attributes: [{name: 'id', type: {name: 'identity'}}]},
+        '/demo/b': {attributes: [{name: 'id', type: {name: 'identity'}}]},
+        '/demo/order': {
+            attributes: [
+                {name: 'id', type: {name: 'identity'}},
+                {name: 'a_id', type: {name: 'ref'}},
+            ],
+            relations: {a: {attributes: ['a_id'], target: {path: 'a', attributes: ['id']}}},
+        },
+        '/demo/external_order': {
+            attributes: [
+                {name: 'id', type: {name: 'identity'}},
+                {name: 'account_id', type: {name: 'ref'}},
+            ],
+            relations: {account: {
+                attributes: ['account_id'],
+                target: {dependency: 'account', attributes: ['id']},
+            }},
+        },
+    },
+};
+const select = entityPath => ({packageName: '@example/app', entityPath});
+const map = document => ({packageName: '@example/host', filename: 'etc/dem-map.json', document});
+
+// A: the same descriptor contributes A to one model and B to another.
+const modelA = await compiler.exec({schemas: [schema], selection: [select('/demo/a')]});
+const modelB = await compiler.exec({schemas: [schema], selection: [select('/demo/b')]});
+// modelA.model.entities has only /demo/a; modelB has only /demo/b.
+
+// B: reuse A independently with two identity profiles.
+const uuid = await compiler.exec({
+    schemas: [schema], selection: [select('/demo/a')],
+    map: map({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'uuid'}}}}),
+});
+const small = await compiler.exec({
+    schemas: [schema], selection: [select('/demo/a')],
+    map: map({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'int', capacity: 'small'}}}}),
+});
+// The profiles and canonical identities differ; the original schema is unchanged.
+
+// C: order refers locally to A, which is excluded. No automatic inclusion occurs.
+try {
+    await compiler.exec({schemas: [schema], selection: [select('/demo/order')]});
+    throw new Error('Expected compilation failure');
+} catch (error) {
+    if (!error.diagnostics?.some(d => d.code === 'DEM_TARGET' &&
+        d.source?.packageName === '@example/app' &&
+        d.pointer === '/~1demo~1order/relations/a')) throw error;
+    // No result/model is returned.
+}
+
+// D: external_order alone uses account; selecting B needs no account binding.
+const withoutExternal = await compiler.exec({schemas: [schema], selection: [select('/demo/b')]});
+// Only /demo/b is present; no account binding provenance or graph edge exists.
+
+// E: omission selects all entities. Supply the binding needed by external_order.
+const all = await compiler.exec({
+    schemas: [schema],
+    map: map({$format: 1, sources: {'@example/app': {
+        bind: {account: {path: '/demo/a', attributes: {id: 'id'}}},
+    }}}),
+});
+// all.model.entities contains /demo/a, /demo/b, /demo/order, /demo/external_order.
+```

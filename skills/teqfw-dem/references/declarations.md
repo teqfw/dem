@@ -152,8 +152,8 @@ population expectations, not bits, SQL types or hard bounds. Downstream selects
 representation and reports actual limits. UUID generation/allocation is separate.
 The profile grammar and semantics are accepted target requirements.
 
-Every declared external dependency requires binding even when an actual entity
-happens to have the same name. Unknown source/dependency/attribute selectors,
+In v0.2.0 every declared external dependency requires binding even when an actual
+entity happens to have the same name. Unknown source/dependency/attribute selectors,
 missing bindings, missing targets and non-id ref targets produce diagnostics.
 Missing rename rules leave paths unchanged. Omitted identity profiles resolve to
 int/regular. Each entity may declare at most one identity; it derives the
@@ -197,7 +197,9 @@ Schema root permits `$format`, `$comment`, `$dependencies` and absolute node pat
 A package node permits only `$comment`. Parents derive from entity paths; empty
 packages are accepted but excluded from fingerprint content. A dependency object
 contains required `attributes`: a non-empty list of unique attribute aliases.
-All declared dependencies require host bindings even if unused by a relation.
+In v0.2.0 all declared dependencies require host bindings even if unused by a
+relation. The [accepted selection target](target-api.md#accepted-entity-selection-target-not-implemented)
+requires binding only contracts used by selected entities, even when selection is omitted.
 
 An entity requires a non-empty `attributes` array. Optional fields are `$comment`,
 `primaryKey`, `uniqueKeys`, `indexes` and `relations`. Attribute names are unique.

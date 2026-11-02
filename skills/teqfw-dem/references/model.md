@@ -116,4 +116,6 @@ maps and profiles. Selected dependencies must be explicitly satisfied; unused
 external contracts add no binding obligation. The current v0.2.0 compiler instead
 accepts whole descriptors and requires all declared external bindings, even unused
 ones. Entity selection, a common browser/Node declaration source and HTTP model
-delivery are not implemented. The host controls publication and placement.
+delivery are not implemented. The host controls publication and placement. The
+[exact accepted selection API and examples](target-api.md#accepted-entity-selection-target-not-implemented)
+specify the subsequent compiler change.
