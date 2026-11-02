@@ -17,7 +17,7 @@
     "typecheck": "tsc -p jsconfig.json",
     "verify": "npm test && npm run typecheck",
     "prepublishOnly": "npm run verify",
-    "test:browser": "node --test test/browser/Runtime.test.mjs"
+    "test:browser": "node --test test/browser/Runtime.test.mjs test/browser/Delivery.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -61,6 +61,7 @@
     "@teqfw/di": "^2.11.0"
   },
   "devDependencies": {
+    "@teqfw/web": "^2.2.0",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3"
   },

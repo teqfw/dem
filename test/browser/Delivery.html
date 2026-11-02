@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="data:,">
+    <title>DEM browser model delivery</title>
+</head>
+<body>
+<main>Host browser model delivery fixture</main>
+<script type="module">
+    /** @type {Record<string, unknown>} */
+    let report;
+    try {
+        const response = await fetch('/demo/model/browser');
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) throw new Error(`Model endpoint returned ${response.status}.`);
+        if (contentType !== 'application/json; charset=utf-8') throw new Error(`Unexpected Content-Type: ${contentType}.`);
+        const delivered = await response.json();
+        const model = delivered.model;
+        const paths = Object.keys(model.entities).sort();
+        const expectedPaths = ['/models/browser/cart', '/models/browser/customer'];
+        if (JSON.stringify(paths) !== JSON.stringify(expectedPaths)) throw new Error(`Unexpected browser entity paths: ${JSON.stringify(paths)}.`);
+        if (Object.hasOwn(model.entities, '/models/browser/order') || Object.hasOwn(model.entities, '/models/browser/ledger_event')) {
+            throw new Error('Server-only entities were present in the browser model.');
+        }
+        const cart = model.entities['/models/browser/cart'];
+        const customer = model.entities['/models/browser/customer'];
+        const relationPath = cart.relations.customer.target.path;
+        if (relationPath !== '/models/browser/customer') throw new Error(`Unexpected customer relation target: ${relationPath}.`);
+        const cartIdentity = cart.attributes.find(attribute => attribute.name === 'id').type.profile;
+        const customerIdentity = customer.attributes.find(attribute => attribute.name === 'id').type.profile;
+        const referenceIdentity = cart.attributes.find(attribute => attribute.name === 'customer_id').type.profile;
+        if (cartIdentity.type !== 'uuid' || customerIdentity.type !== 'uuid' || referenceIdentity.type !== 'uuid') {
+            throw new Error('Browser identity profiles were not preserved.');
+        }
+
+        const unselected = await fetch('/demo/model/server');
+        if (unselected.status !== 404) throw new Error(`Server model endpoint returned ${unselected.status}, expected 404.`);
+
+        const {default: Container} = await import('/node_modules/@teqfw/di/dist/esm.js');
+        const container = new Container();
+        container.addNamespaceRoot('TeqFw_Dem_', location.origin + '/src', '.mjs');
+        const normalize = await container.get('TeqFw_Dem_Repository_Normalize$');
+        const normalizedRecord = normalize.record({
+            entity: cart,
+            record: {
+                id: 'ABCDEF12-3456-7890-ABCD-EF1234567890',
+                customer_id: '12345678-1234-5678-9ABC-DEF012345678',
+            },
+            mode: 'complete',
+        });
+        if (normalizedRecord.id !== 'abcdef12-3456-7890-abcd-ef1234567890') throw new Error('Received model identity normalization failed.');
+        if (normalizedRecord.customer_id !== '12345678-1234-5678-9abc-def012345678') throw new Error('Received model reference normalization failed.');
+
+        report = {
+            model,
+            fingerprint: delivered.fingerprint,
+            contentType,
+            paths,
+            relationPath,
+            identityProfiles: {cart: cartIdentity, customer: customerIdentity, reference: referenceIdentity},
+            normalizedRecord,
+            unselectedStatus: unselected.status,
+            browser: navigator.userAgent,
+        };
+    } catch (error) {
+        report = {error: error instanceof Error ? error.stack : String(error)};
+    }
+    const sent = await fetch('/demo/result', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(report),
+    });
+    if (!sent.ok) throw new Error(`Result callback returned ${sent.status}.`);
+</script>
+</body>
+</html>

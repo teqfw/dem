@@ -17,6 +17,9 @@
     "types.d.ts",
     "node_modules/@teqfw/di/types.d.ts",
     "node_modules/@teqfw/di/src",
+    "node_modules/@teqfw/cfg/types.d.ts",
+    "node_modules/@teqfw/log/types.d.ts",
+    "node_modules/@teqfw/web/types.d.ts",
     "conformance/application/*.mjs"
   ],
   "exclude": [
