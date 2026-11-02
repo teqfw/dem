@@ -72,3 +72,23 @@ export async function withHostFixture(run) {
 
 /** @param {string} entityPath */
 export const select = (entityPath) => ({packageName: '@example/catalog', entityPath});
+
+export const serverSelection = [
+    select('/vnd/catalog/customer'),
+    select('/vnd/catalog/order'),
+    select('/vnd/catalog/ledger_event'),
+];
+
+export const serverMap = {
+    packageName: 'host-app',
+    filename: 'host-config/server-map.json',
+    document: {
+        $format: 1,
+        sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/server/'}}},
+        identityProfiles: {
+            '/models/server/customer': {id: {type: 'int', capacity: 'large'}},
+            '/models/server/ledger_event': {id: {type: 'int', capacity: 'large'}},
+            '/models/server/order': {id: {type: 'int', capacity: 'large'}},
+        },
+    },
+};

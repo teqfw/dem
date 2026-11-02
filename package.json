@@ -62,8 +62,11 @@
   },
   "devDependencies": {
     "@teqfw/dem-idb": "^0.1.0",
+    "@teqfw/dem-rdb": "^0.1.0",
     "@teqfw/web": "^2.2.0",
     "@types/node": "^22.20.5",
+    "knex": "^3.1.0",
+    "sqlite3": "^6.0.1",
     "typescript": "^5.9.3"
   },
   "teqfw": {
@@ -81,5 +84,8 @@
   },
   "dependencies": {
     "@teqfw/cli": "^2.5.0"
+  },
+  "allowScripts": {
+    "sqlite3@6.0.1": true
   }
 }

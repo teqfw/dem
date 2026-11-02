@@ -6,6 +6,10 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "ES2022",
+    "baseUrl": ".",
+    "paths": {
+      "string_decoder": ["./node_modules/@types/node/string_decoder.d.ts"]
+    },
     "types": [
       "node"
     ],

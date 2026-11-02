@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {container} from '../TestEnv.mjs';
-import {select, withHostFixture} from '../fixtures/HostComposition.mjs';
+import {select, serverMap, serverSelection, withHostFixture} from '../fixtures/HostComposition.mjs';
 
 /** @type {TeqFw_Dem_Acquire} */ const acquire = await container.get('TeqFw_Dem_Acquire$');
 /** @type {TeqFw_Dem_Compile} */ const compiler = await container.get('TeqFw_Dem_Compile$');
@@ -18,28 +18,10 @@ test('a Node Host acquires one package and composes independent server and brows
 
     // These model labels and compilation inputs belong to this Host.
     // The server result is intended for relational storage; the browser result is intended for IndexedDB.
-    const serverSelection = [
-        select('/vnd/catalog/customer'),
-        select('/vnd/catalog/ledger_event'),
-        select('/vnd/catalog/order'),
-    ];
     const browserSelection = [
         select('/vnd/catalog/cart'),
         select('/vnd/catalog/customer'),
     ];
-    const serverMap = {
-        packageName: 'host-app',
-        filename: 'host-config/server-map.json',
-        document: {
-            $format: 1,
-            sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/server/'}}},
-            identityProfiles: {
-                '/models/server/customer': {id: {type: 'int', capacity: 'large'}},
-                '/models/server/ledger_event': {id: {type: 'int', capacity: 'large'}},
-                '/models/server/order': {id: {type: 'int', capacity: 'large'}},
-            },
-        },
-    };
     const browserMap = {
         packageName: 'host-app',
         filename: 'host-config/browser-map.json',
