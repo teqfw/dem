@@ -17,7 +17,7 @@ export default class Decode {
          */
         this.exec = function (input) {
             /** @type {TeqFw_Dem_Work} */
-            const work = { schemas: [], map: { sources: {}, identityProfiles: {} }, mapSource: null, diagnostics: [], entities: {}, packages: [], provenance: { entities: {}, map: null, pathMappings: [], bindings: [] } };
+            const work = { schemas: [], map: { sources: {}, identityProfiles: {} }, mapSource: null, selectionProvided: false, selectionInput: undefined, diagnostics: [], entities: {}, packages: [], provenance: { entities: {}, map: null, pathMappings: [], bindings: [] } };
             /**
              * @param {string} code
              * @param {TeqFw_Dem_SourceNullable} source
@@ -96,10 +96,12 @@ export default class Decode {
                 fail('DEM_INPUT', null, '');
                 return work;
             }
-            if (!data.isObject(input) || Object.keys(input).some(k => !['schemas', 'map'].includes(k)) || !Array.isArray(input.schemas)) {
+            if (!data.isObject(input) || Object.keys(input).some(k => !['schemas', 'map', 'selection'].includes(k)) || !Array.isArray(input.schemas)) {
                 fail('DEM_INPUT', null, '');
                 return work;
             }
+            work.selectionProvided = Object.hasOwn(input, 'selection');
+            work.selectionInput = input.selection;
             const names = new Set();
             for (const [kind, items] of /** @type {['schema'|'map',any[]][]} */ ([['schema', input.schemas], ['map', Object.hasOwn(input, 'map') ? [input.map] : []]])) {
                 for (const envelope of items) {
@@ -216,6 +218,16 @@ export default class Decode {
                                         list(item.target.attributes, source, ptr + '/target/attributes');
                                         if (Object.hasOwn(item.target, 'path') === Object.hasOwn(item.target, 'dependency') || typeof (item.target.path ?? item.target.dependency) !== 'string')
                                             fail('DEM_FORMAT', source, ptr + '/target');
+                                        else if (Object.hasOwn(item.target, 'path')) {
+                                            try {
+                                                path.normalize(item.target.path, address.slice(0, address.lastIndexOf('/') + 1));
+                                            }
+                                            catch {
+                                                fail('DEM_PATH', source, ptr + '/target/path');
+                                            }
+                                        }
+                                        else if (!member(item.target.dependency))
+                                            fail('DEM_FORMAT', source, ptr + '/target/dependency');
                                     }
                                 }
                             }
@@ -228,6 +240,84 @@ export default class Decode {
                 }
             }
             work.schemas.sort((a, b) => a.source.packageName < b.source.packageName ? -1 : 1);
+            const byPackage = new Map(work.schemas.map(schema => [schema.source.packageName, schema]));
+            for (const [packageName, rules] of Object.entries(work.map.sources)) {
+                const schema = byPackage.get(packageName);
+                if (!data.isObject(rules))
+                    continue;
+                const rename = Object.hasOwn(rules, 'rename') ? rules.rename : {};
+                /** @type {Record<string,string>} */
+                const normalized = Object.create(null);
+                if (data.isObject(rename)) {
+                    for (const [from, to] of Object.entries(rename)) {
+                        try {
+                            if (!from.startsWith('/') || typeof to !== 'string' || !to.startsWith('/'))
+                                throw new TypeError();
+                            const start = path.normalize(from), end = path.normalize(to);
+                            if (start.endsWith('/') !== end.endsWith('/') || Object.hasOwn(normalized, start))
+                                throw new TypeError();
+                            normalized[start] = end;
+                        }
+                        catch {
+                            fail('DEM_MAP', work.mapSource, '/sources', { packageName, from, to });
+                        }
+                    }
+                }
+                const selectors = Object.keys(normalized);
+                for (const a of selectors)
+                    for (const b of selectors)
+                        if (a !== b && a.endsWith('/') && b.startsWith(a))
+                            fail('DEM_MAP', work.mapSource, '/sources', { packageName, overlap: [a, b] });
+                const bindings = Object.hasOwn(rules, 'bind') ? rules.bind : {};
+                if (data.isObject(bindings)) {
+                    for (const [dependency, binding] of Object.entries(bindings)) {
+                        const contract = schema && Object.hasOwn(schema.dependencies, dependency) ? schema.dependencies[dependency] : undefined;
+                        let invalid = !member(dependency) || !data.isObject(binding)
+                            || Object.keys(binding).some(k => !['path', 'attributes'].includes(k))
+                            || typeof binding.path !== 'string' || !binding.path.startsWith('/')
+                            || !data.isObject(binding.attributes);
+                        if (!invalid) {
+                            try {
+                                path.normalize(binding.path);
+                            }
+                            catch {
+                                invalid = true;
+                            }
+                            const aliases = Object.keys(binding.attributes), values = Object.values(binding.attributes);
+                            invalid ||= aliases.some(alias => !member(alias))
+                                || values.some(value => typeof value !== 'string' || !member(value))
+                                || new Set(values).size !== values.length;
+                            if (contract && Array.isArray(contract.attributes))
+                                invalid ||= aliases.length !== contract.attributes.length
+                                    || contract.attributes.some((/** @type {string} */ alias) => !Object.hasOwn(binding.attributes, alias));
+                            else if (schema && !contract)
+                                invalid = true;
+                        }
+                        if (invalid)
+                            fail('DEM_MAP', work.mapSource, '/sources', { packageName, dependency });
+                    }
+                }
+            }
+            for (const [selector, rules] of Object.entries(work.map.identityProfiles)) {
+                try {
+                    if (!selector.startsWith('/') || !data.isObject(rules))
+                        throw new TypeError();
+                    path.normalize(selector);
+                }
+                catch {
+                    fail('DEM_MAP', work.mapSource, '/identityProfiles', { path: selector });
+                    continue;
+                }
+                for (const [attribute, profile] of Object.entries(rules)) {
+                    if (!member(attribute))
+                        fail('DEM_MAP', work.mapSource, '/identityProfiles', { path: selector, attribute });
+                    if (!data.isObject(profile) || !['int', 'uuid'].includes(profile.type)
+                        || Object.keys(profile).some(k => !['type', ...(profile.type === 'int' ? ['capacity'] : [])].includes(k))
+                        || profile.type === 'int' && !['small', 'regular', 'large'].includes(profile.capacity ?? 'regular')
+                        || Object.hasOwn(profile, 'capacity') && profile.capacity === null)
+                        fail('DEM_TYPE', work.mapSource, '/identityProfiles', { path: selector, attribute });
+                }
+            }
             return work;
         };
     }

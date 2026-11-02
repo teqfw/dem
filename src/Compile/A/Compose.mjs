@@ -29,11 +29,80 @@ export default class Compose {
             for (const name of Object.keys(work.map.sources))
                 if (!work.schemas.some(s => s.source.packageName === name))
                     fail('DEM_MAP', work.mapSource, '/sources', { packageName: name });
+            /** @type {Map<string,Set<string>>} */
+            const selected = new Map();
+            if (work.selectionProvided) {
+                if (!Array.isArray(work.selectionInput)) {
+                    fail('DEM_INPUT', null, '', { reason: 'selection-type' });
+                    return work;
+                }
+                /** @type {Map<string,{packageName:string;entityPath:string;count:number}>} */
+                const groups = new Map();
+                for (const selector of work.selectionInput) {
+                    /** @type {Record<string,string>} */
+                    const details = {};
+                    if (data.isObject(selector)) {
+                        if (typeof selector.packageName === 'string')
+                            details.packageName = selector.packageName;
+                        if (typeof selector.entityPath === 'string')
+                            details.entityPath = selector.entityPath;
+                    }
+                    if (!data.isObject(selector) || Object.keys(selector).length !== 2
+                        || !Object.hasOwn(selector, 'packageName') || !Object.hasOwn(selector, 'entityPath')
+                        || typeof selector.packageName !== 'string' || !selector.packageName
+                        || typeof selector.entityPath !== 'string' || !selector.entityPath) {
+                        fail('DEM_INPUT', null, '', { reason: 'selector-shape', ...details });
+                        continue;
+                    }
+                    try {
+                        if (path.normalize(selector.entityPath) !== selector.entityPath || selector.entityPath.endsWith('/'))
+                            throw new TypeError();
+                    }
+                    catch {
+                        fail('DEM_INPUT', null, '', { reason: 'selector-path', ...details });
+                        continue;
+                    }
+                    const key = data.serialize([selector.packageName, selector.entityPath]);
+                    const current = groups.get(key);
+                    if (current)
+                        current.count++;
+                    else
+                        groups.set(key, { packageName: selector.packageName, entityPath: selector.entityPath, count: 1 });
+                }
+                for (const { packageName, entityPath, count } of groups.values())
+                    if (count > 1)
+                        fail('DEM_INPUT', null, '', { reason: 'selector-duplicate', packageName, entityPath });
+                for (const { packageName, entityPath, count } of groups.values()) {
+                    if (count > 1)
+                        continue;
+                    const schema = work.schemas.find(s => s.source.packageName === packageName);
+                    if (!schema) {
+                        fail('DEM_INPUT', null, '', { reason: 'selector-package', packageName, entityPath });
+                        continue;
+                    }
+                    if (!Object.hasOwn(schema.nodes, entityPath)) {
+                        fail('DEM_INPUT', null, '', { reason: 'selector-entity', packageName, entityPath });
+                        continue;
+                    }
+                    const nodes = selected.get(packageName) ?? new Set();
+                    nodes.add(entityPath);
+                    selected.set(packageName, nodes);
+                }
+                if (work.diagnostics.length)
+                    return work;
+            }
+            else {
+                for (const schema of work.schemas)
+                    selected.set(schema.source.packageName, new Set(Object.keys(schema.nodes)));
+            }
+            /** @type {Array<{original:string;node:{raw:any;pointer:string};effective:string;schema:TeqFw_Dem_SchemaWork}>} */
+            const contributions = [];
             for (const schema of work.schemas) {
                 const originalPackages = new Set(schema.packages);
                 for (const original of Object.keys(schema.nodes))
                     for (const parent of path.parents(original))
                         originalPackages.add(parent);
+                const selectedPaths = selected.get(schema.source.packageName) ?? new Set();
                 const rules = (Object.hasOwn(work.map.sources, schema.source.packageName) ? work.map.sources[schema.source.packageName].rename : undefined) ?? {};
                 /** @type {Record<string,string>} */
                 const rename = Object.create(null);
@@ -42,7 +111,8 @@ export default class Compose {
                         if (!from.startsWith('/') || typeof to !== 'string' || !to.startsWith('/'))
                             throw new TypeError();
                         const start = path.normalize(from), end = path.normalize(to);
-                        if (start.endsWith('/') !== end.endsWith('/') || !(Object.hasOwn(schema.nodes, start) || originalPackages.has(start)) || Object.hasOwn(rename, start))
+                        const declared = start.endsWith('/') ? originalPackages.has(start) : selectedPaths.has(start);
+                        if (start.endsWith('/') !== end.endsWith('/') || !declared || Object.hasOwn(rename, start))
                             throw new TypeError();
                         rename[start] = end;
                     }
@@ -64,24 +134,37 @@ export default class Compose {
                     return match ? rename[match] + original.slice(match.length) : original;
                 };
                 schema.correspondence = Object.create(null);
-                for (const original of schema.packages) {
-                    const effective = transform(original);
-                    for (const parent of path.parents(effective))
-                        work.packages.push(parent);
-                }
+                if (!work.selectionProvided)
+                    for (const original of schema.packages) {
+                        const effective = transform(original);
+                        for (const parent of path.parents(effective))
+                            work.packages.push(parent);
+                    }
                 for (const [original, node] of Object.entries(schema.nodes)) {
+                    if (!selectedPaths.has(original))
+                        continue;
                     const effective = transform(original);
                     schema.correspondence[original] = effective;
                     for (const parent of path.parents(effective))
                         work.packages.push(parent);
-                    if (Object.hasOwn(work.entities, effective)) {
-                        fail('DEM_COLLISION', schema.source, node.pointer, { path: effective });
-                        continue;
-                    }
-                    work.entities[effective] = { schema, original, pointer: node.pointer, raw: node.raw, relations: Object.create(null) };
-                    work.provenance.entities[effective] = { ...schema.source, originalPath: original };
-                    work.provenance.pathMappings.push({ packageName: schema.source.packageName, originalPath: original, effectivePath: effective });
+                    contributions.push({ original, node, effective, schema });
                 }
+            }
+            /** @type {Map<string,typeof contributions>} */
+            const byEffective = new Map();
+            for (const item of contributions) {
+                const group = byEffective.get(item.effective) ?? [];
+                group.push(item);
+                byEffective.set(item.effective, group);
+            }
+            for (const [effective, group] of byEffective) {
+                group.sort((a, b) => a.schema.source.packageName < b.schema.source.packageName ? -1 : a.schema.source.packageName > b.schema.source.packageName ? 1 : a.original < b.original ? -1 : a.original > b.original ? 1 : 0);
+                for (const item of group.slice(1))
+                    fail('DEM_COLLISION', item.schema.source, item.node.pointer, { path: effective });
+                const item = group[0];
+                work.entities[effective] = { schema: item.schema, original: item.original, pointer: item.node.pointer, raw: item.node.raw, relations: Object.create(null) };
+                work.provenance.entities[effective] = { ...item.schema.source, originalPath: item.original };
+                work.provenance.pathMappings.push({ packageName: item.schema.source.packageName, originalPath: item.original, effectivePath: effective });
             }
             work.entities = Object.fromEntries(Object.entries(work.entities).sort(([a], [b]) => a < b ? -1 : 1));
             work.provenance.entities = Object.fromEntries(Object.entries(work.provenance.entities).sort(([a], [b]) => a < b ? -1 : 1));

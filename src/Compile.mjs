@@ -29,9 +29,7 @@ export default class Compile {
             return /** @type {TeqFw_Dem_CompilationResult} */ (value);
         };
         /**
-         * @param {object} input
-         * @param {ReadonlyArray<TeqFw_Dem_Envelope>} input.schemas
-         * @param {TeqFw_Dem_Envelope} [input.map]
+         * @param {TeqFw_Dem_CompileInput} input
          * @returns {Promise<TeqFw_Dem_CompilationResult>}
          */
         this.exec = async function (input) {

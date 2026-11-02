@@ -28,11 +28,19 @@ export default class Resolve {
             };
             for (const schema of work.schemas) {
                 const supplied = (Object.hasOwn(work.map.sources, schema.source.packageName) ? work.map.sources[schema.source.packageName].bind : undefined) ?? {};
+                const relevant = new Set();
+                for (const info of Object.values(work.entities))
+                    if (info.schema === schema)
+                        for (const relation of Object.values(/** @type {Record<string,any>} */ (info.raw.relations ?? {})))
+                            if (Object.hasOwn(relation.target, 'dependency'))
+                                relevant.add(relation.target.dependency);
                 schema.bindings = Object.create(null);
                 for (const alias of Object.keys(supplied))
                     if (!Object.hasOwn(schema.dependencies, alias))
                         fail('DEM_MAP', work.mapSource, '/sources', { packageName: schema.source.packageName, dependency: alias });
                 for (const [alias, dependency] of Object.entries(schema.dependencies)) {
+                    if (!relevant.has(alias))
+                        continue;
                     const binding = Object.hasOwn(supplied, alias) ? supplied[alias] : undefined;
                     if (!binding) {
                         fail('DEM_DEPENDENCY', schema.source, '/$dependencies/' + alias, { dependency: alias });
@@ -98,6 +106,11 @@ export default class Resolve {
                     info.relations[name] = { attributes: relation.attributes, target: { path: address, attributes } };
                 }
             }
+            work.provenance.bindings.sort((a, b) => {
+                const left = data.serialize([a.packageName, a.dependency, a.path, a.attributes]);
+                const right = data.serialize([b.packageName, b.dependency, b.path, b.attributes]);
+                return left < right ? -1 : left > right ? 1 : 0;
+            });
             return work;
         };
     }

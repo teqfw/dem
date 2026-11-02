@@ -77,6 +77,7 @@ const result = await compiler.exec({
     schemas: [{packageName: 'consumer', filename: 'etc/dem-schema.json', document: {
         $format: 1, '/app/item': {attributes: [{name: 'id', type: {name: 'identity'}}]},
     }}],
+    selection: [{packageName: 'consumer', entityPath: '/app/item'}],
 });
 if (compiler.assertResult({value: result}) !== result || !Object.isFrozen(result.model)) throw new Error('Invalid result');
 /** @type {import('@teqfw/dem').DemSelection} */

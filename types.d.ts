@@ -10,6 +10,8 @@ export type DemRepositoryErrorCode = TeqFw_Dem_RepositoryErrorCode;
 export type DemRecord = TeqFw_Dem_Record;
 export type DemKey = TeqFw_Dem_Key;
 export type DemSelection = TeqFw_Dem_Selection;
+export type DemEntitySelector = TeqFw_Dem_EntitySelector;
+export type DemCompileInput = TeqFw_Dem_CompileInput;
 export type DemRepository = TeqFw_Dem_Api_Repository;
 export type DemRepositoryProvider = TeqFw_Dem_Api_RepositoryProvider;
 export type DemRepositoryError = TeqFw_Dem_RepositoryError;
@@ -52,6 +54,7 @@ declare global {
     type TeqFw_Dem_CompilationError = {name:string;message:string;diagnostics:TeqFw_Dem_Diagnostic[];warnings:TeqFw_Dem_Diagnostic[]};
     type TeqFw_Dem_CompilationResult = {model:TeqFw_Dem_Model;canonical:TeqFw_Dem_Canonical;fingerprint:string;provenance:TeqFw_Dem_Provenance;graph:TeqFw_Dem_Graph;warnings:TeqFw_Dem_Diagnostic[]};
     type TeqFw_Dem_Compile = import("./src/Compile.mjs").default;
+    type TeqFw_Dem_CompileInput = {schemas:ReadonlyArray<TeqFw_Dem_Envelope>;map?:TeqFw_Dem_Envelope;selection?:ReadonlyArray<TeqFw_Dem_EntitySelector>};
     type TeqFw_Dem_Compile_A_Canonical = import("./src/Compile/A/Canonical.mjs").default;
     type TeqFw_Dem_Compile_A_Canonical__Class = typeof import("./src/Compile/A/Canonical.mjs").default;
     type TeqFw_Dem_Compile_A_Compose = import("./src/Compile/A/Compose.mjs").default;
@@ -82,6 +85,7 @@ declare global {
     type TeqFw_Dem_Dto_Query_Selection__Factory = import("./src/Dto/Query/Selection.mjs").Factory;
     type TeqFw_Dem_Dto_Query_Selection__Factory__Class = typeof import("./src/Dto/Query/Selection.mjs").Factory;
     type TeqFw_Dem_Entity = {attributes: TeqFw_Dem_Attribute[]; primaryKey: string[]|null; uniqueKeys: Record<string,string[]>; indexes: Record<string,{attributes:string[]}>; relations: Record<string,TeqFw_Dem_Relation>};
+    type TeqFw_Dem_EntitySelector = {packageName:string;entityPath:string};
     type TeqFw_Dem_EntityWork = {schema:TeqFw_Dem_SchemaWork;original:string;pointer:string;raw:any;relations:Record<string,TeqFw_Dem_Relation>};
     type TeqFw_Dem_Envelope = {packageName:string;filename:string;document:unknown};
     type TeqFw_Dem_ExpressionKind = "attr"|"value"|"call";
@@ -126,6 +130,6 @@ declare global {
     type TeqFw_Dem_Util_Data = import("./src/Util/Data.mjs").default;
     type TeqFw_Dem_Util_Data__Class = typeof import("./src/Util/Data.mjs").default;
     type TeqFw_Dem_Work = TeqFw_Dem_WorkingState;
-    type TeqFw_Dem_WorkingState = {schemas:TeqFw_Dem_SchemaWork[];map:{sources:Record<string,any>;identityProfiles:Record<string,any>};mapSource:TeqFw_Dem_Source|null;diagnostics:TeqFw_Dem_Diagnostic[];entities:Record<string,TeqFw_Dem_EntityWork>;packages:string[];provenance:TeqFw_Dem_Provenance};
+    type TeqFw_Dem_WorkingState = {schemas:TeqFw_Dem_SchemaWork[];map:{sources:Record<string,any>;identityProfiles:Record<string,any>};mapSource:TeqFw_Dem_Source|null;selectionProvided:boolean;selectionInput:unknown;diagnostics:TeqFw_Dem_Diagnostic[];entities:Record<string,TeqFw_Dem_EntityWork>;packages:string[];provenance:TeqFw_Dem_Provenance};
 }
 export {};
