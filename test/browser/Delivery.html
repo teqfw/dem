@@ -8,8 +8,13 @@
 <body>
 <main>Host browser model delivery fixture</main>
 <script type="module">
-    /** @type {Record<string, unknown>} */
-    let report;
+    let report = {};
+    let runError;
+    let backend;
+    const databaseName = 'dem-delivery-' + crypto.randomUUID();
+    let backendClosed = false;
+    let databaseDeleted = false;
+    const cleanupErrors = [];
     try {
         const response = await fetch('/demo/model/browser');
         const contentType = response.headers.get('content-type');
@@ -39,7 +44,9 @@
 
         const {default: Container} = await import('/node_modules/@teqfw/di/dist/esm.js');
         const container = new Container();
+        // Resolve DEM collaborators from this checkout, not the npm DEM dependency of DEM-IDB.
         container.addNamespaceRoot('TeqFw_Dem_', location.origin + '/src', '.mjs');
+        container.addNamespaceRoot('TeqFw_DemIdb_', location.origin + '/node_modules/@teqfw/dem-idb/src', '.mjs');
         const normalize = await container.get('TeqFw_Dem_Repository_Normalize$');
         const normalizedRecord = normalize.record({
             entity: cart,
@@ -52,6 +59,49 @@
         if (normalizedRecord.id !== 'abcdef12-3456-7890-abcd-ef1234567890') throw new Error('Received model identity normalization failed.');
         if (normalizedRecord.customer_id !== '12345678-1234-5678-9abc-def012345678') throw new Error('Received model reference normalization failed.');
 
+        const adapter = await container.get('TeqFw_DemIdb_Adapter$');
+        backend = await adapter.open({model, name: databaseName, enforceRelations: true});
+        const initialized = await backend.createSchema();
+        const physicalStores = Array.from(initialized.database.objectStoreNames).sort();
+        const entityStores = physicalStores.filter(name => name.startsWith('dem:/models/'));
+        const expectedEntityStores = ['dem:/models/browser/cart', 'dem:/models/browser/customer'];
+        if (JSON.stringify(entityStores) !== JSON.stringify(expectedEntityStores)) {
+            throw new Error(`Unexpected IndexedDB entity stores: ${JSON.stringify(entityStores)}.`);
+        }
+        if (physicalStores.includes('dem:/models/server/order') || physicalStores.includes('dem:/models/server/ledger_event')) {
+            throw new Error('Server-only entities were projected into IndexedDB.');
+        }
+
+        const customerRepository = await backend.get({path: '/models/browser/customer'});
+        const cartRepository = await backend.get({path: '/models/browser/cart'});
+        const customerId = '12345678-1234-5678-9ABC-DEF012345678';
+        const cartId = 'ABCDEF12-3456-7890-ABCD-EF1234567890';
+        const missingCustomerId = '23456789-2345-6789-ABCD-EF0123456789';
+        const customerCreated = (await customerRepository.create({record: {id: customerId, name: 'Ada'}})).record;
+
+        let relationErrorCode;
+        try {
+            await cartRepository.create({record: {id: '3456789A-3456-7890-ABCD-EF0123456789', customer_id: missingCustomerId}});
+        } catch (error) {
+            relationErrorCode = error.code;
+        }
+        if (relationErrorCode !== 'RELATION') throw new Error(`Expected RELATION for a missing customer, received ${relationErrorCode ?? 'no error'}.`);
+
+        const cartCreated = (await cartRepository.create({record: {id: cartId, customer_id: customerId}})).record;
+        const customerKey = {kind: 'primary', values: {id: customerCreated.id}};
+        const cartKey = {kind: 'primary', values: {id: cartCreated.id}};
+        const customerRead = (await customerRepository.read({key: customerKey})).record;
+        const cartRead = (await cartRepository.read({key: cartKey})).record;
+        const customerUpdated = (await customerRepository.update({key: customerKey, changes: {name: 'Ada Lovelace'}})).record;
+        const customerAfterUpdate = (await customerRepository.read({key: customerKey})).record;
+        const cartList = await cartRepository.list({selection: {}});
+        const cartDeleted = await cartRepository.delete({key: cartKey});
+        const customerDeleted = await customerRepository.delete({key: customerKey});
+        const cartAfterDelete = await cartRepository.read({key: cartKey});
+        const customerAfterDelete = await customerRepository.read({key: customerKey});
+        const cartListAfterDelete = await cartRepository.list({selection: {}});
+        const customerListAfterDelete = await customerRepository.list({selection: {}});
+
         report = {
             model,
             fingerprint: delivered.fingerprint,
@@ -62,10 +112,53 @@
             normalizedRecord,
             unselectedStatus: unselected.status,
             browser: navigator.userAgent,
+            entityStores,
+            crud: {
+                relationErrorCode,
+                customerCreated,
+                cartCreated,
+                customerRead,
+                cartRead,
+                customerUpdated,
+                customerAfterUpdate,
+                cartList,
+                cartDeleted,
+                customerDeleted,
+                cartAfterDelete,
+                customerAfterDelete,
+                cartListAfterDelete,
+                customerListAfterDelete,
+            },
         };
     } catch (error) {
-        report = {error: error instanceof Error ? error.stack : String(error)};
+        runError = error instanceof Error ? error.stack : String(error);
+    } finally {
+        if (backend) {
+            try {
+                await backend.close();
+                backendClosed = true;
+            } catch (error) {
+                cleanupErrors.push(`Adapter close failed: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+        try {
+            await new Promise((resolve, reject) => {
+                const request = indexedDB.deleteDatabase(databaseName);
+                request.onsuccess = resolve;
+                request.onerror = () => reject(request.error ?? new Error('IndexedDB deletion failed.'));
+                request.onblocked = () => reject(new Error('IndexedDB deletion was blocked.'));
+            });
+            const remaining = await indexedDB.databases();
+            databaseDeleted = !remaining.some(database => database.name === databaseName);
+        } catch (error) {
+            cleanupErrors.push(`Database cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
+    if (runError) report.error = runError;
+    report.databaseName = databaseName;
+    report.backendClosed = backendClosed;
+    report.databaseDeleted = databaseDeleted;
+    report.cleanupErrors = cleanupErrors;
     const sent = await fetch('/demo/result', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},

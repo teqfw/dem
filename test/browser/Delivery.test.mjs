@@ -10,7 +10,7 @@ import Container from '@teqfw/di';
 import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
 import {select, withHostFixture} from '../fixtures/HostComposition.mjs';
 
-/** @typedef {{error?: string, model?: unknown, fingerprint?: string, contentType?: string, paths?: string[], relationPath?: string, identityProfiles?: unknown, normalizedRecord?: Record<string, string>, unselectedStatus?: number, browser?: string}} BrowserReport */
+/** @typedef {{error?: string, model?: unknown, fingerprint?: string, contentType?: string, paths?: string[], relationPath?: string, identityProfiles?: unknown, normalizedRecord?: Record<string, string>, unselectedStatus?: number, browser?: string, entityStores?: string[], crud?: unknown, databaseName?: string, backendClosed?: boolean, databaseDeleted?: boolean, cleanupErrors?: string[]}} BrowserReport */
 
 test('Node Host delivers its selected browser model through TeqFW Web to Chromium', {timeout: 60000}, () => withHostFixture(async hostRoot => {
     const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -149,7 +149,12 @@ test('Node Host delivers its selected browser model through TeqFW Web to Chromiu
         await staticHandler.init({sources: [sourceFactory.create({
             root,
             prefix: '/',
-            allow: {'.': ['test/browser/Delivery.html', 'src', 'node_modules/@teqfw/di/dist/esm.js']},
+            allow: {'.': [
+                'test/browser/Delivery.html',
+                'src',
+                'node_modules/@teqfw/di/dist/esm.js',
+                'node_modules/@teqfw/dem-idb/src',
+            ]},
         })]});
         pipeline.addHandler(staticHandler);
 
@@ -203,6 +208,30 @@ test('Node Host delivers its selected browser model through TeqFW Web to Chromiu
         });
         assert.equal(report.unselectedStatus, 404);
         assert.match(report.browser ?? '', /Chrome\//);
+        assert.deepEqual(report.entityStores, [
+            'dem:/models/browser/cart',
+            'dem:/models/browser/customer',
+        ]);
+        assert.deepEqual(report.crud, {
+            relationErrorCode: 'RELATION',
+            customerCreated: {id: '12345678-1234-5678-9abc-def012345678', name: 'Ada'},
+            cartCreated: {id: 'abcdef12-3456-7890-abcd-ef1234567890', customer_id: '12345678-1234-5678-9abc-def012345678'},
+            customerRead: {id: '12345678-1234-5678-9abc-def012345678', name: 'Ada'},
+            cartRead: {id: 'abcdef12-3456-7890-abcd-ef1234567890', customer_id: '12345678-1234-5678-9abc-def012345678'},
+            customerUpdated: {id: '12345678-1234-5678-9abc-def012345678', name: 'Ada Lovelace'},
+            customerAfterUpdate: {id: '12345678-1234-5678-9abc-def012345678', name: 'Ada Lovelace'},
+            cartList: {records: [{id: 'abcdef12-3456-7890-abcd-ef1234567890', customer_id: '12345678-1234-5678-9abc-def012345678'}]},
+            cartDeleted: {deleted: true},
+            customerDeleted: {deleted: true},
+            cartAfterDelete: {record: null},
+            customerAfterDelete: {record: null},
+            cartListAfterDelete: {records: []},
+            customerListAfterDelete: {records: []},
+        });
+        assert.match(report.databaseName ?? '', /^dem-delivery-/);
+        assert.equal(report.backendClosed, true);
+        assert.equal(report.databaseDeleted, true);
+        assert.deepEqual(report.cleanupErrors, []);
     } finally {
         clearTimeout(timeout);
         if (chrome) {

@@ -61,6 +61,7 @@
     "@teqfw/di": "^2.11.0"
   },
   "devDependencies": {
+    "@teqfw/dem-idb": "^0.1.0",
     "@teqfw/web": "^2.2.0",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3"
