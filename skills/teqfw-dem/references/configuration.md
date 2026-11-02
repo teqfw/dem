@@ -17,8 +17,9 @@ Paths are relative to the declaring npm package root and independently overridab
 }
 ```
 
-Each npm package supplies at most one schema file; the host supplies at most one
-active map file and may also supply its own schema. Map origin selectors use the
+Each npm package supplies at most one schema file. Current Node acquisition reads
+one configured host map and may also acquire the host's own schema. Each compiler
+invocation accepts its own caller-supplied map. Map origin selectors use the
 npm package name, not logical namespace.
 
 An omitted parameter uses the default path. A missing default file is not an error
@@ -27,12 +28,12 @@ path whose file is missing is an error. An absent map means no extra binding rul
 compilation can succeed only if the resulting model is complete and consistent.
 A dependency's map file does not become active host policy.
 
-`etc/dem-host.json` is the anticipated downstream projection description. Its
-format, discovery and metadata key belong to the responsible projection plugin;
-DEM does not read it. No `teqfw.dem.host` projection parameter is defined here.
+`etc/dem-host.json` is a possible host-owned placement description whose format,
+discovery and ownership mechanism remain unspecified; DEM does not read it.
+No `teqfw.dem.host` projection parameter is defined here.
 
-DEM integration acquires files through `@teqfw/cli` plugin discovery, separately
-from portable compilation. See [runtime contracts](scope.md) for status.
+Node acquisition uses the `@teqfw/di` package registry also used by CLI bootstrap,
+separately from portable compilation. See [runtime contracts](scope.md) for status.
 
 ## Metadata validation
 
@@ -63,10 +64,7 @@ than relying solely on JSON.parse, which discards this evidence.
 
 The inspected CLI Bootstrap uses `@teqfw/di/node/registry/package` to build package
 records from the application root. It does not currently expose a public package
-list API. Reuse that discovery mechanism through an explicit integration adapter;
-do not invent a CLI method or add an independent filesystem scanner. Record the
-adapter's supported dependency contract when implementing it. The DEM compiler
-receives declarations and does not import the discovery adapter.
-The [declaration contract](declarations.md) is accepted target syntax independent
-of the currently executable format. It must follow architectural path semantics and
-exclude physical settings.
+list API. DEM Acquire uses the public registry export directly; it does not invoke
+CLI for discovery. The portable compiler receives declarations without importing
+the acquisition component. The [declaration contract](declarations.md) documents
+current format-1 syntax, path semantics and physical-setting exclusions.

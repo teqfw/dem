@@ -1,11 +1,11 @@
 ---
 name: teqfw-dem
-description: Use when designing, integrating, reviewing or modifying @teqfw/dem logical schema fragments, host binding rules, model compilation, portable CRUD/List or consumer contracts. Storage partitioning and projection belong to downstream plugins.
+description: Use when designing, integrating, reviewing or modifying @teqfw/dem logical schema fragments, host binding rules, model compilation, portable CRUD/List or consumer contracts. The host owns model placement; adapters own physical projection.
 ---
 
 # Domain Entity Model
 
-DEM composes plugin fragments into one complete, consistent logical schema.
+DEM composes plugin fragments into a complete, consistent logical model per compilation.
 DEM also defines backend-independent entity access. Hosts bind explicit dependencies and select identity profiles; refs inherit their
 target identities' profiles. Storage projection belongs to downstream plugins.
 

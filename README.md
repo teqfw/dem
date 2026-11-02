@@ -1,10 +1,10 @@
 # @teqfw/dem
 
-Domain Entity Model composes plugin-owned schema fragments into one complete,
-consistent logical model. The host resolves namespace collisions, binds explicit
-external dependencies and selects identity profiles. DEM runs in Node.js and
-browsers; storage partitioning, projection, generation algorithms and data
-execution belongs to downstream packages. DEM defines portable CRUD/List contracts.
+Domain Entity Model composes package-owned schema fragments into complete,
+consistent logical models. The host resolves namespace collisions, binds explicit
+external dependencies, selects identity profiles and decides model-to-database
+placement. DEM runs in Node.js and browsers; adapters own physical projection and
+persistence. DEM defines portable CRUD/List contracts.
 
 ## Compile through DI
 
@@ -87,11 +87,15 @@ Acquire reuses the package-registry discovery mechanism used by @teqfw/cli.
 The default files are `etc/dem-schema.json` and the host's `etc/dem-map.json`.
 Override package-relative paths independently under `package.json` → `teqfw.dem`.
 Missing implicit defaults are allowed; explicitly configured missing files fail.
-Only the host's map is active. See [configuration](skills/teqfw-dem/references/configuration.md).
+Acquire reads the one configured host map; separate compiler invocations can use
+different caller-supplied maps. The current compiler processes whole descriptors,
+not entity-level host selections, and requires bindings for all declared external
+dependencies. See [configuration](skills/teqfw-dem/references/configuration.md).
 
 The portable compiler imports no filesystem or CLI modules. Browser hosts supply
 parsed envelopes, register served ESM namespace roots and use the browser DI
-build. Module URL delivery remains the host/downstream responsibility.
+build. Module URL delivery remains the host/downstream responsibility. A browser
+loader and HTTP delivery of compiled models are not provided by this package.
 
 ## Development
 

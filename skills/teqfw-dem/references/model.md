@@ -6,23 +6,24 @@ complete composition example. [Runtime components](scope.md) define supported pu
 
 ## Inputs and authority
 
-DEM composes all selected contributions into one complete, consistent logical
-model. Each plugin describes its own entities, attributes, constraints and explicit
+DEM composes selected contributions into one complete, consistent logical
+model per compilation; the host may compose several independently. Each plugin
+describes its own entities, attributes, constraints and explicit
 outgoing dependencies. The host can contribute a schema under the same rules.
 The host owns path remapping, dependency binding and identity-profile selection;
 it cannot add, remove, rename or reorder a plugin's attributes.
 
 `dem-schema.json` describes a fragment; `dem-map.json` describes host logical
-composition rules. Future `dem-host.json` belongs to downstream storage projection,
-not DEM. DEM defines [portable entity access](repository.md), but does not partition
-data sources, select physical types/dialects, execute persistence or manage transactions. Downstream owns physical
-representation, capability checks, generation, persistence and storage addresses.
+composition rules. A possible `dem-host.json` placement mechanism is unspecified
+and is not read by DEM. The host chooses models, database placement, configuration and lifecycle.
+DEM defines [portable entity access](repository.md); adapters own physical
+representation, capability checks, generation and persistence.
 
 ## Dependencies and identities
 
 External entity dependencies and required attribute aliases are explicit and
-scoped to the originating npm package. The host binds each contract to an actual
-entity and maps aliases to actual attributes. Same-named dependencies from two
+scoped to the originating npm package. The current compiler requires the host to
+bind each contract to an actual entity and map aliases to actual attributes. Same-named dependencies from two
 plugins may bind to one identity or different identities. Coincidental path/name
 matches cannot substitute for a declared contract and binding.
 
@@ -83,7 +84,8 @@ Exact serialization is defined in the [canonical contract](canonical.md).
 ## Acquisition and runtime direction
 
 Defaults are `etc/dem-schema.json` and `etc/dem-map.json`. Each npm package supplies
-at most one schema; the host supplies at most one active map. Select contribution
+at most one schema; current Node acquisition reads one configured host map. A
+caller may supply a different map to each compiler invocation. Select contribution
 origins by npm package name. Missing implicit default files are allowed; missing
 explicitly configured files are errors. Package-root-relative overrides are:
 
@@ -98,9 +100,20 @@ explicitly configured files are errors. Package-root-relative overrides are:
 }
 ```
 
-Node acquisition uses @teqfw/cli discovery, separate from the portable compiler.
+Node acquisition uses the @teqfw/di package registry also used by CLI bootstrap,
+separate from the portable compiler.
 Supported environments are current Active/Maintenance LTS Node.js and stable
 Chrome/Chromium. Full Node verification and a minimal browser multi-schema/map
 composition with a matching Node fingerprint are required. Downstream delivers
-browser modules by URL. CLI-compatible discovery, metadata acquisition and format 1 are implemented in
-v0.2.0; consult the [runtime reference](scope.md) for component boundaries.
+browser modules by URL. DI-registry discovery, metadata acquisition and format 1
+are implemented in v0.2.0; consult the [runtime reference](scope.md) for component boundaries.
+
+## Entity-level target and current boundary
+
+The accepted direction lets the host select entities for each independent model by
+`(packageName, original entity path)`, reuse entities, and supply model-specific
+maps and profiles. Selected dependencies must be explicitly satisfied; unused
+external contracts add no binding obligation. The current v0.2.0 compiler instead
+accepts whole descriptors and requires all declared external bindings, even unused
+ones. Entity selection, a common browser/Node declaration source and HTTP model
+delivery are not implemented. The host controls publication and placement.

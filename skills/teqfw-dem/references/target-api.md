@@ -114,3 +114,11 @@ path rules; linked npm packages remain supported.
 
 Portable CRUD/List is a separate [entity-access contract](repository.md); it does
 not change these compiler/acquisition envelopes or canonical content.
+
+## Model membership direction
+
+The current API compiles whole supplied descriptors and validates bindings for all
+external contracts, including unused ones. Host entity-level selection and the
+policy of resolving only dependencies relevant to selected entities are accepted
+targets, not current API features. Node Acquire has no per-call map selector; a
+caller can supply a distinct map for each separate compiler invocation.
