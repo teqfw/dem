@@ -259,8 +259,8 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         assert.equal(report.unselectedStatus, 404);
         assert.match(report.browser ?? '', /Chrome\//);
         assert.deepEqual(report.entityStores, [
-            'dem:/models/browser/cart',
-            'dem:/models/browser/customer',
+            '/models/browser/cart',
+            '/models/browser/customer',
         ]);
         assert.deepEqual(report.crud, {
             relationErrorCode: 'RELATION',

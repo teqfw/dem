@@ -63,12 +63,12 @@
         backend = await adapter.open({model, name: databaseName, enforceRelations: true});
         const initialized = await backend.createSchema();
         const physicalStores = Array.from(initialized.database.objectStoreNames).sort();
-        const entityStores = physicalStores.filter(name => name.startsWith('dem:/models/'));
-        const expectedEntityStores = ['dem:/models/browser/cart', 'dem:/models/browser/customer'];
+        const entityStores = physicalStores.filter(name => name.startsWith('/models/'));
+        const expectedEntityStores = ['/models/browser/cart', '/models/browser/customer'];
         if (JSON.stringify(entityStores) !== JSON.stringify(expectedEntityStores)) {
             throw new Error(`Unexpected IndexedDB entity stores: ${JSON.stringify(entityStores)}.`);
         }
-        if (physicalStores.includes('dem:/models/server/order') || physicalStores.includes('dem:/models/server/ledgerevent')) {
+        if (physicalStores.includes('/models/server/order') || physicalStores.includes('/models/server/ledgerevent')) {
             throw new Error('Server-only entities were projected into IndexedDB.');
         }
 
