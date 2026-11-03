@@ -26,6 +26,10 @@ test('Format 2 namespace and declaration paths are canonical and relative', () =
         assert.throws(() => path.declaration('/pde/office/core/', key));
     assert.equal(path.canonicalAddress('/host/desk/attachment'), '/host/desk/attachment');
     assert.equal(path.canonicalAddress('/host/desk/'), '/host/desk/');
+    assert.equal(path.isReserved('/dem'), true);
+    assert.equal(path.isReserved('/dem/entity'), true);
+    assert.equal(path.isReserved('/dem/'), true);
+    assert.equal(path.isReserved('/demo/entity'), false);
     for (const address of ['/host_team/item', '/Host/item', '/host//item'])
         assert.throws(() => path.canonicalAddress(address));
 });

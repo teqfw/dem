@@ -1,10 +1,12 @@
 # Runtime Components
 
-Package v0.2.0 implements the format-1 contracts in this skill. Logical compilation
+The current compiler implements Format 2 schema descriptors and deliberately
+rejects legacy Format 1 schemas. This is an intentional breaking contract; there
+is no schema compatibility mode. Host maps remain Format 1. Logical compilation
 and Node acquisition use the [compiler/acquisition API](target-api.md); inputs
 follow [declarations](declarations.md), [types](types.md) and
 [configuration](configuration.md). [Canonical identity](canonical.md) defines exact
-fingerprint bytes. There are no physical declarations or version-2 compatibility inputs.
+fingerprint bytes. There are no physical declarations.
 
 ## Supported DI tokens
 

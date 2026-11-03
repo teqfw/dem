@@ -22,14 +22,19 @@ const result = await compiler.exec({
         packageName: '@example/app',
         filename: 'etc/dem-schema.json',
         document: {
-            $format: 1,
-            '/app/user': {attributes: [{name: 'id', type: {name: 'identity'}}]},
+            $format: 2,
+            $namespace: '/app/',
+            user: {attributes: [{name: 'id', type: {name: 'identity'}}]},
         },
     }],
 });
 compiler.assertResult({value: result});
 console.log(result.model.entities, result.fingerprint);
 ```
+
+Schema Format 1 is deliberately unsupported. DEM rejects legacy schema descriptors;
+this is an intentional breaking contract with no compatibility mode. Host maps are
+a separate document format and continue to use `$format: 1`.
 
 The immutable result contains model, canonical content, fingerprint, provenance,
 dependency graph and warnings. Invalid inputs reject with a frozen

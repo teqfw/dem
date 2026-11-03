@@ -14,7 +14,8 @@ their target identities' profiles. Storage projection belongs to downstream plug
   [Accepted logical model](references/model.md).
 - For new declaration design, read the
   [Schema/map contract and complete example](references/declarations.md), then
-  [ordinary types](references/types.md) as needed. The compiler implements these format-1 contracts.
+  [ordinary types](references/types.md) as needed. The compiler implements Format 2
+  schemas and deliberately rejects legacy Format 1 schemas. Host maps retain Format 1.
 - For implementing or integrating the compiler, acquisition or fingerprint contract, read
   [target API](references/target-api.md), [configuration](references/configuration.md)
   and [canonical identity](references/canonical.md).

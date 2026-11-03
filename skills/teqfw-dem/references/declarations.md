@@ -2,13 +2,18 @@
 
 ## Status and representation
 
-This format-1 contract is implemented by package v0.2.0. Runtime component
-boundaries are described in [runtime components](scope.md).
-Logical nodes form a flat dictionary of absolute paths: package keys end with `/`,
-entity keys do not. Parent packages are derived; explicit package entries describe
-empty packages with optional comments. Logical and npm package names are independent.
-Reserved non-path keys carry document data: `$format`, `$comment` and
-`$dependencies`. There are no physical fields or fragmentId.
+Schema descriptors require `$format: 2` and a canonical absolute directory
+`$namespace`. This breaking change is intentional: Format 1 schema descriptors
+are rejected and no legacy compatibility mode is provided. Host maps are a
+separate contract and continue to use `$format: 1`.
+
+Entity and explicit package-node keys are relative to `$namespace`; package keys
+end with `/`, entity keys do not. Each path segment matches `[a-z][a-z0-9]*`.
+Reject absolute keys, empty or repeated segments, dot segments, underscores,
+hyphens, and invalid characters. Parent packages are derived; explicit package
+entries describe empty packages with optional comments. Logical and npm package
+names are independent. Reserved non-path keys are `$format`, `$namespace`,
+`$comment` and `$dependencies`. There are no physical fields or fragmentId.
 
 Entity attributes are arrays with unique names, retaining projection order.
 Named keys/indexes/relations contain ordered attribute lists.
@@ -36,9 +41,10 @@ Schema contributed by `@example/sale`:
 
 ```json
 {
-  "$format": 1,
+  "$format": 2,
+  "$namespace": "/vnd/sale/",
   "$dependencies": {"user": {"attributes": ["id"]}},
-  "/vnd/sale/order": {
+  "order": {
     "attributes": [
       {"name": "id", "type": {"name": "identity"}},
       {"name": "user_id", "type": {"name": "ref"}}
@@ -57,9 +63,10 @@ Schema contributed by `@example/customer`:
 
 ```json
 {
-  "$format": 1,
+  "$format": 2,
+  "$namespace": "/vnd/customer/",
   "$dependencies": {"user": {"attributes": ["id"]}},
-  "/vnd/customer/address": {
+  "address": {
     "attributes": [
       {"name": "id", "type": {"name": "identity"}},
       {"name": "owner_id", "type": {"name": "ref"}}
@@ -79,11 +86,12 @@ Schema contributed by `@example/accounts`:
 
 ```json
 {
-  "$format": 1,
-  "/vnd/accounts/user": {
+  "$format": 2,
+  "$namespace": "/vnd/accounts/",
+  "user": {
     "attributes": [{"name": "user_key", "type": {"name": "identity"}}]
   },
-  "/vnd/accounts/operator": {
+  "operator": {
     "attributes": [{"name": "operator_key", "type": {"name": "identity"}}]
   }
 }
@@ -159,9 +167,10 @@ Missing rename rules leave paths unchanged. Omitted identity profiles resolve to
 int/regular. Each entity may declare at most one identity; it derives the
 single-attribute primary key. Composite identities are unsupported. Explicit primary-key equivalence and
 conflicts follow the entity grammar below.
-Local relative targets normalize against the original containing package and
-route through source-to-effective correspondence; moving an entity never
-implicitly changes its local dependencies.
+Local relative targets may use `.` and `..`; they normalize against the original
+containing package, must remain inside the descriptor namespace, and route through
+source-to-effective correspondence. Moving an entity never implicitly changes its
+local dependencies. Host mappings cannot repair an out-of-namespace source target.
 
 ## Expected composition of the example
 
@@ -181,24 +190,31 @@ consumer's endpoint and profile without changing either consumer's attributes.
 
 ## Validation and normalization
 
-All documents are JSON objects. `$format` is required and equals integer 1.
+All documents are JSON objects. Schema descriptors require integer `$format: 2`
+and canonical `$namespace`; host maps retain integer `$format: 1`.
 `$comment` is an optional string and has no logical identity meaning. Unknown
 properties are errors at every structured node; dictionary keys are validated
 according to their declared role. Duplicate raw JSON members are invalid.
 Collections omitted below normalize to empty collections; null is never omission.
 Identifiers for attributes, dependencies, keys, indexes and relations match
-`[a-z0-9_]+`; path segments follow the same grammar except navigation segments.
-Node paths normalize before collision checks. Root `/` is a package, never an entity.
-Entity/package keys differing only by trailing slash are distinct.
+`[a-z0-9_]+`; path segments follow `[a-z][a-z0-9]*` except navigation segments
+in relative references. Declaration keys are not normalized into validity. The
+root `/` is a package, never an entity. Entity/package paths differing only by
+trailing slash are distinct.
 
 ### Schema nodes
 
-Schema root permits `$format`, `$comment`, `$dependencies` and absolute node paths.
-A package node permits only `$comment`. Parents derive from entity paths; empty
+Schema root permits `$format`, `$namespace`, `$comment`, `$dependencies` and
+relative node keys. A package node permits only `$comment`. Parents derive from entity paths; empty
 packages are accepted but excluded from fingerprint content. A dependency object
 contains required `attributes`: a non-empty list of unique attribute aliases.
 Only contracts used by selected entities require host bindings, including when
 selection is omitted. Supplied unused bindings must still be structurally valid.
+Namespaces belong to one contributing npm package each. Nested namespaces are
+allowed; a parent package cannot declare entities or explicit package nodes inside
+a contributing child's namespace. `/dem` and its `/dem/` subtree are reserved for
+DEM itself. Application entities and package nodes cannot occupy those source
+paths, and host mapping cannot place application entities there.
 See the [entity selection contract](target-api.md#entity-selection).
 
 An entity requires a non-empty `attributes` array. Optional fields are `$comment`,

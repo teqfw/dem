@@ -5,6 +5,7 @@ import {container} from '../TestEnv.mjs';
 
 /** @type {TeqFw_Dem_Compile} */ const compiler = await container.get('TeqFw_Dem_Compile$');
 const envelope = (/** @type {any} */ document, packageName = 'app') => ({packageName, filename: 'etc/dem-schema.json', document});
+const descriptor = (/** @type {any} */ nodes, packageName = 'app') => envelope({$format: 2, $namespace: '/demo/', ...nodes}, packageName);
 const mapEnvelope = (/** @type {any} */ document) => envelope(document, 'host');
 const identity = () => ({name: 'id', type: {name: 'identity'}});
 const select = (/** @type {string} */ packageName, /** @type {string} */ entityPath) => ({packageName, entityPath});
@@ -23,7 +24,7 @@ async function rejects(input, code, reason, pointer) {
 }
 
 test('selection compiles independent models from one unchanged descriptor', async () => {
-    const schema = envelope({$format: 1, '/demo/a': {attributes: [identity()]}, '/demo/b': {attributes: [identity()]}});
+    const schema = descriptor({a: {attributes: [identity()]}, b: {attributes: [identity()]}});
     const before = structuredClone(schema);
     const a = await compiler.exec({schemas: [schema], selection: [select('app', '/demo/a')]});
     const b = await compiler.exec({schemas: [schema], selection: [select('app', '/demo/b')]});
@@ -36,7 +37,10 @@ test('selection compiles independent models from one unchanged descriptor', asyn
 });
 
 test('selection supports independent identity profiles and an explicit empty model', async () => {
-    const schemas = [envelope({$format: 1, '/demo/a': {attributes: [identity()]}, '/empty/': {}})];
+    const schemas = [
+        descriptor({a: {attributes: [identity()]}}),
+        envelope({$format: 2, $namespace: '/empty/', 'placeholder/': {}}, 'empty'),
+    ];
     const selection = [select('app', '/demo/a')];
     const uuid = await compiler.exec({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'uuid'}}}})});
     const small = await compiler.exec({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'int', capacity: 'small'}}}})});
@@ -51,7 +55,7 @@ test('selection supports independent identity profiles and an explicit empty mod
 });
 
 test('selection diagnostics use stable API-level reasons and canonical addresses', async () => {
-    const schemas = [envelope({$format: 1, '/demo/a': {attributes: [identity()]}})];
+    const schemas = [descriptor({a: {attributes: [identity()]}})];
     const invalid = [
         select('app', '/demo/missing'), select('missing', '/demo/a'),
         select('app', '/demo/a'), select('app', '/demo/a'), select('app', '/demo//a'),
@@ -78,20 +82,26 @@ test('selection diagnostics use stable API-level reasons and canonical addresses
 });
 
 test('selected local references do not include excluded targets', async () => {
-    const schema = envelope({$format: 1,
-        '/demo/a': {attributes: [identity()]},
-        '/demo/b': {
+    const schema = descriptor({
+        a: {attributes: [identity()]},
+        b: {
             attributes: [identity(), {name: 'a_id', type: {name: 'ref'}}],
             relations: {a: {attributes: ['a_id'], target: {path: 'a', attributes: ['id']}}},
         },
     });
-    await rejects({schemas: [schema], selection: [select('app', '/demo/b')]}, 'DEM_TARGET', undefined, '/~1demo~1b/relations/a');
+    await rejects({schemas: [schema], selection: [select('app', '/demo/b')]}, 'DEM_TARGET', undefined, '/b/relations/a');
 });
 
 test('host rules apply after selection and entity rules cannot address excluded entities', async () => {
-    const schemas = [envelope({$format: 1, '/demo/a': {attributes: [identity()]}, '/demo/b': {attributes: [identity()]}, '/empty/': {}})];
+    const schemas = [
+        descriptor({a: {attributes: [identity()]}, b: {attributes: [identity()]}}),
+        envelope({$format: 2, $namespace: '/empty/', 'placeholder/': {}}, 'empty'),
+    ];
     const selection = [select('app', '/demo/a')];
-    const moved = await compiler.exec({schemas, selection, map: mapEnvelope({$format: 1, sources: {app: {rename: {'/demo/': '/selected/', '/empty/': '/other/'}}}})});
+    const moved = await compiler.exec({schemas, selection, map: mapEnvelope({$format: 1, sources: {
+        app: {rename: {'/demo/': '/selected/'}},
+        empty: {rename: {'/empty/placeholder/': '/other/'}},
+    }})});
     assert.deepEqual(Object.keys(moved.model.entities), ['/selected/a']);
     assert.ok(!moved.model.packages.includes('/other/'));
     await rejects({schemas, selection, map: mapEnvelope({$format: 1, sources: {app: {rename: {'/demo/b': '/other/b'}}}})}, 'DEM_MAP');
@@ -99,9 +109,9 @@ test('host rules apply after selection and entity rules cannot address excluded 
 });
 
 test('external dependencies are required only by selected relations and relevant bindings', async () => {
-    const schema = envelope({$format: 1, $dependencies: {account: {attributes: ['id']}},
-        '/demo/a': {attributes: [identity()]},
-        '/demo/b': {
+    const schema = descriptor({$dependencies: {account: {attributes: ['id']}},
+        a: {attributes: [identity()]},
+        b: {
             attributes: [identity(), {name: 'account_id', type: {name: 'ref'}}],
             relations: {account: {attributes: ['account_id'], target: {dependency: 'account', attributes: ['id']}}},
         },
@@ -112,29 +122,30 @@ test('external dependencies are required only by selected relations and relevant
     const withUnusedBinding = await compiler.exec({schemas: [schema], selection: selectedA, map: unusedBinding});
     assert.equal(withoutBinding.fingerprint, withUnusedBinding.fingerprint);
     assert.deepEqual(withUnusedBinding.provenance.bindings, []);
-    const unusedContract = envelope({$format: 1, $dependencies: {unused: {attributes: ['id']}}, '/demo/a': {attributes: [identity()]}});
+    const unusedContract = descriptor({$dependencies: {unused: {attributes: ['id']}}, a: {attributes: [identity()]}});
     assert.deepEqual((await compiler.exec({schemas: [unusedContract]})).provenance.bindings, []);
     await rejects({schemas: [schema], selection: [select('app', '/demo/b')]}, 'DEM_DEPENDENCY', undefined, '/$dependencies/account');
     await rejects({schemas: [schema], selection: [select('app', '/demo/b')], map: mapEnvelope({$format: 1, sources: {app: {bind: {account: {path: '/missing', attributes: {id: 'id'}}}}}})}, 'DEM_TARGET', undefined, '/sources');
 });
 
 test('excluded entities do not collide or affect canonical identity, but remain structurally validated', async () => {
-    const first = envelope({$format: 1, '/demo/a': {attributes: [identity()]}}, 'first');
-    const collision = envelope({$format: 1, '/demo/a': {attributes: [identity()]}}, 'second');
+    const first = descriptor({a: {attributes: [identity()]}}, 'first');
+    const collision = envelope({$format: 2, $namespace: '/collision/', a: {attributes: [identity()]}}, 'second');
     const selected = [select('first', '/demo/a')];
-    const withExcluded = await compiler.exec({schemas: [first, collision], selection: selected});
+    const collisionMap = mapEnvelope({$format: 1, sources: {second: {rename: {'/collision/': '/demo/'}}}});
+    const withExcluded = await compiler.exec({schemas: [first, collision], selection: selected, map: collisionMap});
     const alone = await compiler.exec({schemas: [first], selection: selected});
     assert.deepEqual(Object.keys(withExcluded.model.entities), ['/demo/a']);
     assert.equal(withExcluded.fingerprint, alone.fingerprint);
-    const malformed = envelope({$format: 1, '/demo/b': {attributes: []}}, 'malformed');
+    const malformed = descriptor({b: {attributes: []}}, 'malformed');
     await rejects({schemas: [first, malformed], selection: selected}, 'DEM_FORMAT');
 });
 
 test('malformed supplied unused binding rules fail structural validation', async () => {
-    const schema = envelope({$format: 1, $dependencies: {unused: {attributes: ['id']}}, '/demo/a': {attributes: [identity()]}});
+    const schema = descriptor({$dependencies: {unused: {attributes: ['id']}}, a: {attributes: [identity()]}});
     const malformed = mapEnvelope({$format: 1, sources: {app: {bind: {unused: {path: '/missing', attributes: {id: 'not-valid!'}}}}}});
     await rejects({schemas: [schema], selection: [select('app', '/demo/a')], map: malformed}, 'DEM_MAP', undefined, '/sources');
-    const invalidContract = envelope({$format: 1, $dependencies: {unused: {}}, '/demo/a': {attributes: [identity()]}});
+    const invalidContract = descriptor({$dependencies: {unused: {}}, a: {attributes: [identity()]}});
     const validBinding = mapEnvelope({$format: 1, sources: {app: {bind: {unused: {path: '/missing', attributes: {id: 'id'}}}}}});
     await rejects({schemas: [invalidContract], selection: [select('app', '/demo/a')], map: validBinding}, 'DEM_FORMAT');
 });

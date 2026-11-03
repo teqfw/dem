@@ -1,8 +1,9 @@
 // @ts-check
 /** @description Shared logical input for the task-triage application example. */
 export const schema = {
-    $format: 1,
-    '/demo/task': {attributes: [
+    $format: 2,
+    $namespace: '/demo/',
+    task: {attributes: [
         {name: 'id', type: {name: 'identity'}, generation: true},
         {name: 'title', type: {name: 'text'}},
         {name: 'priority', type: {name: 'integer', params: {bits: 16, unsigned: true}}},

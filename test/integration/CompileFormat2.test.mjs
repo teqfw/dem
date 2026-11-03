@@ -5,6 +5,7 @@ import {container} from '../TestEnv.mjs';
 
 /** @type {TeqFw_Dem_Compile} */ const compiler = await container.get('TeqFw_Dem_Compile$');
 const envelope = (/** @type {any} */ document, packageName = 'p', filename = 'etc/dem-schema.json') => ({packageName, filename, document});
+const mapEnvelope = (/** @type {any} */ document) => envelope(document, 'host', 'etc/dem-map.json');
 const identity = (name = 'id') => ({name, type: {name: 'identity'}});
 
 /** @param {any} input @param {string} code @param {string} [pointer] */
@@ -50,6 +51,14 @@ test('Format 2 schemas continue to use the separate Format 1 host map', async ()
     const result = await compiler.exec({schemas: [schema], map});
     assert.deepEqual(Object.keys(result.model.entities), ['/host/desk/attachment']);
     assert.equal(result.provenance.entities['/host/desk/attachment'].originalPath, '/pde/office/core/desk/attachment');
+    assert.equal(result.provenance.entities['/host/desk/attachment'].namespace, '/pde/office/core/');
+    assert.deepEqual(result.provenance.pathMappings, [{
+        packageName: 'p',
+        namespace: '/pde/office/core/',
+        originalPath: '/pde/office/core/desk/attachment',
+        effectivePath: '/host/desk/attachment',
+        rule: {from: '/pde/office/core/', to: '/host/'},
+    }]);
     await rejects({schemas: [schema], map: envelope({$format: 1, sources: {p: {rename: {'/pde/office/core/': '/host_team/'}}}}, 'host', 'etc/dem-map.json')}, 'DEM_MAP', '/sources');
 });
 
@@ -116,4 +125,112 @@ test('cross-package references continue through declared dependencies and host b
     }, 'host', 'etc/dem-map.json');
     const result = await compiler.exec({schemas: [sales, accounts], map});
     assert.equal(result.model.entities['/vnd/sales/order'].relations.user.target.path, '/vnd/accounts/user');
+});
+
+test('namespace ownership is unique, nested, and checked before selection', async () => {
+    const duplicate = await rejects({schemas: [
+        envelope({$format: 2, $namespace: '/pde/office/'}, 'office-a'),
+        envelope({$format: 2, $namespace: '/pde/office/'}, 'office-b'),
+    ], selection: []}, 'DEM_PATH', '/$namespace');
+    const duplicateDiagnostic = duplicate.diagnostics.find((/** @type {any} */ item) => item.details.reason === 'duplicate-namespace');
+    assert.deepEqual(duplicateDiagnostic.details, {
+        reason: 'duplicate-namespace', namespace: '/pde/office/', packageName: 'office-b', conflictsWith: 'office-a',
+    });
+
+    const parent = envelope({
+        $format: 2,
+        $namespace: '/pde/office/',
+        settings: {attributes: [identity()]},
+    }, 'office');
+    const core = envelope({$format: 2, $namespace: '/pde/office/core/', desk: {attributes: [identity()]}}, 'core');
+    const web = envelope({$format: 2, $namespace: '/pde/office/web/', page: {attributes: [identity()]}}, 'web');
+    const nested = await compiler.exec({schemas: [parent, core, web]});
+    assert.deepEqual(Object.keys(nested.model.entities), [
+        '/pde/office/core/desk', '/pde/office/settings', '/pde/office/web/page',
+    ]);
+
+    for (const declaration of [
+        {'core/desk': {attributes: [identity()]}},
+        {'core/': {}},
+    ]) {
+        const ownedParent = envelope({$format: 2, $namespace: '/pde/office/', ...declaration}, 'office');
+        const map = mapEnvelope({$format: 1, sources: {office: {rename: {'/pde/office/': '/moved/'}}}});
+        const error = await rejects({schemas: [ownedParent, core], selection: [], map}, 'DEM_PATH');
+        assert.ok(error.diagnostics.some((/** @type {any} */ item) => item.details.reason === 'child-namespace-owned'
+            && item.details.packageName === 'office' && item.details.conflictsWith === 'core'));
+    }
+});
+
+test('reserved /dem source nodes and effective destinations are rejected', async () => {
+    await rejects({schemas: [envelope({$format: 2, $namespace: '/dem/', item: {attributes: [identity()]}})]}, 'DEM_PATH');
+    await rejects({schemas: [envelope({$format: 2, $namespace: '/dem/', 'group/': {}})]}, 'DEM_PATH');
+    const schema = envelope({$format: 2, $namespace: '/app/', item: {attributes: [identity()]}});
+    await rejects({schemas: [schema], map: mapEnvelope({$format: 1, sources: {p: {rename: {'/app/item': '/dem'}}}})}, 'DEM_PATH');
+    await rejects({schemas: [schema], map: mapEnvelope({$format: 1, sources: {p: {rename: {'/app/': '/dem/'}}}})}, 'DEM_PATH');
+});
+
+test('selected effective collisions fail with stable diagnostics; excluded collisions are ignored', async () => {
+    const alpha = envelope({$format: 2, $namespace: '/source/alpha/', item: {attributes: [identity()]}}, 'alpha');
+    const zeta = envelope({$format: 2, $namespace: '/source/zeta/', item: {attributes: [identity()]}}, 'zeta');
+    const map = mapEnvelope({$format: 1, sources: {
+        alpha: {rename: {'/source/alpha/': '/model/'}},
+        zeta: {rename: {'/source/zeta/': '/model/'}},
+    }});
+    const selected = [
+        {packageName: 'alpha', entityPath: '/source/alpha/item'},
+        {packageName: 'zeta', entityPath: '/source/zeta/item'},
+    ];
+    const readError = async (/** @type {any[]} */ schemas) => {
+        try {
+            await compiler.exec({schemas, selection: selected, map});
+            assert.fail('Expected effective collision');
+        }
+        catch (/** @type {any} */ error) {
+            assert.equal(error.name, 'DemCompilationError');
+            return error.diagnostics;
+        }
+    };
+    const first = await readError([alpha, zeta]);
+    const reversed = await readError([zeta, alpha]);
+    assert.deepEqual(first, reversed);
+    assert.equal(first.length, 1);
+    assert.deepEqual(first[0].source, {packageName: 'zeta', filename: 'etc/dem-schema.json'});
+    assert.deepEqual(first[0].details, {
+        path: '/model/item',
+        packageName: 'zeta',
+        namespace: '/source/zeta/',
+        originalPath: '/source/zeta/item',
+        effectivePath: '/model/item',
+        conflictsWith: {
+            packageName: 'alpha', namespace: '/source/alpha/',
+            originalPath: '/source/alpha/item', effectivePath: '/model/item',
+        },
+    });
+
+    const excluded = await compiler.exec({
+        schemas: [alpha, zeta],
+        selection: [selected[0]],
+        map,
+    });
+    assert.deepEqual(Object.keys(excluded.model.entities), ['/model/item']);
+    assert.equal(excluded.provenance.entities['/model/item'].packageName, 'alpha');
+});
+
+test('canonical identity excludes package ownership and source namespace provenance', async () => {
+    const alpha = envelope({$format: 2, $namespace: '/vendors/alpha/', item: {attributes: [identity(), {name: 'label', type: {name: 'text'}}]}}, 'alpha');
+    const beta = envelope({$format: 2, $namespace: '/vendors/beta/', item: {attributes: [identity(), {name: 'label', type: {name: 'text'}}]}}, 'beta');
+    const alphaMap = mapEnvelope({$format: 1, sources: {alpha: {rename: {'/vendors/alpha/': '/logical/'}}}});
+    const betaMap = mapEnvelope({$format: 1, sources: {beta: {rename: {'/vendors/beta/': '/logical/'}}}});
+    const first = await compiler.exec({schemas: [alpha], map: alphaMap});
+    const second = await compiler.exec({schemas: [beta], map: betaMap});
+    assert.deepEqual(first.canonical, second.canonical);
+    assert.equal(first.fingerprint, second.fingerprint);
+    assert.notDeepEqual(first.provenance.entities['/logical/item'], second.provenance.entities['/logical/item']);
+
+    const changed = envelope({$format: 2, $namespace: '/vendors/beta/', item: {
+        attributes: [identity(), {name: 'label', type: {name: 'text'}, nullable: true}],
+    }}, 'beta');
+    const changedResult = await compiler.exec({schemas: [changed], map: betaMap});
+    assert.notDeepEqual(second.canonical, changedResult.canonical);
+    assert.notEqual(second.fingerprint, changedResult.fingerprint);
 });

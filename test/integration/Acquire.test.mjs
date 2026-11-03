@@ -11,7 +11,7 @@ async function fixture(run){const root=await mkdtemp(join(tmpdir(),'dem-acquire-
 async function rejects(root,code){await assert.rejects(()=>acquire.exec({hostRoot:root}),(/** @type {any} */ e)=>e.name==='DemAcquisitionError'&&e.diagnostics.some((/** @type {any} */ d)=>d.code===code));}
 test('real CLI package-registry mechanism acquires default and overridden paths and compiles the result',()=>fixture(async root=>{
     await write(root,'node_modules/plugin/package.json',{name:'plugin',version:'1.0.0',teqfw:{dem:{schema:'config//./schema.data',map:'missing-inactive.json'}}});
-    await write(root,'node_modules/plugin/config/schema.data',{$format:1,'/vnd/item':{attributes:[{name:'id',type:{name:'identity'}}]}});
+    await write(root,'node_modules/plugin/config/schema.data',{$format:2,$namespace:'/vnd/',item:{attributes:[{name:'id',type:{name:'identity'}}]}});
     await write(root,'etc/dem-map.json',{$format:1,sources:{plugin:{rename:{'/vnd/':'/app/'}}}});
     const result=await acquire.exec({hostRoot:root});assert.equal(result.schemas.length,1);assert.equal(result.schemas[0].filename,'config/schema.data');assert.equal(result.map?.packageName,'host');
     assert.ok((await compile.exec(result)).model.entities['/app/item']);
@@ -23,7 +23,7 @@ test('missing implicit files are allowed, but explicit missing files and directo
     await mkdir(join(root,'node_modules/plugin/missing.json'));await rejects(root,'DEM_FILE');
 }));
 test('malformed JSON, nested duplicates and invalid Unicode are acquisition errors',()=>fixture(async root=>{
-    for(const raw of ['{"$format":1,"$format":1}','{"$format":1,"x":{"a":1,"\\u0061":2}}','[1,]','{"text":"\\ud800"}']){await write(root,'etc/dem-schema.json',raw);await rejects(root,'DEM_JSON');}
+    for(const raw of ['{"$format":2,"$format":2,"$namespace":"/app/"}','{"$format":2,"$namespace":"/app/","x":{"a":1,"\\u0061":2}}','[1,]','{"text":"\\ud800"}']){await write(root,'etc/dem-schema.json',raw);await rejects(root,'DEM_JSON');}
 }));
 test('invalid configuration is never treated as absent defaults',()=>fixture(async root=>{
     for(const config of [null,[],{schema:null},{schema:''},{schema:false},{schema:'../outside.json'},{schema:'/outside.json'},{schema:'https://example.com/schema.json'},{schema:'etc\\schema.json'},{schema:'.'},{schema:'a/../../outside.json'},{schem:'etc/schema.json'}]){

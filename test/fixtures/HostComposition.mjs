@@ -25,8 +25,9 @@ export async function withHostFixture(run) {
             teqfw: {dem: {schema: 'etc/dem-schema.json'}},
         });
         await write(hostRoot, 'node_modules/@example/catalog/etc/dem-schema.json', {
-            $format: 1,
-            '/vnd/catalog/order': {
+            $format: 2,
+            $namespace: '/vnd/catalog/',
+            order: {
                 attributes: [
                     {name: 'id', type: {name: 'identity'}},
                     {name: 'customer_id', type: {name: 'ref'}},
@@ -38,7 +39,7 @@ export async function withHostFixture(run) {
                     },
                 },
             },
-            '/vnd/catalog/cart': {
+            cart: {
                 attributes: [
                     {name: 'id', type: {name: 'identity'}},
                     {name: 'customer_id', type: {name: 'ref'}},
@@ -50,13 +51,13 @@ export async function withHostFixture(run) {
                     },
                 },
             },
-            '/vnd/catalog/customer': {
+            customer: {
                 attributes: [
                     {name: 'id', type: {name: 'identity'}},
                     {name: 'name', type: {name: 'text'}},
                 ],
             },
-            '/vnd/catalog/ledger_event': {
+            ledgerevent: {
                 attributes: [
                     {name: 'id', type: {name: 'identity'}},
                     {name: 'event', type: {name: 'text'}},
@@ -76,7 +77,7 @@ export const select = (entityPath) => ({packageName: '@example/catalog', entityP
 export const serverSelection = [
     select('/vnd/catalog/customer'),
     select('/vnd/catalog/order'),
-    select('/vnd/catalog/ledger_event'),
+    select('/vnd/catalog/ledgerevent'),
 ];
 
 export const serverMap = {
@@ -87,7 +88,7 @@ export const serverMap = {
         sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/server/'}}},
         identityProfiles: {
             '/models/server/customer': {id: {type: 'int', capacity: 'large'}},
-            '/models/server/ledger_event': {id: {type: 'int', capacity: 'large'}},
+            '/models/server/ledgerevent': {id: {type: 'int', capacity: 'large'}},
             '/models/server/order': {id: {type: 'int', capacity: 'large'}},
         },
     },

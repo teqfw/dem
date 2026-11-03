@@ -106,8 +106,9 @@ separate from the portable compiler.
 Supported environments are current Active/Maintenance LTS Node.js and stable
 Chrome/Chromium. Full Node verification and a minimal browser multi-schema/map
 composition with a matching Node fingerprint are required. Downstream delivers
-browser modules by URL. DI-registry discovery, metadata acquisition and format 1
-are implemented in v0.2.0; consult the [runtime reference](scope.md) for component boundaries.
+browser modules by URL. DI-registry discovery and metadata acquisition are
+implemented; schema descriptors use Format 2 and reject legacy Format 1 by design.
+Host maps retain Format 1. Consult the [runtime reference](scope.md) for component boundaries.
 
 ## Entity selection and integration boundary
 

@@ -72,8 +72,9 @@ Schema envelope:
   "packageName": "@example/item",
   "filename": "etc/dem-schema.json",
   "document": {
-    "$format": 1,
-    "/app/item": {
+    "$format": 2,
+    "$namespace": "/app/",
+    "item": {
       "attributes": [{"name": "id", "type": {"name": "identity"}}]
     }
   }

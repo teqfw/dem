@@ -1,8 +1,9 @@
 // @ts-check
 /** Backend-neutral behavioral requirements. The harness supplies test/assert and real storage setup. */
 export const schema = Object.freeze({
-    $format: 1,
-    '/contract/item': {
+    $format: 2,
+    $namespace: '/contract/',
+    item: {
         attributes: [
             {name:'id',type:{name:'identity'},generation:true},
             {name:'code',type:{name:'string',params:{length:32}}},
@@ -12,15 +13,15 @@ export const schema = Object.freeze({
         ],
         uniqueKeys: {code:['code'], grouped:['group','rank'], note:['note']},
     },
-    '/contract/child': {
+    child: {
         attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],
         relations:{owner:{attributes:['owner'],target:{path:'/contract/item',attributes:['id']}}},
     },
-    '/contract/pair': {
+    pair: {
         attributes:[{name:'tenant',type:{name:'text'}},{name:'ordinal',type:{name:'integer'}}],
         primaryKey:['tenant','ordinal'],
     },
-    '/contract/keyless': {attributes:[{name:'label',type:{name:'text'}}]},
+    keyless: {attributes:[{name:'label',type:{name:'text'}}]},
 });
 /**
  * open must compile the supplied schema and return an empty isolated real backend.

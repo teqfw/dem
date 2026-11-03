@@ -75,7 +75,7 @@ const compiler = await container.get('TeqFw_Dem_Compile$');
 /** @type {import('@teqfw/dem').DemCompilationResult} */
 const result = await compiler.exec({
     schemas: [{packageName: 'consumer', filename: 'etc/dem-schema.json', document: {
-        $format: 1, '/app/item': {attributes: [{name: 'id', type: {name: 'identity'}}]},
+        $format: 2, $namespace: '/app/', item: {attributes: [{name: 'id', type: {name: 'identity'}}]},
     }}],
     selection: [{packageName: 'consumer', entityPath: '/app/item'}],
 });
@@ -100,7 +100,7 @@ const {exercise} = await import('@teqfw/dem/conformance/values');
 if (typeof exercise !== 'function') throw new Error('Missing published shared value workload');
 const {default: Workflow, __deps__: appDeps} = await import('@teqfw/dem/conformance/application');
 const {source: appSource} = await import('@teqfw/dem/conformance/application/schema');
-if (typeof Workflow !== 'function' || appSource.document.$format !== 1 || appDeps.default.provider !== 'TeqFw_Dem_Api_RepositoryProvider$') throw new Error('Missing portable application example');
+if (typeof Workflow !== 'function' || appSource.document.$format !== 2 || appDeps.default.provider !== 'TeqFw_Dem_Api_RepositoryProvider$') throw new Error('Missing portable application example');
 if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw new Error('Logical boundary failed');
 `);
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');

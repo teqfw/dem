@@ -85,7 +85,9 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         assert.equal(acquired.schemas.length, 1);
         assert.equal(acquired.schemas[0].packageName, '@example/catalog');
         const declaration = /** @type {Record<string, unknown>} */ (acquired.schemas[0].document);
-        assert.equal(Object.keys(declaration).filter(key => key.startsWith('/')).filter(key => key === '/vnd/catalog/customer').length, 1);
+        assert.equal(declaration.$format, 2);
+        assert.equal(declaration.$namespace, '/vnd/catalog/');
+        assert.ok(Object.hasOwn(declaration, 'customer'));
         /** @type {TeqFw_Dem_Compile} */
         const compiler = await container.get('TeqFw_Dem_Compile$');
         let compilationCalls = 0;
@@ -107,7 +109,7 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
 
         assert.deepEqual(Object.keys(serverModel.model.entities), [
             '/models/server/customer',
-            '/models/server/ledger_event',
+            '/models/server/ledgerevent',
             '/models/server/order',
         ]);
         assert.deepEqual(Object.keys(browserModel.model.entities), [
@@ -144,7 +146,7 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         const tables = await database('sqlite_master').select('name').where({type: 'table'}).orderBy('name');
         assert.deepEqual(tables.map(row => row.name), [
             '/models/server/customer',
-            '/models/server/ledger_event',
+            '/models/server/ledgerevent',
             '/models/server/order',
         ].map(sqliteTable).sort());
         assert.equal(tables.some(row => row.name === sqliteTable('/models/server/cart')), false);

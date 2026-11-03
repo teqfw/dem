@@ -49,6 +49,13 @@ export default class Path {
             return address;
         };
         /**
+         * @param {string} address
+         * @returns {boolean}
+         */
+        this.isReserved = function (address) {
+            return address === '/dem' || address.startsWith('/dem/');
+        };
+        /**
          * @param {string} target
          * @param {string} base
          * @param {string} namespace

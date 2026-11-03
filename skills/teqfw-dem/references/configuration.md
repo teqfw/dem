@@ -67,4 +67,5 @@ records from the application root. It does not currently expose a public package
 list API. DEM Acquire uses the public registry export directly; it does not invoke
 CLI for discovery. The portable compiler receives declarations without importing
 the acquisition component. The [declaration contract](declarations.md) documents
-current format-1 syntax, path semantics and physical-setting exclusions.
+Format 2 schema syntax, Format 1 host-map syntax, path semantics and
+physical-setting exclusions.

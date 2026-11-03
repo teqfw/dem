@@ -25,7 +25,7 @@
         const paths = Object.keys(model.entities).sort();
         const expectedPaths = ['/models/browser/cart', '/models/browser/customer'];
         if (JSON.stringify(paths) !== JSON.stringify(expectedPaths)) throw new Error(`Unexpected browser entity paths: ${JSON.stringify(paths)}.`);
-        if (Object.hasOwn(model.entities, '/models/browser/order') || Object.hasOwn(model.entities, '/models/browser/ledger_event')) {
+        if (Object.hasOwn(model.entities, '/models/browser/order') || Object.hasOwn(model.entities, '/models/browser/ledgerevent')) {
             throw new Error('Server-only entities were present in the browser model.');
         }
         const cart = model.entities['/models/browser/cart'];
@@ -68,7 +68,7 @@
         if (JSON.stringify(entityStores) !== JSON.stringify(expectedEntityStores)) {
             throw new Error(`Unexpected IndexedDB entity stores: ${JSON.stringify(entityStores)}.`);
         }
-        if (physicalStores.includes('dem:/models/server/order') || physicalStores.includes('dem:/models/server/ledger_event')) {
+        if (physicalStores.includes('dem:/models/server/order') || physicalStores.includes('dem:/models/server/ledgerevent')) {
             throw new Error('Server-only entities were projected into IndexedDB.');
         }
 

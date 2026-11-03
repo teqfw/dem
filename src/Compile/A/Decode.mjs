@@ -156,14 +156,17 @@ export default class Decode {
                         fail('DEM_FORMAT', source, '/$namespace');
                         continue;
                     }
-                    const dependencies = doc.$dependencies ?? {};
-                    if (!dictionary(dependencies, source, '/$dependencies') || doc.$dependencies === null)
-                        continue;
+                    const rawDependencies = doc.$dependencies ?? {};
+                    if (!dictionary(rawDependencies, source, '/$dependencies') || doc.$dependencies === null) {
+                        if (doc.$dependencies === null)
+                            fail('DEM_FORMAT', source, '/$dependencies');
+                    }
+                    const dependencies = data.isObject(rawDependencies) ? rawDependencies : {};
                     for (const [name, dep] of Object.entries(dependencies)) {
                         if (closed(dep, ['attributes'], source, '/$dependencies/' + name))
                             list(dep.attributes, source, '/$dependencies/' + name + '/attributes');
                     }
-                    const nodes = Object.create(null), packages = new Set();
+                    const nodes = Object.create(null), packages = new Set(), packagePointers = Object.create(null);
                     for (const [raw, node] of Object.entries(doc)) {
                         if (['$format', '$namespace', '$comment', '$dependencies'].includes(raw))
                             continue;
@@ -176,15 +179,21 @@ export default class Decode {
                             fail('DEM_PATH', source, pointer);
                             continue;
                         }
+                        if (path.isReserved(address)) {
+                            fail('DEM_PATH', source, pointer, {reason: 'reserved-namespace', path: address});
+                            continue;
+                        }
                         if (Object.hasOwn(nodes, address) || packages.has(address)) {
                             fail('DEM_PATH', source, pointer, { duplicate: address });
                             continue;
                         }
                         if (address.endsWith('/')) {
-                            if (closed(node, ['$comment'], source, pointer))
-                                packages.add(address);
+                            packages.add(address);
+                            packagePointers[address] = pointer;
+                            closed(node, ['$comment'], source, pointer);
                             continue;
                         }
+                        nodes[address] = {raw: node, pointer, localTargets: Object.create(null)};
                         if (!closed(node, ['$comment', 'attributes', 'primaryKey', 'uniqueKeys', 'indexes', 'relations'], source, pointer))
                             continue;
                         if (!Array.isArray(node.attributes) || !node.attributes.length) {
@@ -244,10 +253,45 @@ export default class Decode {
                     }
                     if (Object.hasOwn(doc, '$comment') && typeof doc.$comment !== 'string')
                         fail('DEM_FORMAT', source, '/$comment');
-                    work.schemas.push({ source, namespace, dependencies, nodes, packages: [...packages], correspondence: Object.create(null), bindings: Object.create(null) });
+                    work.schemas.push({ source, namespace, dependencies, nodes, packages: [...packages], packagePointers, correspondence: Object.create(null), bindings: Object.create(null) });
                 }
             }
             work.schemas.sort((a, b) => a.source.packageName < b.source.packageName ? -1 : 1);
+            const namespaceOwners = new Map();
+            for (const schema of work.schemas) {
+                const owner = namespaceOwners.get(schema.namespace);
+                if (owner) {
+                    fail('DEM_PATH', schema.source, '/$namespace', {
+                        reason: 'duplicate-namespace',
+                        namespace: schema.namespace,
+                        packageName: schema.source.packageName,
+                        conflictsWith: owner.source.packageName,
+                    });
+                }
+                else {
+                    namespaceOwners.set(schema.namespace, schema);
+                }
+            }
+            for (const parent of work.schemas) {
+                for (const child of work.schemas) {
+                    if (parent === child || child.namespace.length <= parent.namespace.length || !child.namespace.startsWith(parent.namespace))
+                        continue;
+                    const declarations = [
+                        ...Object.entries(parent.nodes).map(([address, node]) => ({address, pointer: node.pointer})),
+                        ...parent.packages.map(address => ({address, pointer: parent.packagePointers[address]})),
+                    ].filter(item => item.address.startsWith(child.namespace))
+                        .sort((a, b) => a.address < b.address ? -1 : a.address > b.address ? 1 : a.pointer < b.pointer ? -1 : a.pointer > b.pointer ? 1 : 0);
+                    for (const declaration of declarations) {
+                        fail('DEM_PATH', parent.source, declaration.pointer, {
+                            reason: 'child-namespace-owned',
+                            namespace: child.namespace,
+                            path: declaration.address,
+                            packageName: parent.source.packageName,
+                            conflictsWith: child.source.packageName,
+                        });
+                    }
+                }
+            }
             const byPackage = new Map(work.schemas.map(schema => [schema.source.packageName, schema]));
             for (const [packageName, rules] of Object.entries(work.map.sources)) {
                 const schema = byPackage.get(packageName);
@@ -261,8 +305,7 @@ export default class Decode {
                         try {
                             if (!from.startsWith('/') || typeof to !== 'string' || !to.startsWith('/'))
                                 throw new TypeError();
-                            const start = path.normalize(from), end = path.normalize(to);
-                            path.canonicalAddress(end);
+                            const start = path.canonicalAddress(from), end = path.canonicalAddress(to);
                             if (start.endsWith('/') !== end.endsWith('/') || Object.hasOwn(normalized, start))
                                 throw new TypeError();
                             normalized[start] = end;
@@ -287,7 +330,9 @@ export default class Decode {
                             || !data.isObject(binding.attributes);
                         if (!invalid) {
                             try {
-                                path.normalize(binding.path);
+                                path.canonicalAddress(binding.path);
+                                if (binding.path.endsWith('/'))
+                                    invalid = true;
                             }
                             catch {
                                 invalid = true;
@@ -311,7 +356,9 @@ export default class Decode {
                 try {
                     if (!selector.startsWith('/') || !data.isObject(rules))
                         throw new TypeError();
-                    path.normalize(selector);
+                    path.canonicalAddress(selector);
+                    if (selector.endsWith('/'))
+                        throw new TypeError();
                 }
                 catch {
                     fail('DEM_MAP', work.mapSource, '/identityProfiles', { path: selector });

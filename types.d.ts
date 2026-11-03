@@ -98,8 +98,9 @@ declare global {
     type TeqFw_Dem_Never = never;
     type TeqFw_Dem_Object = Record<string,unknown>;
     type TeqFw_Dem_Order = {attribute:string;direction:'asc'|'desc';nulls:'first'|'last'};
+    type TeqFw_Dem_PathTransform = {path:string;rule:{from:string;to:string}|null};
     type TeqFw_Dem_Profile = {type: "uuid"|"int"; capacity?: "small"|"regular"|"large"};
-    type TeqFw_Dem_Provenance = {entities: Record<string,TeqFw_Dem_Source & {originalPath:string}>;map:TeqFw_Dem_Source|null;pathMappings:{packageName:string;originalPath:string;effectivePath:string}[];bindings:{packageName:string;dependency:string;path:string;attributes:Record<string,string>}[]};
+    type TeqFw_Dem_Provenance = {entities: Record<string,TeqFw_Dem_Source & {namespace:string;originalPath:string}>;map:TeqFw_Dem_Source|null;pathMappings:{packageName:string;namespace:string;originalPath:string;effectivePath:string;rule:{from:string;to:string}|null}[];bindings:{packageName:string;dependency:string;path:string;attributes:Record<string,string>}[]};
     type TeqFw_Dem_QueryExpression = {kind:"attr"|"value"|"call";name?:string;value?:unknown;type?:TeqFw_Dem_Type;operator?:string;args?:TeqFw_Dem_QueryExpression[]};
     type TeqFw_Dem_QueryExpressionArrayOptional = TeqFw_Dem_QueryExpression[]|undefined;
     type TeqFw_Dem_Record = Record<string,unknown>;
@@ -121,7 +122,7 @@ declare global {
     type TeqFw_Dem_Repository_Normalize__Class = typeof import("./src/Repository/Normalize.mjs").default;
     type TeqFw_Dem_Repository_Select = import("./src/Repository/Select.mjs").default;
     type TeqFw_Dem_Repository_Select__Class = typeof import("./src/Repository/Select.mjs").default;
-    type TeqFw_Dem_SchemaWork = {source:TeqFw_Dem_Source;namespace:string;dependencies:Record<string,any>;nodes:Record<string,{raw:any;pointer:string;localTargets:Record<string,string>}>;packages:string[];correspondence:Record<string,string>;bindings:Record<string,any>};
+    type TeqFw_Dem_SchemaWork = {source:TeqFw_Dem_Source;namespace:string;dependencies:Record<string,any>;nodes:Record<string,{raw:any;pointer:string;localTargets:Record<string,string>}>;packages:string[];packagePointers:Record<string,string>;correspondence:Record<string,string>;bindings:Record<string,any>};
     type TeqFw_Dem_Selection = {where?:TeqFw_Dem_QueryExpression;orderBy:TeqFw_Dem_Order[];limit:number|null;offset:number};
     type TeqFw_Dem_Source = {packageName: string; filename: string};
     type TeqFw_Dem_SourceNullable = TeqFw_Dem_Source|null;

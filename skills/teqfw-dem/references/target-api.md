@@ -28,9 +28,11 @@ Success is an immutable object with exactly:
 - `canonical`: canonical logical data defined in [canonical identity](canonical.md).
 - `fingerprint`: identifier computed from canonical, not model presentation order.
 - `provenance`: `{entities, map, pathMappings, bindings}`. Entities maps effective paths to
-  `{packageName, filename, originalPath}`. Map is its source `{packageName,filename}`
-  or null. `pathMappings` is an array of `{packageName,originalPath,effectivePath}`
-  for selected entities, sorted by package then original path. `bindings` is an array
+  `{packageName, filename, namespace, originalPath}`. Map is its source `{packageName,filename}`
+  or null. `pathMappings` is an array of
+  `{packageName,namespace,originalPath,effectivePath,rule}` for selected entities,
+  sorted by package then original path. `rule` is the applicable `{from,to}` host
+  rename or null. `bindings` is an array
   of `{packageName,dependency,path,attributes}` recording relevant resolved alias maps,
   sorted by package then dependency. These two arrays retain applied path/binding
   evidence without making it logical content.
@@ -39,7 +41,7 @@ Success is an immutable object with exactly:
   Sort edges by from then to. Components is the strongly connected partition of selected entities: each component
   sorted by path, components sorted by their first path. Cycles are allowed.
 - `warnings`: a deterministically sorted diagnostic array; no warning conditions
-  are mandated for format 1, so an empty array is valid.
+  are currently mandated, so an empty array is valid.
 
 An effective entity contains exactly `attributes`, `primaryKey`, `uniqueKeys`,
 `indexes`, `relations`. Attributes retains the declaration array order; every
@@ -75,9 +77,9 @@ aggregate independent errors from other valid documents without guessing missing
 | --- | --- |
 | DEM_INPUT | Invalid API/envelope shape or duplicate schema origin |
 | DEM_FORMAT | Unsupported/missing $format, unknown fields or malformed declaration shape |
-| DEM_PATH | Invalid/above-root logical path or normalized duplicate within a document |
+| DEM_PATH | Invalid/noncanonical path, namespace ownership violation, reserved `/dem` path, or invalid local reference |
 | DEM_MAP | Unknown selector, conflicting/overlapping rename or invalid binding dictionary |
-| DEM_COLLISION | Effective entity collision between contributions |
+| DEM_COLLISION | Effective entity collision between contributions, with both source paths |
 | DEM_DEPENDENCY | Missing/undeclared external dependency or binding |
 | DEM_TARGET | Missing target entity/attribute or external local-path lookup |
 | DEM_TYPE | Invalid type/params, default, profile or incompatible relation types |
@@ -126,11 +128,11 @@ controls membership in each independently compiled model.
 required non-empty string properties: `packageName` and `entityPath`. Each pair
 addresses a schema envelope by its exact `packageName` and an entity in that
 schema by its original, absolute, canonical entity path, before any map. Canonical
-means the existing logical-path normalizer returns the input unchanged; `/`, a
+means an absolute entity path whose segments match `[a-z][a-z0-9]*`; `/`, a
 trailing slash, a relative path, redundant `/`, `.` or `..`, invalid characters
 and traversal are invalid selectors. The path must name an entity, not a package.
-Schema keys may themselves use format-1 normalization; select their resulting
-canonical original paths. Case and npm package names are compared exactly.
+Format 2 declaration keys are relative and canonical; prepend their descriptor's
+`$namespace` to obtain the original path. Case and npm package names are compared exactly.
 
 - Omit `selection` to select all entities in all supplied schemas. To select all
   entities of just one package, enumerate that package's entity pairs; there is no
@@ -160,10 +162,13 @@ canonical original paths. Case and npm package names are compared exactly.
 
 ### Validation and composition
 
-First validate the complete API/envelope structure and the format-1 structure,
-JSON types, member names, required fields and declared node path syntax of every
-supplied schema and map, including excluded entities and unused dependency/binding rules.
-Validate map rule syntax including absolute path normalization, closed objects,
+First validate the complete API/envelope structure, Format 2 schema structure,
+Format 1 host-map structure, JSON types, member names, required fields and declared
+node path syntax of every supplied schema and map, including excluded entities and
+unused dependency/binding rules. Validate unique source namespaces and child-namespace
+ownership across all supplied schemas before selection. Reject source declarations
+in `/dem` or its subtree at this stage. Validate map rule syntax including canonical
+absolute addresses, closed objects,
 profile value grammar, binding alias names, exact declared alias keys and distinct
 valid attribute-name values, even for an irrelevant binding. Relation local-path
 syntax and dependency-name syntax are checked even for excluded entities; target
@@ -229,9 +234,11 @@ canonical algorithm remain unchanged. For explicit selection:
   canonical bytes and fingerprint; hashes remain subject to the existing collision
   limitation. A malformed unused descriptor still fails before output.
 - `provenance.entities` and `pathMappings` cover selected entities only;
-  `bindings` covers resolved relevant bindings only. `provenance.map` remains the
-  supplied map's source or null, even for an empty selection. Existing sorting and
-  shapes apply. `graph` contains only selected effective entities and their resolved
+  entity provenance retains package identity, source namespace and original path;
+  path mappings retain effective paths and applicable rename evidence. `bindings`
+  covers resolved relevant bindings only. `provenance.map` remains the supplied
+  map's source or null, even for an empty selection. Existing sorting applies.
+  `graph` contains only selected effective entities and their resolved
   edges/components, with existing sorting. `warnings` retains existing shape and
   ordering; exclusion alone emits no warning. Existing source-linked errors and
   stage gating apply; no selector index may affect diagnostics.
@@ -248,7 +255,8 @@ identity. An input with no entity selection and an empty package remains compati
 
 ### Complete usage examples
 
-These examples use the implemented API, format-1 documents and compiler envelopes.
+These examples use the implemented API, Format 2 schemas, Format 1 host maps and
+compiler envelopes.
 Assume `compiler` is the resolved `TeqFw_Dem_Compile$` instance. Each call below can be made after the
 shared fixture; no declaration is edited between calls.
 
@@ -256,18 +264,19 @@ shared fixture; no declaration is edited between calls.
 const schema = {
     packageName: '@example/app', filename: 'etc/dem-schema.json',
     document: {
-        $format: 1,
+        $format: 2,
+        $namespace: '/demo/',
         $dependencies: {account: {attributes: ['id']}},
-        '/demo/a': {attributes: [{name: 'id', type: {name: 'identity'}}]},
-        '/demo/b': {attributes: [{name: 'id', type: {name: 'identity'}}]},
-        '/demo/order': {
+        a: {attributes: [{name: 'id', type: {name: 'identity'}}]},
+        b: {attributes: [{name: 'id', type: {name: 'identity'}}]},
+        order: {
             attributes: [
                 {name: 'id', type: {name: 'identity'}},
                 {name: 'a_id', type: {name: 'ref'}},
             ],
             relations: {a: {attributes: ['a_id'], target: {path: 'a', attributes: ['id']}}},
         },
-        '/demo/external_order': {
+        external_order: {
             attributes: [
                 {name: 'id', type: {name: 'identity'}},
                 {name: 'account_id', type: {name: 'ref'}},
@@ -305,7 +314,7 @@ try {
 } catch (error) {
     if (!error.diagnostics?.some(d => d.code === 'DEM_TARGET' &&
         d.source?.packageName === '@example/app' &&
-        d.pointer === '/~1demo~1order/relations/a')) throw error;
+        d.pointer === '/order/relations/a')) throw error;
     // No result/model is returned.
 }
 

@@ -1,7 +1,7 @@
 // @ts-check
 /** Shared cross-backend value workload. No persistence or Node dependency is provided here. */
-export const schema = Object.freeze({$format:1,
-    '/portable/value':{attributes:[
+export const schema = Object.freeze({$format:2,$namespace:'/portable/',
+    value:{attributes:[
         {name:'id',type:{name:'identity'},generation:true},
         {name:'code',type:{name:'string',params:{length:64}}},
         {name:'wide',type:{name:'integer',params:{bits:64,unsigned:true}}},
@@ -21,10 +21,10 @@ export const schema = Object.freeze({$format:1,
         {name:'uuid',type:{name:'uuid'}},
         {name:'note',type:{name:'text'},nullable:true},
     ],uniqueKeys:{code:['code']}},
-    '/portable/large':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/portable/large',attributes:['id']}}}},
-    '/portable/keyless_payload':{attributes:[{name:'payload',type:{name:'json'}},{name:'bytes',type:{name:'binary'}},{name:'vector',type:{name:'vector',params:{dimensions:2,element:'float'}}}]},
-    '/portable/proto':{attributes:[{name:'__proto__',type:{name:'identity'},generation:true},{name:'constructor',type:{name:'text'}}]},
-    '/portable/uuid':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},
+    large:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/portable/large',attributes:['id']}}}},
+    keyless_payload:{attributes:[{name:'payload',type:{name:'json'}},{name:'bytes',type:{name:'binary'}},{name:'vector',type:{name:'vector',params:{dimensions:2,element:'float'}}}]},
+    proto:{attributes:[{name:'__proto__',type:{name:'identity'},generation:true},{name:'constructor',type:{name:'text'}}]},
+    uuid:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},
 });
 export const map = Object.freeze({$format:1,identityProfiles:{'/portable/uuid':{id:{type:'uuid'}}}});
 /**
@@ -96,9 +96,9 @@ export async function exercise({provider,assert}) {
 }
 
 /** Common atomic workload; generation values are validated without assuming a sequence algorithm. */
-export const atomicSchema=Object.freeze({$format:1,
-    '/batch/account':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}},{name:'score',type:{name:'integer'},default:0}],uniqueKeys:{name:['name']}},
-    '/batch/entry':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'account',type:{name:'ref'}},{name:'amount',type:{name:'decimal',params:{precision:20,scale:4}}}],relations:{account:{attributes:['account'],target:{path:'/batch/account',attributes:['id']}}}},
+export const atomicSchema=Object.freeze({$format:2,$namespace:'/batch/',
+    account:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}},{name:'score',type:{name:'integer'},default:0}],uniqueKeys:{name:['name']}},
+    entry:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'account',type:{name:'ref'}},{name:'amount',type:{name:'decimal',params:{precision:20,scale:4}}}],relations:{account:{attributes:['account'],target:{path:'/batch/account',attributes:['id']}}}},
 });
 /** @param {{provider:any,assert:any}} env @returns {Promise<any>} */
 export async function exerciseAtomic({provider,assert}) {
@@ -141,10 +141,10 @@ export async function exerciseAtomic({provider,assert}) {
 }
 
 /** Values requiring software keys or reversible text beyond native SQL key/encoding bounds. */
-export const extendedSchema=Object.freeze({$format:1,
-    '/extended/key':{attributes:[{name:'tenant',type:{name:'text'}},{name:'token',type:{name:'text'}},{name:'payload',type:{name:'json'}}],primaryKey:['tenant','token'],uniqueKeys:{payload:['payload']},indexes:{tenant:{attributes:['tenant']}}},
-    '/extended/id':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/extended/id',attributes:['id']}}}},
-    '/extended/unicode':{attributes:[{name:'key',type:{name:'text'}},{name:'value',type:{name:'text'}}],primaryKey:['key']},
+export const extendedSchema=Object.freeze({$format:2,$namespace:'/extended/',
+    key:{attributes:[{name:'tenant',type:{name:'text'}},{name:'token',type:{name:'text'}},{name:'payload',type:{name:'json'}}],primaryKey:['tenant','token'],uniqueKeys:{payload:['payload']},indexes:{tenant:{attributes:['tenant']}}},
+    id:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/extended/id',attributes:['id']}}}},
+    unicode:{attributes:[{name:'key',type:{name:'text'}},{name:'value',type:{name:'text'}}],primaryKey:['key']},
 });
 /** @param {{provider:any,assert:any}} env @returns {Promise<any>} */
 export async function exerciseExtended({provider,assert}) {
@@ -174,7 +174,7 @@ export async function exerciseExtended({provider,assert}) {
 
 /** @returns {Array<any>} */
 export function evolutionSchemas() {
-    const original=/** @type {any} */({$format:1,'/evolution/item':{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},'/evolution/removed':{attributes:[{name:'value',type:{name:'text'}}]}});
+    const original=/** @type {any} */({$format:2,$namespace:'/evolution/',item:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},removed:{attributes:[{name:'value',type:{name:'text'}}]}});
     const added=structuredClone(original);delete added['/evolution/removed'];
     added['/evolution/item'].attributes.push(/** @type {any} */({name:'category',type:{name:'text'},default:'default'}));
     added['/evolution/item'].indexes=/** @type {any} */({category:{attributes:['category']}});

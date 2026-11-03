@@ -13,7 +13,7 @@ test('a Node Host acquires one package and composes independent server and brows
     assert.equal(acquired.schemas[0].packageName, '@example/catalog');
     assert.equal(acquired.schemas[0].filename, 'etc/dem-schema.json');
     const declaration = /** @type {Record<string, unknown>} */ (acquired.schemas[0].document);
-    assert.equal(Object.keys(declaration).filter(key => key.startsWith('/')).length, 4);
+    assert.equal(Object.keys(declaration).filter(key => !key.startsWith('$')).length, 4);
     assert.equal(acquired.map, undefined);
 
     // These model labels and compilation inputs belong to this Host.
@@ -34,7 +34,7 @@ test('a Node Host acquires one package and composes independent server and brows
             assert.equal('model' in error, false);
             assert.ok(error.diagnostics.some((/** @type {any} */ diagnostic) =>
                 diagnostic.code === 'DEM_TARGET' &&
-                diagnostic.pointer === '/~1vnd~1catalog~1order/relations/customer'));
+                diagnostic.pointer === '/order/relations/customer'));
             return true;
         },
     );
@@ -52,7 +52,7 @@ test('a Node Host acquires one package and composes independent server and brows
 
     assert.deepEqual(Object.keys(serverModel.model.entities), [
         '/models/server/customer',
-        '/models/server/ledger_event',
+        '/models/server/ledgerevent',
         '/models/server/order',
     ]);
     assert.deepEqual(Object.keys(browserModel.model.entities), [
@@ -61,7 +61,7 @@ test('a Node Host acquires one package and composes independent server and brows
     ]);
     assert.ok(!Object.hasOwn(serverModel.model.entities, '/models/server/cart'));
     assert.ok(!Object.hasOwn(browserModel.model.entities, '/models/browser/order'));
-    assert.ok(!Object.hasOwn(browserModel.model.entities, '/models/browser/ledger_event'));
+    assert.ok(!Object.hasOwn(browserModel.model.entities, '/models/browser/ledgerevent'));
 
     const serverOrder = serverModel.model.entities['/models/server/order'];
     const browserCart = browserModel.model.entities['/models/browser/cart'];
@@ -88,16 +88,19 @@ test('a Node Host acquires one package and composes independent server and brows
         '/models/server/customer': {
             packageName: '@example/catalog',
             filename: 'etc/dem-schema.json',
+            namespace: '/vnd/catalog/',
             originalPath: '/vnd/catalog/customer',
         },
-        '/models/server/ledger_event': {
+        '/models/server/ledgerevent': {
             packageName: '@example/catalog',
             filename: 'etc/dem-schema.json',
-            originalPath: '/vnd/catalog/ledger_event',
+            namespace: '/vnd/catalog/',
+            originalPath: '/vnd/catalog/ledgerevent',
         },
         '/models/server/order': {
             packageName: '@example/catalog',
             filename: 'etc/dem-schema.json',
+            namespace: '/vnd/catalog/',
             originalPath: '/vnd/catalog/order',
         },
     });
@@ -105,22 +108,24 @@ test('a Node Host acquires one package and composes independent server and brows
         '/models/browser/cart': {
             packageName: '@example/catalog',
             filename: 'etc/dem-schema.json',
+            namespace: '/vnd/catalog/',
             originalPath: '/vnd/catalog/cart',
         },
         '/models/browser/customer': {
             packageName: '@example/catalog',
             filename: 'etc/dem-schema.json',
+            namespace: '/vnd/catalog/',
             originalPath: '/vnd/catalog/customer',
         },
     });
-    assert.deepEqual(serverModel.provenance.pathMappings.map(item => [item.originalPath, item.effectivePath]), [
-        ['/vnd/catalog/customer', '/models/server/customer'],
-        ['/vnd/catalog/ledger_event', '/models/server/ledger_event'],
-        ['/vnd/catalog/order', '/models/server/order'],
+    assert.deepEqual(serverModel.provenance.pathMappings, [
+        {packageName: '@example/catalog', namespace: '/vnd/catalog/', originalPath: '/vnd/catalog/customer', effectivePath: '/models/server/customer', rule: {from: '/vnd/catalog/', to: '/models/server/'}},
+        {packageName: '@example/catalog', namespace: '/vnd/catalog/', originalPath: '/vnd/catalog/ledgerevent', effectivePath: '/models/server/ledgerevent', rule: {from: '/vnd/catalog/', to: '/models/server/'}},
+        {packageName: '@example/catalog', namespace: '/vnd/catalog/', originalPath: '/vnd/catalog/order', effectivePath: '/models/server/order', rule: {from: '/vnd/catalog/', to: '/models/server/'}},
     ]);
-    assert.deepEqual(browserModel.provenance.pathMappings.map(item => [item.originalPath, item.effectivePath]), [
-        ['/vnd/catalog/cart', '/models/browser/cart'],
-        ['/vnd/catalog/customer', '/models/browser/customer'],
+    assert.deepEqual(browserModel.provenance.pathMappings, [
+        {packageName: '@example/catalog', namespace: '/vnd/catalog/', originalPath: '/vnd/catalog/cart', effectivePath: '/models/browser/cart', rule: {from: '/vnd/catalog/', to: '/models/browser/'}},
+        {packageName: '@example/catalog', namespace: '/vnd/catalog/', originalPath: '/vnd/catalog/customer', effectivePath: '/models/browser/customer', rule: {from: '/vnd/catalog/', to: '/models/browser/'}},
     ]);
     assert.deepEqual(serverModel.provenance.bindings, []);
     assert.deepEqual(browserModel.provenance.bindings, []);

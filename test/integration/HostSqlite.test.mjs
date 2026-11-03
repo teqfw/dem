@@ -11,7 +11,7 @@ import {serverMap, serverSelection, withHostFixture} from '../fixtures/HostCompo
 
 const serverPaths = [
     '/models/server/customer',
-    '/models/server/ledger_event',
+    '/models/server/ledgerevent',
     '/models/server/order',
 ];
 
@@ -77,7 +77,7 @@ test('a Node Host projects its compiled server model to SQLite and performs repo
             provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
             const customers = await provider.get({path: '/models/server/customer'});
             const orders = await provider.get({path: '/models/server/order'});
-            const ledger = await provider.get({path: '/models/server/ledger_event'});
+            const ledger = await provider.get({path: '/models/server/ledgerevent'});
 
             const customer = {id: 101, name: 'Ada'};
             const order = {id: 201, customer_id: 101};
