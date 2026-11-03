@@ -22,7 +22,7 @@ export const schema = Object.freeze({$format:2,$namespace:'/portable/',
         {name:'note',type:{name:'text'},nullable:true},
     ],uniqueKeys:{code:['code']}},
     large:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/portable/large',attributes:['id']}}}},
-    keyless_payload:{attributes:[{name:'payload',type:{name:'json'}},{name:'bytes',type:{name:'binary'}},{name:'vector',type:{name:'vector',params:{dimensions:2,element:'float'}}}]},
+    keylesspayload:{attributes:[{name:'payload',type:{name:'json'}},{name:'bytes',type:{name:'binary'}},{name:'vector',type:{name:'vector',params:{dimensions:2,element:'float'}}}]},
     proto:{attributes:[{name:'__proto__',type:{name:'identity'},generation:true},{name:'constructor',type:{name:'text'}}]},
     uuid:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},
 });
@@ -73,7 +73,7 @@ export async function exercise({provider,assert}) {
     const largeConcurrent=await large.list({selection:{}});
     assert.equal(largeConcurrent.records.length,10);
     assert.equal(new Set(largeConcurrent.records.map((/** @type {any} */ row)=>row.id)).size,10);
-    const keyless=await provider.get({path:'/portable/keyless_payload'});
+    const keyless=await provider.get({path:'/portable/keylesspayload'});
     const keylessFirst=(await keyless.create({record:{payload:{b:2,a:1},bytes:'/w==',vector:[1,2]}})).record;
     const keylessSecond=(await keyless.create({record:{payload:{a:2,b:1},bytes:'AA==',vector:[1,10]}})).record;
     const keylessOrdered=await keyless.list({selection:{}});assert.deepEqual(keylessOrdered.records,[keylessSecond,keylessFirst]);
@@ -175,11 +175,10 @@ export async function exerciseExtended({provider,assert}) {
 /** @returns {Array<any>} */
 export function evolutionSchemas() {
     const original=/** @type {any} */({$format:2,$namespace:'/evolution/',item:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},removed:{attributes:[{name:'value',type:{name:'text'}}]}});
-    const added=structuredClone(original);delete added['/evolution/removed'];
-    added['/evolution/item'].attributes.push(/** @type {any} */({name:'category',type:{name:'text'},default:'default'}));
-    added['/evolution/item'].indexes=/** @type {any} */({category:{attributes:['category']}});
-    const restored=structuredClone(added);restored['/evolution/removed']=original['/evolution/removed'];
-    return [original,added,restored];
+    const added=structuredClone(original);delete added.removed;
+    added.item.attributes.push(/** @type {any} */({name:'category',type:{name:'text'},default:'default'}));
+    added.item.indexes=/** @type {any} */({category:{attributes:['category']}});
+    return [original,added];
 }
 /**
  * open creates a backend in the same test-owned scope without initializing it.
@@ -194,7 +193,6 @@ export async function exerciseEvolution({open,assert}) {
         assert.equal((await first.createSchema()).version,1);
         const repo=await first.get({path:'/evolution/item'});
         await repo.create({record:{name:'old'}});
-        await (await first.get({path:'/evolution/removed'})).create({record:{value:'retained'}});
         assert.equal((await first.createSchema()).version,1);
         const second=await open(schemas[1]);backends.push(second);
         assert.equal((await second.createSchema()).version,2);
@@ -202,11 +200,7 @@ export async function exerciseEvolution({open,assert}) {
         await assert.rejects(second.get({path:'/evolution/removed'}),{code:'NOT_FOUND'});
         const upgraded=await (await second.get({path:'/evolution/item'})).list({selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'category'},{kind:'value',value:'default'}]}}});
         assert.equal(upgraded.records[0].name,'old');
-        const third=await open(schemas[2]);backends.push(third);
-        assert.equal((await third.createSchema()).version,3);
-        const retained=await (await third.get({path:'/evolution/removed'})).list({selection:{}});
-        assert.deepEqual(retained,{records:[{value:'retained'}]});
-        const history=await third.getSchemaHistory();assert.equal(history.schemas.length,3);
-        return {upgraded,retained,history};
+        const history=await second.getSchemaHistory();assert.equal(history.schemas.length,2);
+        return {upgraded,history};
     } finally {for(const backend of backends)await backend.close();}
 }

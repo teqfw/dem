@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {register,schema} from '../../conformance/Repository.mjs';
+import {schema as values,map,atomicSchema,extendedSchema,evolutionSchemas} from '../../conformance/Values.mjs';
 import {container} from '../TestEnv.mjs';
 test('backend conformance fixture compiles without altering logical compiler',async()=>{
  const compile=await container.get('TeqFw_Dem_Compile$');
@@ -9,6 +10,14 @@ test('backend conformance fixture compiles without altering logical compiler',as
  compile.assertResult({value:result});
  assert.deepEqual(result.model.entities['/contract/item'].uniqueKeys.grouped,['group','rank']);
  assert.equal(result.model.entities['/contract/child'].attributes[1].type.profile.type,'int');
+});
+test('published storage workloads compile as Format 2 declarations',async()=>{
+ const compile=await container.get('TeqFw_Dem_Compile$');
+ const documents=[values,atomicSchema,extendedSchema,...evolutionSchemas()];
+ for(const document of documents){
+  const result=await compile.exec({schemas:[{packageName:'@contract/workload',filename:'fixture.json',document:structuredClone(document)}],...(document===values?{map:{packageName:'@contract/host',filename:'etc/dem-map.json',document:structuredClone(map)}}:{})});
+  compile.assertResult({value:result});
+ }
 });
 test('suite registers behavioral cases and always closes an opened fixture after failure',async()=>{
  const registered=[]; let closed=0;
