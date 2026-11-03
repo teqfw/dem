@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: teqfw/dem-idb
-          ref: de4dd7d6e2195e6d976ad445d5f47543a6c55d0b
+          ref: de4dd7d9f0b8d57713711608d36b74fe805ddae1
           path: dem-idb
       - name: Pack the compatible DEM-IDB source
         id: dem_idb
