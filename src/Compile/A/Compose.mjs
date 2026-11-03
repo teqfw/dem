@@ -95,7 +95,7 @@ export default class Compose {
                 for (const schema of work.schemas)
                     selected.set(schema.source.packageName, new Set(Object.keys(schema.nodes)));
             }
-            /** @type {Array<{original:string;node:{raw:any;pointer:string};effective:string;schema:TeqFw_Dem_SchemaWork}>} */
+            /** @type {Array<{original:string;node:{raw:any;pointer:string;localTargets:Record<string,string>};effective:string;schema:TeqFw_Dem_SchemaWork}>} */
             const contributions = [];
             for (const schema of work.schemas) {
                 const originalPackages = new Set(schema.packages);
@@ -162,7 +162,7 @@ export default class Compose {
                 for (const item of group.slice(1))
                     fail('DEM_COLLISION', item.schema.source, item.node.pointer, { path: effective });
                 const item = group[0];
-                work.entities[effective] = { schema: item.schema, original: item.original, pointer: item.node.pointer, raw: item.node.raw, relations: Object.create(null) };
+                work.entities[effective] = { schema: item.schema, original: item.original, pointer: item.node.pointer, localTargets: item.node.localTargets, raw: item.node.raw, relations: Object.create(null) };
                 work.provenance.entities[effective] = { ...item.schema.source, originalPath: item.original };
                 work.provenance.pathMappings.push({ packageName: item.schema.source.packageName, originalPath: item.original, effectivePath: effective });
             }

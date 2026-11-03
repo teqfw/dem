@@ -85,14 +85,12 @@ export default class Resolve {
                         attributes = target.attributes.map((/** @type {string} */ a) => binding.attributes[a]);
                     }
                     else {
-                        try {
-                            const original = path.normalize(target.path, info.original.slice(0, info.original.lastIndexOf('/') + 1));
-                            address = info.schema.correspondence[original];
-                        }
-                        catch {
+                        const original = info.localTargets[name];
+                        if (typeof original !== 'string') {
                             fail('DEM_PATH', info.schema.source, pointer + '/target/path');
                             continue;
                         }
+                        address = info.schema.correspondence[original];
                         attributes = target.attributes;
                     }
                     if (!address || !Object.hasOwn(work.entities, address)) {

@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * @namespace TeqFw_Dem_Compile_A_Decode
- * @description Decode format 1 declarations and reject ambiguous or unknown structure.
+ * @description Decode Format 2 declarations and Format 1 host maps.
  */
 export default class Decode {
     /**
@@ -123,8 +123,9 @@ export default class Decode {
                         fail('DEM_INPUT', source, '');
                         continue;
                     }
-                    if (!data.isObject(doc) || doc.$format !== 1) {
-                        fail('DEM_FORMAT', source, '/$format');
+                    const expectedFormat = kind === 'schema' ? 2 : 1;
+                    if (!data.isObject(doc) || doc.$format !== expectedFormat) {
+                        fail('DEM_FORMAT', source, '/$format', { expected: expectedFormat, received: data.isObject(doc) ? doc.$format : undefined });
                         continue;
                     }
                     if (kind === 'map') {
@@ -147,6 +148,14 @@ export default class Decode {
                         work.provenance.map = source;
                         continue;
                     }
+                    let namespace;
+                    try {
+                        namespace = path.namespace(doc.$namespace);
+                    }
+                    catch {
+                        fail('DEM_FORMAT', source, '/$namespace');
+                        continue;
+                    }
                     const dependencies = doc.$dependencies ?? {};
                     if (!dictionary(dependencies, source, '/$dependencies') || doc.$dependencies === null)
                         continue;
@@ -156,14 +165,12 @@ export default class Decode {
                     }
                     const nodes = Object.create(null), packages = new Set();
                     for (const [raw, node] of Object.entries(doc)) {
-                        if (['$format', '$comment', '$dependencies'].includes(raw))
+                        if (['$format', '$namespace', '$comment', '$dependencies'].includes(raw))
                             continue;
                         const pointer = '/' + escape(raw);
                         let address;
                         try {
-                            if (!raw.startsWith('/'))
-                                throw new TypeError();
-                            address = path.normalize(raw);
+                            address = path.declaration(namespace, raw);
                         }
                         catch {
                             fail('DEM_PATH', source, pointer);
@@ -200,6 +207,7 @@ export default class Decode {
                         });
                         if (Object.hasOwn(node, 'primaryKey'))
                             list(node.primaryKey, source, pointer + '/primaryKey');
+                        const localTargets = Object.create(null);
                         for (const key of ['uniqueKeys', 'indexes', 'relations']) {
                             const collection = node[key] ?? {};
                             if (!dictionary(collection, source, pointer + '/' + key) || node[key] === null)
@@ -220,7 +228,7 @@ export default class Decode {
                                             fail('DEM_FORMAT', source, ptr + '/target');
                                         else if (Object.hasOwn(item.target, 'path')) {
                                             try {
-                                                path.normalize(item.target.path, address.slice(0, address.lastIndexOf('/') + 1));
+                                                localTargets[name] = path.reference(item.target.path, address.slice(0, address.lastIndexOf('/') + 1), namespace);
                                             }
                                             catch {
                                                 fail('DEM_PATH', source, ptr + '/target/path');
@@ -232,11 +240,11 @@ export default class Decode {
                                 }
                             }
                         }
-                        nodes[address] = { raw: node, pointer };
+                        nodes[address] = { raw: node, pointer, localTargets };
                     }
                     if (Object.hasOwn(doc, '$comment') && typeof doc.$comment !== 'string')
                         fail('DEM_FORMAT', source, '/$comment');
-                    work.schemas.push({ source, dependencies, nodes, packages: [...packages], correspondence: Object.create(null), bindings: Object.create(null) });
+                    work.schemas.push({ source, namespace, dependencies, nodes, packages: [...packages], correspondence: Object.create(null), bindings: Object.create(null) });
                 }
             }
             work.schemas.sort((a, b) => a.source.packageName < b.source.packageName ? -1 : 1);
@@ -254,6 +262,7 @@ export default class Decode {
                             if (!from.startsWith('/') || typeof to !== 'string' || !to.startsWith('/'))
                                 throw new TypeError();
                             const start = path.normalize(from), end = path.normalize(to);
+                            path.canonicalAddress(end);
                             if (start.endsWith('/') !== end.endsWith('/') || Object.hasOwn(normalized, start))
                                 throw new TypeError();
                             normalized[start] = end;
