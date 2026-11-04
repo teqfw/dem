@@ -56,6 +56,12 @@ export class Factory {
                 const found = entity.attributes.find((/** @type {TeqFw_Dem_Attribute} */ a) => a.name === name);
                 return found ?? invalid('Unknown selection attribute.');
             };
+            /** @param {string} name @returns {boolean} */
+            const orderable = function (name) {
+                const attr = attribute(name);
+                const definition = definitions[attr.type.name];
+                return definition ? Boolean(definition.ordering) : true;
+            };
             /**
              * @param {TeqFw_Dem_QueryExpression} node
              * @returns {TeqFw_Dem_QueryExpression}
@@ -93,7 +99,11 @@ export class Factory {
                     } else if (definition) return invalid('Runtime value requires an explicit logical type.');
                     else value = normalize.value({attribute:attr,value:literal.value,handlers});
                 }
-                const captured = /** @type {any} */ ({kind:'value',value});
+                const captured = /** @type {any} */ ({kind:'value'});
+                if (handler && value !== null) {
+                    // Return a fresh detached value on every public read so a caller cannot mutate the captured operand.
+                    Object.defineProperty(captured,'value',{enumerable:true,get:()=>handler.copy(value,attr.type.params ?? {})});
+                } else captured.value = value;
                 if (definition) captured.type = {name:attr.type.name,params:attr.type.params ?? {}};
                 return {kind:'call',operator:op,args:[args[0],captured]};
             };
@@ -108,14 +118,19 @@ export class Factory {
                 if (!data.isObject(item) || Object.keys(item).some(k => !['attribute','direction','nulls'].includes(k))
                     || !['asc','desc'].includes(item.direction) || !['first','last'].includes(item.nulls)) return invalid('Ordering requires attribute, direction and nulls.');
                 const attr = attribute(item.attribute);
-                if (definitions[attr.type.name] && !definitions[attr.type.name].ordering) return invalid('Logical type does not support ordering.');
+                if (!orderable(attr.name)) return invalid('Logical type does not support ordering.');
                 return {attribute:item.attribute,direction:item.direction,nulls:item.nulls};
             });
             if (new Set(result.orderBy.map(o=>o.attribute)).size !== result.orderBy.length) return invalid('Duplicate ordering attribute.');
             const candidates = [entity.primaryKey, ...Object.keys(entity.uniqueKeys).sort().map((/** @type {string} */ k)=>entity.uniqueKeys[k])];
-            const tie = candidates.find((/** @type {any} */ key) => key?.length && key.every((/** @type {string} */ name)=> !attribute(name).nullable));
+            const tie = candidates.find((/** @type {any} */ key) => key?.length && key.every((/** @type {string} */ name)=> {
+                const attr = attribute(name);
+                return !attr.nullable && orderable(name);
+            }));
             const fallback = entity.attributes.slice().sort((/** @type {TeqFw_Dem_Attribute} */ a, /** @type {TeqFw_Dem_Attribute} */ b)=>a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-            for (const name of tie ?? fallback.map((/** @type {TeqFw_Dem_Attribute} */ a)=>a.name)) {
+            const fallbackNames = fallback.every((/** @type {TeqFw_Dem_Attribute} */ attr)=>orderable(attr.name))
+                ? fallback.map((/** @type {TeqFw_Dem_Attribute} */ a)=>a.name) : [];
+            for (const name of tie ?? fallbackNames) {
                 if (!result.orderBy.some(o=>o.attribute === name)) result.orderBy.push({attribute:name,direction:'asc',nulls:'last'});
             }
             result.limit = input.limit === undefined ? null : input.limit;

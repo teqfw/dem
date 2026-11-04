@@ -35,10 +35,14 @@ test('Token16 flows through Registry, Compiler, binding, Normalize, Selection an
     const later=new Uint8Array(16); later[0]=3;
     const captured=first.selection.create({entity:firstEntity,selection:{where:eq(a)}});
     a[0]=9;
+    const exposed=captured.where.args[1].value;
+    exposed[0]=8;
+    assert.equal(captured.where.args[1].value[0],1);
     const same=new Uint8Array(16); same[0]=1;
     const firstRows=[{id:'1',token:b},{id:'2',token:later},{id:'3',token:same}];
     const result=first.select.exec({entity:firstEntity,records:firstRows,selection:captured});
     assert.deepEqual(result.records.map((/** @type {any} */ row)=>row.id),['3']);
+    assert.deepEqual(first.select.exec({entity:firstEntity,records:firstRows,selection:captured}).records.map((/** @type {any} */ row)=>row.id),['3']);
     assert.deepEqual(first.normalize.value({attribute:firstEntity.attributes[1],value:later}),later);
     assert.notEqual(first.normalize.value({attribute:firstEntity.attributes[1],value:later}),later);
     const secondRows=[{id:'1',token:b},{id:'2',token:later}];
@@ -53,6 +57,27 @@ test('Token16 flows through Registry, Compiler, binding, Normalize, Selection an
     assert.equal(normalized.token[0],2);
     assert.throws(()=>runtime.bind({model:firstCompiled.model,registry,handlers:[]}),{code:'UNSUPPORTED'});
     assert.throws(()=>first.normalize.value({attribute:firstEntity.attributes[1],value:new Uint8Array(15)}),{code:'INVALID_INPUT'});
+});
+
+test('selection skips a non-orderable primary key in favor of an orderable unique key', async () => {
+    const container=makeContainer();
+    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
+    const registry=await container.get('TeqFw_Dem_Registry$');
+    const equalityDefinition={name:'example.EqualityOnly',parameters:{},normalizeParams:tokenDefinition.normalizeParams,valueDomain:tokenDefinition.valueDomain,preservation:tokenDefinition.preservation,valueHandling:tokenDefinition.valueHandling,equality:'Bytewise equality.'};
+    registry.register([equalityDefinition,tokenDefinition]);
+    registry.finalize();
+    const compiler=await container.get('TeqFw_Dem_Compile$');
+    const model=(await compiler.exec({schemas:[{packageName:'runtime-test',filename:'schema.json',document:{$format:2,$namespace:'/test/',item:{attributes:[{name:'primary',type:{name:'example.EqualityOnly'}},{name:'token',type:{name:'example.Token16'}}],primaryKey:['primary'],uniqueKeys:{by_token:['token']}}}}]})).model;
+    const runtime=await container.get('TeqFw_Dem_Repository_Runtime$');
+    const equalityHandler={name:'example.EqualityOnly',normalize:(/** @type {Uint8Array} */ value)=>value.slice(),copy:(/** @type {Uint8Array} */ value)=>value.slice(),equals:(/** @type {Uint8Array} */ left,/** @type {Uint8Array} */ right)=>left.every((byte,index)=>byte===right[index])};
+    const bound=runtime.bind({model,registry,handlers:[equalityHandler,await container.get('Runtime_Test_Token16__default')]});
+    const entity=model.entities['/test/item'];
+    const selection=bound.selection.create({entity,selection:{}});
+    assert.deepEqual(selection.orderBy.map((/** @type {any} */ item) => item.attribute),['token']);
+    const low=new Uint8Array(16); low[0]=1;
+    const high=new Uint8Array(16); high[0]=2;
+    const rows=[{primary:new Uint8Array(16),token:high},{primary:new Uint8Array(16),token:low}];
+    assert.deepEqual(bound.select.exec({entity,records:rows,selection}).records.map((/** @type {any} */ row) => row.token[0]),[1,2]);
 });
 
 test('selection rejects unsupported runtime comparisons', async () => {
