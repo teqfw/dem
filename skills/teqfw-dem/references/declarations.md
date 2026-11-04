@@ -250,9 +250,10 @@ attributes may participate in relations to compatible key attributes without
 becoming refs. Type compatibility compares normalized ordinary types, or equal resolved profiles
 for identity/ref pairs; the identity/ref role itself does not make those pairs incompatible;
 nullability may differ. No delete/update actions or backend enforcement settings
-are part of this format. For a composite relation, all-null local values represent
-an absent optional link; partially null tuples are invalid. Required local members
-therefore prevent an absent link.
+are part of this format. Composite relations use SQL MATCH SIMPLE: if every local
+member is non-null, the referenced tuple must exist; if any member is null, no referenced tuple is required.
+Partially null tuples are permitted where individual attribute nullability allows
+them. Each attribute’s own nullability constraint still applies.
 
 ### Type grammar
 

@@ -8,11 +8,27 @@ follow [declarations](declarations.md), [types](types.md) and
 [configuration](configuration.md). [Canonical identity](canonical.md) defines exact
 fingerprint bytes. There are no physical declarations.
 
+## Implementation status
+
+DEM implements Core compilation and shared operations, the container-scoped Type
+Registry and Type Provider contract, and compilation of registered extension type
+declarations. A host can bind a model to selected handlers for Normalize, Selection
+and Select; Selection and Select use handler-defined Equality and Ordering and
+isolate mutable operands. See [extension composition](target-api.md#extension-composition).
+
+Native platform handlers, extension-aware Batch integration, full Repository
+acquisition and adapter-specific persistence of native values remain deferred.
+The existing Batch helper plans Core operations; it is not bound to extension
+handlers. No storage provider is bundled. Other extension categories and host
+routing remain future work.
+
 ## Supported DI tokens
 
 - `TeqFw_Dem_Compile$`: exec and assertResult.
 - `TeqFw_Dem_Acquire$`: Node-only read-only acquisition using the registry mechanism
   used by CLI, independent of portable compilation.
+- `TeqFw_Dem_Registry$`: shared Type Registry, registered and finalized by the host.
+- `TeqFw_Dem_Repository_Runtime$`: model-scoped runtime binding.
 - `TeqFw_Dem_Registry_Core$`: frozen logical type definitions and parameter defaults.
 - `TeqFw_Dem_Registry_CoreValue$`: normalizeType, normalizeValue and matches for the
   logical JSON literal representations in the type contract. Invalid types return
@@ -26,6 +42,7 @@ fingerprint bytes. There are no physical declarations.
 - `TeqFw_Dem_Repository_Batch$`: disposable logical batch snapshot validation/planning.
 - `TeqFw_Dem_Api_Repository$`: create/read/update/delete/list contract.
 - `TeqFw_Dem_Repository_Normalize$`: logical value/record/key normalization.
+- `TeqFw_Dem_Repository_Select$`: in-memory selection evaluation.
 - `TeqFw_Dem_Repository_Error$`: stable operation-error construction.
 - `TeqFw_Dem_Dto_Query_Selection__Factory$`: entity-aware portable selection validation.
 

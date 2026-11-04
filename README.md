@@ -32,9 +32,9 @@ synchronization.
 
 Platform Extensions are accepted product direction: platform-specific types,
 constraints, indexes and other modeling capabilities can make an entity usable
-only with compatible adapters and host configurations. Their declaration grammar,
-registration mechanisms and runtime contracts are not designed or implemented.
-The current closed Format 2 grammar does not accept arbitrary extensions.
+only with compatible adapters and host configurations. Registered extension types
+can be compiled and bound to host-supplied runtime handlers. Other extension categories and native platform integrations remain
+future work; Format 2 remains closed to arbitrary fields.
 
 The effective logical domain model is distinct from host-owned storage
 configuration: entity placement, adapters and explicitly accepted deviations from
@@ -47,11 +47,11 @@ truncate values or perform lossy conversions.
 ## Current package
 
 The current implementation provides Format 2 compilation, Format 1 host maps,
-entity selection, Node acquisition, canonical model identity, core JSON-compatible
-record normalization, CRUD+List contracts, shared selection and optional batch
-planning. Independent adapters supply storage. See the references below for exact
-contracts; future platform-native values and generic host relaxation mechanisms
-are not part of these APIs.
+entity selection, Node acquisition, canonical model identity, shared Core operations,
+and registered extension types with model-scoped runtime operations. Independent
+adapters supply storage. See the [implementation status](skills/teqfw-dem/references/scope.md#implementation-status)
+and [extension composition](skills/teqfw-dem/references/target-api.md#extension-composition)
+for supported behavior and limitations.
 
 ## Compile through DI
 
@@ -60,9 +60,16 @@ types only; runtime access uses TeqFW DI tokens.
 
 ```js
 import Container from '@teqfw/di';
+import {createRequire} from 'node:module';
+import {dirname, join} from 'node:path';
 
-const container = new Container();
-container.addNamespaceRoot('TeqFw_Dem_', '/absolute/node_modules/@teqfw/dem/src', '.mjs');
+const require = createRequire(import.meta.url);
+const demRoot = dirname(dirname(require.resolve('@teqfw/dem/conformance')));
+const container = new Container({
+    namespaces: [{prefix: 'TeqFw_Dem_', target: join(demRoot, 'src'), defaultExt: '.mjs'}],
+});
+const registry = await container.get('TeqFw_Dem_Registry$');
+registry.finalize();
 const compiler = await container.get('TeqFw_Dem_Compile$');
 const result = await compiler.exec({
     schemas: [{
@@ -76,7 +83,7 @@ const result = await compiler.exec({
     }],
 });
 compiler.assertResult({value: result});
-console.log(result.model.entities, result.fingerprint);
+console.log(result.model.entities['/app/user'], result.fingerprint);
 ```
 
 Schema Format 1 is deliberately unsupported. DEM rejects legacy schema descriptors;

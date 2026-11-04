@@ -241,9 +241,9 @@ IndexedDB; no identifier rewriting is performed. See the adapter READMEs for com
 ## Core scope and host-approved deviations
 
 This reference defines the current Isomorphic Core access contract, including
-JSON-compatible records enforced by Normalize. Future platform-native values have
-no defined normalization, serialization or repository contract; do not pass them
-to current APIs or infer extension hooks from this reference.
+JSON-compatible Core records. Host-selected extension handlers can also bind
+Normalize, Selection and Select to a model; see [extension composition](target-api.md#extension-composition).
+Native platform handlers and adapter-specific persistence remain deferred.
 
 The strict requirements above remain unchanged. A host may explicitly choose an
 adapter's documented relaxed profile (for example descriptive relations), recording

@@ -63,10 +63,11 @@ does not require every TeqFW application to install DEM.
 
 The Isomorphic Core supplies shared modeling and CRUD+List semantics; it does not
 promise identical storage capabilities, operational guarantees or data portability.
-Platform Extensions are accepted direction, but their grammar, registration and
-runtime contracts are not designed or implemented. Do not generate extension
-fields, capability APIs, routing configuration or generic relaxation flags.
-Use the closed current Format 2 and published APIs. See [model](references/model.md)
+Registered extension types and model-scoped runtime handlers are supported; other
+extension categories and integrations remain incomplete. Do not invent extension
+fields, routing configuration or generic relaxation flags. Use the closed current
+Format 2 and published APIs. See [implementation status](references/scope.md#implementation-status)
+and [extension composition](references/target-api.md#extension-composition). See [model](references/model.md)
 for invariant categories, host policy and unresolved design boundaries. Verify exact
 installed-version behavior in source and metadata when integrating the package.
 

@@ -133,8 +133,9 @@ semantics, not physical layouts, operational guarantees or universal portability
 Platform Extensions are accepted direction for platform-specific types,
 constraints, indexes and other modeling capabilities. An entity requiring them is
 conceptually valid but usable only with compatible adapters and host configuration.
-Extension declaration grammar, registration and runtime contracts are undesigned
-and unimplemented. Current Format 2 remains closed; no extension fields are accepted.
+Registered extension types can appear in Format 2 declarations and use host-selected
+runtime handlers. Other extension categories remain future work; Format 2 does not
+accept arbitrary extension fields. See [implementation status](scope.md#implementation-status).
 
 Declared nullability, value ranges/limits, identity, keys and referential integrity
 are requirements. Indexes express optimization intentions. Native or software

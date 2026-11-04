@@ -53,5 +53,5 @@ Identity and ref use the [declaration contract](declarations.md). Their profiles
 are uuid or int with qualitative capacity; integer bits are not accepted as
 identity-profile parameters. Logical type checking constrains defaults and
 relations during compilation; repository helpers also normalize application values.
-Adapters execute persistence. Platform-native extension values are outside this
-current contract; see the [model design boundary](model.md#isomorphic-core-extensions-and-host-policy).
+Adapters execute persistence. This table covers Core types; registered extension
+types use the [extension composition contract](target-api.md#extension-composition).

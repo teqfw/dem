@@ -3,6 +3,87 @@
 This is the implemented compiler/acquisition contract at the current repository revision.
 Runtime components use the `TeqFw_Dem_` DI namespace and native ESM conventions.
 
+## Extension composition
+
+The host selects Type Definitions, either directly or from its selected Type
+Providers' `getDefinitions()`, and registers them on the shared
+`TeqFw_Dem_Registry$`. Finalize the Registry after all definitions are registered
+and before compiling; compilation and runtime binding require this stable type set.
+The host separately selects runtime handlers and passes them to the DI-resolved
+`TeqFw_Dem_Repository_Runtime$`. There is no automatic provider or handler discovery.
+The following is a complete Node.js example; `example.Token16` and its handler are
+application-owned examples, not bundled providers.
+
+```js
+import Container from '@teqfw/di';
+import {createRequire} from 'node:module';
+import {dirname, join} from 'node:path';
+
+const require = createRequire(import.meta.url);
+const demRoot = dirname(dirname(require.resolve('@teqfw/dem/conformance')));
+const container = new Container({
+    namespaces: [{prefix: 'TeqFw_Dem_', target: join(demRoot, 'src'), defaultExt: '.mjs'}],
+});
+const definition = {
+    name: 'example.Token16', parameters: {},
+    normalizeParams(params) {
+        if (Object.keys(params).length) throw new TypeError('No parameters allowed');
+        return {};
+    },
+    valueDomain: 'A fixed 16-byte token.', preservation: 'Preserve all bytes.',
+    valueHandling: 'Validate and copy bytes.', equality: 'Bytewise equality.',
+    ordering: 'Unsigned lexicographic order.',
+};
+const handler = {
+    name: 'example.Token16',
+    normalize(value) {
+        if (!(value instanceof Uint8Array) || value.length !== 16) throw new TypeError('Expected 16 bytes');
+        return value.slice();
+    },
+    copy: value => value.slice(),
+    equals: (a, b) => a.every((byte, i) => byte === b[i]),
+    compare(a, b) {
+        for (let i = 0; i < 16; i++) if (a[i] !== b[i]) return a[i] - b[i];
+        return 0;
+    },
+};
+const registry = await container.get('TeqFw_Dem_Registry$');
+registry.register([definition]);
+registry.finalize();
+const compiler = await container.get('TeqFw_Dem_Compile$');
+const {model} = await compiler.exec({schemas: [{
+    packageName: '@example/app', filename: 'etc/dem-schema.json',
+    document: {$format: 2, $namespace: '/app/', item: {
+        attributes: [{name: 'id', type: {name: 'integer'}},
+            {name: 'token', type: {name: 'example.Token16'}}],
+        primaryKey: ['id'],
+    }},
+}]});
+const runtime = await container.get('TeqFw_Dem_Repository_Runtime$');
+const bound = runtime.bind({model, registry, handlers: [handler]});
+const entity = bound.model.entities['/app/item'];
+const token = bound.normalize.value({attribute: entity.attributes[1], value: new Uint8Array(16)});
+const selection = bound.selection.create({entity, selection: {where: {
+    kind: 'call', operator: 'eq', args: [
+        {kind: 'attr', name: 'token'}, {kind: 'value', value: token},
+    ],
+}}});
+const {records} = bound.select.exec({entity, selection, records: [{id: '1', token}]});
+console.log(records); // one matching record
+```
+
+`bind({model, registry, handlers})` checks that each extension type used by the
+model has a compatible selected handler and returns the model plus bound
+`normalize`, `selection` and `select` operations. Each binding has its own model
+and dispatch; the same container and Registry may serve several models. Handlers
+synchronously validate and copy non-null values without mutating inputs. Their
+optional Equality, Ordering and literal conversion must match the Type Definition;
+Ordering requires Equality and compare-zero means equal. Normalized parameters are
+passed to handler operations; mutable query operands are captured and isolated. See the
+published [Type Definition, Type Provider and Runtime Type Handler interfaces](https://github.com/teqfw/dem/blob/770ed0b/types.d.ts#L101-L103)
+for signatures. A host-selected adapter still owns persistence and must support the
+bound types; binding alone does not acquire a Repository.
+
 ## Portable compiler
 
 `TeqFw_Dem_Compile$.exec({schemas, map?, selection?})` returns a Promise. Schemas is a required
@@ -274,7 +355,7 @@ const schema = {
             ],
             relations: {a: {attributes: ['a_id'], target: {path: 'a', attributes: ['id']}}},
         },
-        external_order: {
+        externalorder: {
             attributes: [
                 {name: 'id', type: {name: 'identity'}},
                 {name: 'account_id', type: {name: 'ref'}},
@@ -316,16 +397,16 @@ try {
     // No result/model is returned.
 }
 
-// D: external_order alone uses account; selecting B needs no account binding.
+// D: externalorder alone uses account; selecting B needs no account binding.
 const withoutExternal = await compiler.exec({schemas: [schema], selection: [select('/demo/b')]});
 // Only /demo/b is present; no account binding provenance or graph edge exists.
 
-// E: omission selects all entities. Supply the binding needed by external_order.
+// E: omission selects all entities. Supply the binding needed by externalorder.
 const all = await compiler.exec({
     schemas: [schema],
     map: map({$format: 1, sources: {'@example/app': {
         bind: {account: {path: '/demo/a', attributes: {id: 'id'}}},
     }}}),
 });
-// all.model.entities contains /demo/a, /demo/b, /demo/order, /demo/external_order.
+// all.model.entities contains /demo/a, /demo/b, /demo/order, /demo/externalorder.
 ```

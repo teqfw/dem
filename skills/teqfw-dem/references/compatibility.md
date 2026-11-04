@@ -85,9 +85,9 @@ lossless replacement for every JavaScript float64 vector value.
 ## Scope of compatibility
 
 This matrix describes core realizations, not universal storage equivalence or
-future Platform Extensions. Their declaration, registration and runtime contracts
-are undesigned and unimplemented. Host selection of descriptive relations must be
-explicit acceptance of relaxed integrity; it is not strict conformance and must
+extension-type storage. See [implementation status](scope.md#implementation-status)
+for the supported declaration and runtime boundary. Host selection of descriptive
+relations must be explicit acceptance of relaxed integrity; it is not strict conformance and must
 not be inferred from an adapter default. Missing applicable capabilities fail
 explicitly. Entity placement and accepted deviations are host storage configuration,
 separate from logical identity; DEM supplies no routing contract across stores.
