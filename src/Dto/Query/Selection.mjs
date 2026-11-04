@@ -27,13 +27,22 @@ export class Factory {
          * @returns {TeqFw_Dem_Never}
          */
         const invalid = function (message) { throw errors.create({code:'INVALID_INPUT',message}); };
+        /** @param {any} value @param {any} [seen] @returns {any} */
+        const freeze = function (value, seen = new WeakSet()) {
+            if (!value || typeof value !== 'object' || ArrayBuffer.isView(value) || value instanceof ArrayBuffer || seen.has(value)) return value;
+            seen.add(value);
+            for (const child of Object.values(value)) freeze(child, seen);
+            return Object.freeze(value);
+        };
         /**
          * @param {object} deps
          * @param {TeqFw_Dem_Entity} deps.entity
          * @param {unknown} deps.selection
+         * @param {Record<string, any>} [deps.handlers]
+         * @param {Record<string, any>} [deps.definitions]
          * @returns {TeqFw_Dem_Selection}
          */
-        this.create = function ({entity, selection}) {
+        this.create = function ({entity, selection, handlers = {}, definitions = {}}) {
             // DTO instances are accepted by extracting their defined data fields.
             if (selection instanceof Selection) selection = Object.fromEntries(Object.entries(selection).filter(([,v])=>v !== undefined));
             if (!data.isObject(selection)) return invalid('Selection must be a plain object.');
@@ -44,7 +53,7 @@ export class Factory {
              * @returns {TeqFw_Dem_Attribute}
              */
             const attribute = function (name) {
-                const found = entity.attributes.find(a => a.name === name);
+                const found = entity.attributes.find((/** @type {TeqFw_Dem_Attribute} */ a) => a.name === name);
                 return found ?? invalid('Unknown selection attribute.');
             };
             /**
@@ -67,10 +76,26 @@ export class Factory {
                 if (args.length !== 2 || args[0].kind !== 'attr' || args[1].kind !== 'value') return invalid('Comparison requires attribute then literal.');
                 const attr = attribute(args[0].name);
                 const literal = args[1];
+                const definition = definitions[attr.type.name];
+                const handler = handlers[attr.type.name];
+                const ordered = ['lt','lte','gt','gte'].includes(op);
+                if (definition && (ordered ? !definition.ordering : !definition.equality)) return invalid('Logical type does not support this comparison.');
                 // Identity literals omit type: Expression deliberately only accepts name/params.
                 if (literal.type && data.serialize(literal.type) !== data.serialize({name:attr.type.name,params:attr.type.params ?? {}})) return invalid('Literal type must match attribute type exactly.');
-                const value = literal.value === null ? null : normalize.value({attribute:attr,value:literal.value});
-                return {kind:'call',operator:op,args:[args[0],{kind:'value',value}]};
+                let value = null;
+                if (literal.value !== null) {
+                    if (definition && literal.type) value = normalize.value({attribute:attr,value:literal.value,handlers});
+                    else if (definition && definition.literal && handler?.fromLiteral) {
+                        try {
+                            const declaration = definition.literal.normalize(literal.value, attr.type.params ?? {});
+                            value = normalize.value({attribute:attr,value:handler.fromLiteral(declaration, attr.type.params ?? {}),handlers});
+                        } catch { return invalid('Invalid literal for attribute type.'); }
+                    } else if (definition) return invalid('Runtime value requires an explicit logical type.');
+                    else value = normalize.value({attribute:attr,value:literal.value,handlers});
+                }
+                const captured = /** @type {any} */ ({kind:'value',value});
+                if (definition) captured.type = {name:attr.type.name,params:attr.type.params ?? {}};
+                return {kind:'call',operator:op,args:[args[0],captured]};
             };
             const result = new Selection();
             if (input.where !== undefined) {
@@ -82,21 +107,22 @@ export class Factory {
             result.orderBy = (input.orderBy ?? []).map((/** @type {any} */ item) => {
                 if (!data.isObject(item) || Object.keys(item).some(k => !['attribute','direction','nulls'].includes(k))
                     || !['asc','desc'].includes(item.direction) || !['first','last'].includes(item.nulls)) return invalid('Ordering requires attribute, direction and nulls.');
-                attribute(item.attribute);
+                const attr = attribute(item.attribute);
+                if (definitions[attr.type.name] && !definitions[attr.type.name].ordering) return invalid('Logical type does not support ordering.');
                 return {attribute:item.attribute,direction:item.direction,nulls:item.nulls};
             });
             if (new Set(result.orderBy.map(o=>o.attribute)).size !== result.orderBy.length) return invalid('Duplicate ordering attribute.');
-            const candidates = [entity.primaryKey, ...Object.keys(entity.uniqueKeys).sort().map(k=>entity.uniqueKeys[k])];
-            const tie = candidates.find(key => key?.length && key.every(name=> !attribute(name).nullable));
-            const fallback = entity.attributes.slice().sort((a,b)=>a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-            for (const name of tie ?? fallback.map(a=>a.name)) {
+            const candidates = [entity.primaryKey, ...Object.keys(entity.uniqueKeys).sort().map((/** @type {string} */ k)=>entity.uniqueKeys[k])];
+            const tie = candidates.find((/** @type {any} */ key) => key?.length && key.every((/** @type {string} */ name)=> !attribute(name).nullable));
+            const fallback = entity.attributes.slice().sort((/** @type {TeqFw_Dem_Attribute} */ a, /** @type {TeqFw_Dem_Attribute} */ b)=>a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+            for (const name of tie ?? fallback.map((/** @type {TeqFw_Dem_Attribute} */ a)=>a.name)) {
                 if (!result.orderBy.some(o=>o.attribute === name)) result.orderBy.push({attribute:name,direction:'asc',nulls:'last'});
             }
             result.limit = input.limit === undefined ? null : input.limit;
             result.offset = input.offset === undefined ? 0 : input.offset;
             if (result.limit !== null && (!Number.isSafeInteger(result.limit) || result.limit < 0)
                 || !Number.isSafeInteger(result.offset) || result.offset < 0) return invalid('Invalid pagination.');
-            return data.freeze(result);
+            return freeze(result);
         };
     }
 }

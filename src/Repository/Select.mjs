@@ -16,10 +16,17 @@ export default class Select {
          * @param {TeqFw_Dem_Attribute} attribute
          * @param {any} left
          * @param {any} right
+         * @param {any} [handlers]
          * @returns {number}
          */
-        const compare = function (attribute, left, right) {
+        const compare = function (attribute, left, right, /** @type {any} */ handlers = {}) {
             const type = attribute.type;
+            const handler = handlers[type.name];
+            if (handler) {
+                const result = handler.compare(left, right, type.params ?? {});
+                if (typeof result !== 'number' || !Number.isFinite(result)) throw errors.create({code:'INVALID_INPUT',message:'Runtime handler returned an invalid comparison.'});
+                return result < 0 ? -1 : result > 0 ? 1 : 0;
+            }
             if (['integer','decimal'].includes(type.name) || ['identity','ref'].includes(type.name) && type.profile?.type === 'int') {
                 const a = BigInt(String(left).replace('.', '')), b = BigInt(String(right).replace('.', ''));
                 return a < b ? -1 : a > b ? 1 : 0;
@@ -50,11 +57,13 @@ export default class Select {
          * @param {TeqFw_Dem_Entity} deps.entity
          * @param {Array<TeqFw_Dem_Record>} deps.records
          * @param {unknown} deps.selection
+         * @param {Record<string, any>} [deps.handlers]
+         * @param {Record<string, any>} [deps.definitions]
          * @returns {TeqFw_Dem_ListResult}
          */
-        this.exec = function ({entity,records,selection: input}) {
+        this.exec = function ({entity,records,selection: input,handlers = {},definitions = {}}) {
             if (!Array.isArray(records)) throw errors.create({code:'INVALID_INPUT',message:'records must be an array.'});
-            const query = selection.create({entity,selection:input});
+            const query = selection.create({entity,selection:input,handlers,definitions});
             /**
              * @param {string} name
              * @param {any} left
@@ -62,7 +71,7 @@ export default class Select {
              * @returns {number}
              */
             const cmp = function (name,left,right) {
-                return compare(/** @type {TeqFw_Dem_Attribute} */(entity.attributes.find(a => a.name === name)),left,right);
+                return compare(/** @type {TeqFw_Dem_Attribute} */(entity.attributes.find((/** @type {TeqFw_Dem_Attribute} */ a) => a.name === name)),left,right,handlers);
             };
             /**
              * @param {any} node
@@ -79,11 +88,16 @@ export default class Select {
                 if (op === 'isNotNull') return left !== null;
                 const right = args[1].value;
                 if (left === null || right === null) return false;
+                const attr = /** @type {TeqFw_Dem_Attribute} */(entity.attributes.find((/** @type {TeqFw_Dem_Attribute} */ a) => a.name === args[0].name));
+                const handler = handlers[attr.type.name];
+                if (op === 'eq' || op === 'ne') {
+                    const equal = handler ? handler.equals(left, right, attr.type.params ?? {}) : cmp(args[0].name,left,right) === 0;
+                    return op === 'eq' ? equal : !equal;
+                }
                 const n = cmp(args[0].name,left,right);
-                const results = /** @type {Record<string,boolean>} */({eq:n === 0,ne:n !== 0,lt:n < 0,lte:n <= 0,gt:n > 0,gte:n >= 0});
-                return results[op];
+                return op === 'lt' ? n < 0 : op === 'lte' ? n <= 0 : op === 'gt' ? n > 0 : n >= 0;
             };
-            const rows = Array.from(records, record => normalize.record({entity,record,mode:'complete'})).filter(row => !query.where || matches(query.where,row));
+            const rows = Array.from(records, record => normalize.record({entity,record,mode:'complete',handlers})).filter(row => !query.where || matches(query.where,row));
             rows.sort((a,b) => {
                 for (const order of query.orderBy) {
                     const left = a[order.attribute], right = b[order.attribute];

@@ -100,6 +100,7 @@ declare global {
     type TeqFw_Dem_JsonObject = Record<string, TeqFw_Dem_Json>;
     type TeqFw_Dem_TypeDefinition = {name:string; parameters:Record<string,string>; normalizeParams:(params:TeqFw_Dem_JsonObject)=>TeqFw_Dem_JsonObject; valueDomain:string; preservation:string; valueHandling:string; equality?:string; ordering?:string; literal?:{grammar:string;normalize:(literal:TeqFw_Dem_Json,params:TeqFw_Dem_JsonObject)=>TeqFw_Dem_Json}; generation?:{declaration:string;guarantees:string;normalize:(declaration:TeqFw_Dem_Json,params:TeqFw_Dem_JsonObject)=>TeqFw_Dem_Json}};
     type TeqFw_Dem_TypeProvider = {getDefinitions:()=>TeqFw_Dem_TypeDefinition[]};
+    type TeqFw_Dem_RuntimeTypeHandler = {name:string;normalize:(value:unknown,params:TeqFw_Dem_JsonObject)=>unknown;copy:(value:unknown,params:TeqFw_Dem_JsonObject)=>unknown;equals?:(left:unknown,right:unknown,params:TeqFw_Dem_JsonObject)=>boolean;compare?:(left:unknown,right:unknown,params:TeqFw_Dem_JsonObject)=>number;fromLiteral?:(literal:TeqFw_Dem_Json,params:TeqFw_Dem_JsonObject)=>unknown};
     type TeqFw_Dem_Object = Record<string,unknown>;
     type TeqFw_Dem_Order = {attribute:string;direction:'asc'|'desc';nulls:'first'|'last'};
     type TeqFw_Dem_PathTransform = {path:string;rule:{from:string;to:string}|null};
@@ -128,6 +129,8 @@ declare global {
     type TeqFw_Dem_Repository_Normalize__Class = typeof import("./src/Repository/Normalize.mjs").default;
     type TeqFw_Dem_Repository_Select = import("./src/Repository/Select.mjs").default;
     type TeqFw_Dem_Repository_Select__Class = typeof import("./src/Repository/Select.mjs").default;
+    type TeqFw_Dem_Repository_Runtime = import("./src/Repository/Runtime.mjs").default;
+    type TeqFw_Dem_Repository_Runtime__Class = typeof import("./src/Repository/Runtime.mjs").default;
     type TeqFw_Dem_SchemaWork = {source:TeqFw_Dem_Source;namespace:string;dependencies:Record<string,any>;nodes:Record<string,{raw:any;pointer:string;localTargets:Record<string,string>}>;packages:string[];packagePointers:Record<string,string>;correspondence:Record<string,string>;bindings:Record<string,any>};
     type TeqFw_Dem_Selection = {where?:TeqFw_Dem_QueryExpression;orderBy:TeqFw_Dem_Order[];limit:number|null;offset:number};
     type TeqFw_Dem_Source = {packageName: string; filename: string};
