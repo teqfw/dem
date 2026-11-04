@@ -1,6 +1,9 @@
 # @teqfw/dem
 
-DEM is a tool for distributed development of shared data schemas. Independently
+`@teqfw/dem` is a foundational component of the Tequila Framework (TeqFW)
+platform for distributed development of shared data schemas. Its architecture,
+integration contracts and development practices follow established TeqFW philosophy
+and conventions; it evolves with the platform. Independently
 developed TeqFW plugins contribute domain data definitions and application code;
 host integrators compose and integrate those definitions against an ideal semantic
 model without requiring plugin authors to select physical storage.
@@ -10,6 +13,14 @@ select entities, resolve namespace collisions and dependencies, choose identity
 profiles, storage implementations and applicable guarantees. DEM runs in Node.js
 and browsers; adapters implement data semantics and CRUD+List with native or
 software mechanisms.
+
+DEM's design is governed by its shared-schema purpose and TeqFW conventions.
+Runtime components use [TeqFW DI](https://github.com/teqfw/di/blob/main/README.md)
+for explicit dependencies and late binding; host composition selects implementations.
+The [CLI](https://github.com/teqfw/cli/blob/main/README.md) is an optional Node.js
+host, while the logical core remains usable in browsers. DEM supplies a shared
+platform mechanism without being mandatory for every TeqFW application. See the
+[consumer skill](skills/teqfw-dem/SKILL.md) for practical design constraints.
 
 ## Isomorphic Core and Platform Extensions
 

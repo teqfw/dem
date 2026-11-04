@@ -5,7 +5,10 @@ description: Use when designing, integrating, reviewing or modifying @teqfw/dem 
 
 # Domain Entity Model
 
-DEM is a tool for distributed development of shared data schemas. Independently
+`@teqfw/dem` is a foundational component of the Tequila Framework (TeqFW)
+platform for distributed development of shared data schemas. Its architecture,
+integration contracts and development practices follow established TeqFW philosophy
+and conventions; it evolves with the platform. Independently
 developed TeqFW plugins contribute domain data definitions and application code;
 host integrators compose and integrate those definitions against an ideal semantic
 model without requiring plugin authors to select physical storage.
@@ -36,6 +39,25 @@ For cross-backend design and current realizations, consult the
 [compatibility matrix](references/compatibility.md). Prefer reversible realization
 and shared observable behavior; distinguish storing a type from native indexing
 or specialized operations on that type.
+
+## Platform design constraints
+
+Evaluate changes against DEM's purpose and established TeqFW conventions first.
+Use the `teqfw-platform` skill when available for platform reasoning, then verify
+mechanisms in version-matched package contracts. The public
+[DI contract](https://github.com/teqfw/di/blob/main/README.md) describes explicit
+dependencies, late binding and host Composition Root policy; the
+[CLI contract](https://github.com/teqfw/cli/blob/main/README.md) describes the optional
+Node.js host. Neither makes CLI or other host infrastructure part of the portable
+compiler.
+
+Keep plugin declarations independent of host-selected implementations. Resolve
+runtime component dependencies through TeqFW DI and leave provider selection to
+host composition. Keep DI module namespaces, descriptor-owned logical namespaces
+and physical storage addresses distinct. Preserve declarative schema/map integration
+and host ownership of placement; reuse applicable TeqFW mechanisms instead of
+introducing competing wiring or configuration systems. Foundational platform status
+does not require every TeqFW application to install DEM.
 
 ## Current support and design boundary
 
