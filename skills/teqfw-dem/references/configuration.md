@@ -44,7 +44,9 @@ Each supplied property must be a non-empty string; null, booleans, arrays and
 objects are errors, not instructions to disable acquisition. Unknown properties
 are errors so misspellings cannot silently fall back to defaults.
 
-Paths use package-relative `/` segments. Normalize repeated separators and `.`;
+Declaration-file locations are filesystem paths, distinct from logical entity
+paths. These file paths use package-relative `/` segments. Normalize repeated
+separators and `.`;
 permit `..` only while the normalized path remains within the package root.
 Reject absolute paths, URL schemes, backslashes, NUL and paths resolving to the
 package directory itself. File extensions are not part of the contract: contents

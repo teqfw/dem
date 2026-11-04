@@ -1,5 +1,9 @@
 # Cross-backend capability matrix
 
+The relations row states normative host-authority policy. Other rows describe
+executable adapter facilities for consumer selection, not backward-compatibility
+obligations or a requirement to build a broad verification matrix.
+
 DEM defines logical behavior. Adapters use native facilities or reversible software
 realizations to maximize shared functionality. RDB's explicit `projection:'portable'`
 mode provides the broadest common surface; `native` remains its default and retains
@@ -15,13 +19,16 @@ views of existing tables.
 | Valid scalar strings including NUL | Yes | JSON-encoded textual scalars | PostgreSQL native text rejects NUL |
 | JSON / binary / dense, bit, sparse vectors | Yes | Yes | Yes, MariaDB indexed payload limited to 512 bytes |
 | Null/default/key semantics | DEM normalization and checks | DEM normalization and checks | DEM normalization plus native constraints |
-| Relations | Descriptive default; optional checked mode | Checked default; optional descriptive mode | Checked native constraints |
+| Relations | Checked unless the host explicitly accepts descriptive relations | Checked unless the host explicitly accepts descriptive relations | Checked native constraints |
 | All-core comparison and ordering | Shared evaluator | Shared evaluator | Native eligible cases; shared fallback |
 | Atomic command batches | One IDB data transaction | One SQL transaction | One outer SQL transaction |
 | Schema history and additive evolution | Versioned snapshots | Versioned snapshots | Initial creation only |
 | Query optimization | Eligible key/equality index lookup; safe fallback | Scope lock and logical snapshot evaluation | Native eligible queries; logical fallback |
 
-Use checked relations in both adapters when strict conformance is required. Data
+Enforce declared relations unless the host explicitly accepts relaxed integrity.
+An adapter default is not host acceptance. This is the required policy for code
+and tests; implementation drift must be corrected rather than preserved as a
+parallel contract. No generic DEM policy interface is specified. Data
 operations serialize conservatively in the portable profile; performance and native
 index coverage are not shared guarantees. Every physical engine still has storage,
 object-count, transaction and resource limits. No artificial native integer or index
@@ -59,7 +66,8 @@ DEM-RDB `test:compare` compares them with real Chrome IndexedDB and enabled SQL
 engines. Engine tests separately cover failure injection, concurrency and native
 numeric limits. Passing these checks proves the covered scenarios, not every
 possible engine configuration or schema. Missing engine credentials are skips;
-release verification must inspect the actual executed matrix.
+report the scope actually executed. Use a cross-engine matrix only for a concrete
+integration requirement or defect, not as a routine gate for every change.
 
 ## Physical facilities consulted
 

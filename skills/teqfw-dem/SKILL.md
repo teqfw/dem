@@ -47,3 +47,24 @@ fields, capability APIs, routing configuration or generic relaxation flags.
 Use the closed current Format 2 and published APIs. See [model](references/model.md)
 for invariant categories, host policy and unresolved design boundaries. Verify exact
 installed-version behavior in source and metadata when integrating the package.
+
+## Development policy
+
+Apply TeqFW's rapid evolution principle: prioritize fast feedback on DEM's main
+functionality over reliability and repeatability as development goals. Implement
+the happy path; unexpected conditions fail immediately rather than trigger retries,
+inferred repair or hidden fallback. Preserve atomic writes, values and applicable
+invariants. Intentional native/software semantic realization is not error recovery.
+
+Documentation defines the desired current state. Align code and tests with it;
+do not preserve drift as a second legacy contract. Backward compatibility is not
+a goal. Keep decisions about chosen/rejected directions; use Git and npm releases
+for historical implementations instead of compatibility layers. Do not implement
+migration or legacy support without an explicit current requirement. Keep undesigned
+interfaces open.
+
+Prefer simple solutions and the shortest practical route to working schema
+composition and feedback. Add generalized infrastructure only for a demonstrated
+need. Keep tests small and focused on essential contracts; broaden verification
+only for a defect, architectural invariant or immediate integration requirement.
+Avoid redundant regression suites and exhaustive compatibility matrices.

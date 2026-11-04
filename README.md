@@ -79,7 +79,8 @@ Identity defaults to int/regular and derives a primary key; refs inherit their
 resolved target identity profile. Host profiles select uuid or int with qualitative
 small/regular/large capacity, without choosing physical types or bit widths.
 
-Logical package paths use `/`, lowercase names and underscores. Package addresses
+Logical path segments match `[a-z][a-z0-9]*`; underscores and repeated `/`
+separators are invalid. Package addresses
 end with `/`; entity addresses do not. Package directories merge, entities never
 merge. Local references preserve their original dependencies through path remapping.
 External entity/attribute contracts used by selected entities require explicit host binding.
@@ -204,3 +205,23 @@ A runnable unchanged application component is published at
 depends only on DEM contracts. DEM-RDB's `test:application` compares its execution
 in SQLite and real browser IndexedDB through two host Composition Roots; see the
 [application guidance](skills/teqfw-dem/references/repository.md#unchanged-application-example).
+
+## Development direction
+
+DEM follows TeqFW's rapid evolution principle: fast feedback on its main
+functionality takes priority over reliability and repeatability as development
+goals. Deliver the happy path and fail fast on unexpected conditions instead of
+adding retries, inferred repairs or hidden recovery paths. Preserve operation
+atomicity, values and applicable invariants when reporting failures.
+
+Documentation defines the desired current state; code and tests must follow it.
+Implementation drift is a defect to correct, not a parallel legacy contract.
+Backward compatibility is not a goal: avoid compatibility layers and obsolete
+behavior. Decisions record directions taken and rejected; Git retains the history
+for anyone who needs an earlier implementation; npm releases retain earlier packages.
+Do not build migration or legacy-support mechanisms without an explicit current
+requirement. Prefer simple solutions over generalized infrastructure. Keep checks
+small and focused on essential behavior; add verification for an actual defect,
+architectural invariant or immediate integration need instead of exhaustive
+compatibility matrices. Undesigned capabilities still
+require explicit design rather than speculative API generation.

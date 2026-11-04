@@ -243,15 +243,13 @@ canonical algorithm remain unchanged. For explicit selection:
   ordering; exclusion alone emits no warning. Existing source-linked errors and
   stage gating apply; no selector index may affect diagnostics.
 
-When selection is omitted, the compiler preserves the previous `model.packages`,
-including explicitly empty package nodes, and the model, canonical content, fingerprint, graph and
-warnings for previously successful calls. `provenance.bindings` now omits unused bindings even when supplied;
-other provenance remains unchanged. The deliberate semantic relaxation is that an
-external contract unused by all selected entities no longer needs a binding even in omitted-selection calls; calls
-that formerly failed solely for such a missing binding may now succeed. Present
-malformed rules still fail. Explicitly enumerating every entity and omitting
-selection can therefore differ in empty-package presentation, but not canonical
-identity. An input with no entity selection and an empty package remains compatible.
+When selection is omitted, `model.packages` includes explicitly empty package
+nodes. `provenance.bindings` covers only resolved relevant bindings, even if unused
+bindings were supplied. External contracts unused by selected entities require no
+binding, including in omitted-selection calls. Malformed supplied rules still fail.
+Explicitly enumerating every entity and omitting selection can therefore differ in
+empty-package presentation, but not canonical identity. These are the current
+requirements, not guarantees of compatibility with historical calls.
 
 ### Complete usage examples
 

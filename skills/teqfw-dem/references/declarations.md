@@ -17,7 +17,7 @@ names are independent. Reserved non-path keys are `$format`, `$namespace`,
 
 Entity attributes are arrays with unique names, retaining projection order.
 Named keys/indexes/relations contain ordered attribute lists.
-Paths normalize before collision checking. Duplicate entity paths are invalid,
+Canonical paths are validated before collision checking. Duplicate entity paths are invalid,
 including duplicate raw JSON keys; acquisition must not silently discard them.
 
 ## Explicit dependency and special type grammar

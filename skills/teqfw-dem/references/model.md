@@ -50,10 +50,13 @@ Ordinary type parameters constrain values, independently of physical representat
 ## Paths and composition
 
 Packages are logical directories, entities are logical files, and namespace is a
-package path. Segments use lowercase letters, digits and underscores; `/` is the
-separator. Absolute paths start with `/`. A trailing `/` addresses a package:
-`/vendor/name/` and entity `/vendor/name` may coexist. Support `.` and `..`,
-normalize repeated separators and reject navigation above root.
+package path. Segments match `[a-z][a-z0-9]*`; `/` is the separator.
+Underscores and repeated separators are invalid. Absolute paths start with `/`.
+A trailing `/` addresses a package: `/vendor/name/` and entity `/vendor/name`
+may coexist. Declaration paths are canonical. Relative local references support
+`.` and `..` only within the originating descriptor's namespace; absolute local
+references are canonical and do not allow navigation segments. Reject namespace
+escapes and malformed paths instead of repairing them.
 
 Normalize local references from the referring entity's original containing package:
 for `/vnd/sales/order`, customer means `/vnd/sales/customer`, and ../customer means
