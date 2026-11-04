@@ -76,7 +76,9 @@ test('selection skips a non-orderable primary key in favor of an orderable uniqu
     assert.deepEqual(selection.orderBy.map((/** @type {any} */ item) => item.attribute),['token']);
     const low=new Uint8Array(16); low[0]=1;
     const high=new Uint8Array(16); high[0]=2;
-    const rows=[{primary:new Uint8Array(16),token:high},{primary:new Uint8Array(16),token:low}];
+    const primaryA=new Uint8Array(16); primaryA[0]=1;
+    const primaryB=new Uint8Array(16); primaryB[0]=2;
+    const rows=[{primary:primaryA,token:high},{primary:primaryB,token:low}];
     assert.deepEqual(bound.select.exec({entity,records:rows,selection}).records.map((/** @type {any} */ row) => row.token[0]),[1,2]);
 });
 
