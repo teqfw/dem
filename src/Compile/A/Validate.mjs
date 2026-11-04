@@ -84,18 +84,29 @@ export default class Validate {
                         fail('DEM_TYPE', info.schema.source, ptr + '/type');
                         continue;
                     }
-                    if (type.name === 'identity' || type.name === 'ref') {
-                        type = type.name === 'identity' ? { name: 'identity', profile: profiles[address]?.[raw.name] ?? { type: 'int', capacity: 'regular' } } : { name: 'ref' };
-                        if (raw.nullable === true && type.name === 'identity' || Object.hasOwn(raw, 'default') || type.name === 'ref' && raw.generation !== undefined && raw.generation !== false)
-                            fail('DEM_IDENTITY', info.schema.source, ptr);
-                        if (type.name === 'ref' && raw.generation === true)
+                    const special = type.name === 'identity' || type.name === 'ref';
+                    if (special) {
+                        const name = type.name;
+                        type = name === 'identity' ? { name: 'identity', profile: profiles[address]?.[raw.name] ?? { type: 'int', capacity: 'regular' } } : { name: 'ref' };
+                        if (name === 'identity' && raw.nullable === true)
+                            fail('DEM_IDENTITY', info.schema.source, ptr + '/nullable');
+                        if (Object.hasOwn(raw, 'default'))
+                            fail('DEM_IDENTITY', info.schema.source, ptr + '/default');
+                        if (name === 'ref' && raw.generation !== undefined && raw.generation !== false)
                             fail('DEM_IDENTITY', info.schema.source, ptr + '/generation');
                     }
                     /** @type {TeqFw_Dem_Attribute} */
                     const attr = { name: raw.name, type, nullable: raw.nullable ?? false, generation: raw.generation === undefined ? false : raw.generation };
-                    if (attr.generation !== false) {
+                    if (special) {
+                        if (type.name === 'identity' && attr.generation !== false) try {
+                            const normalized = definition.generation.normalize(raw.generation, {});
+                            data.serialize(normalized);
+                            attr.generation = JSON.parse(data.serialize(normalized));
+                        } catch { fail('DEM_IDENTITY', info.schema.source, ptr + '/generation'); }
+                        else if (type.name === 'ref') attr.generation = false;
+                    } else if (attr.generation !== false) {
                         if (!definition.generation || Object.hasOwn(raw, 'default')) {
-                            fail('DEM_TYPE', info.schema.source, ptr + '/default');
+                            fail('DEM_TYPE', info.schema.source, ptr + '/generation');
                         } else try {
                             const normalized = definition.generation.normalize(raw.generation, type.params ?? {});
                             data.serialize(normalized);
@@ -135,6 +146,20 @@ export default class Validate {
                         fail('DEM_KEY', info.schema.source, info.pointer, { attributes: list, reason: 'equality-required' });
                 if (entity.primaryKey?.some(name => attrs.get(name)?.nullable))
                     fail('DEM_KEY', info.schema.source, info.pointer + '/primaryKey');
+                const hasUnorderedAttribute = entity.attributes.some(attr => !registry.get(attr.type.name)?.ordering);
+                if (hasUnorderedAttribute) {
+                    /** @param {unknown} key @returns {boolean} */
+                    const eligible = function (key) { return Array.isArray(key) && key.length > 0 && key.every(name => {
+                        const attr = attrs.get(name);
+                        return attr && !attr.nullable && registry.get(attr.type.name)?.ordering;
+                    }); };
+                    const selected = eligible(entity.primaryKey) || Object.keys(entity.uniqueKeys).sort().some(name => eligible(entity.uniqueKeys[name]));
+                    if (!selected) {
+                        const first = entity.attributes.findIndex(attr => !registry.get(attr.type.name)?.ordering);
+                        const pointer = info.pointer + '/attributes/' + first + '/type';
+                        fail('DEM_KEY', info.schema.source, pointer, { reason: 'deterministic-ordering-key-required' });
+                    }
+                }
                 const occurrences = new Map();
                 for (const [name, relation] of Object.entries(entity.relations)) {
                     const ptr = info.pointer + '/relations/' + name, target = entities[relation.target.path];

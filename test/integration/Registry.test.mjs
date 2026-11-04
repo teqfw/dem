@@ -35,6 +35,12 @@ const counter = {
         return {strategy: 'sequence'};
     }},
 };
+const equalityOnly = {
+    name: 'example.EqualityOnly', parameters: {},
+    normalizeParams: (/** @type {Record<string, any>} */ params) => { if (Object.keys(params).length) throw new TypeError(); return {}; },
+    valueDomain: 'An opaque equality-comparable value.', preservation: 'Preserve the logical value.', valueHandling: 'Validate and preserve the logical value.',
+    equality: 'Deterministic equality.',
+};
 
 test('real DI bootstrap gates compilation and registry state is container-scoped', async () => {
     const first = makeContainer();
@@ -84,6 +90,55 @@ test('opaque and ordered extension properties govern declaration eligibility', a
     assert.deepEqual(compatible.model.entities['/test/source'].relations.target.target, {path: '/test/target', attributes: ['token']});
     await rejectsCode({schemas: [schema({item: {attributes: [{name: 'token', type: {name: 'example.Token16', params: {size: 8}}}], uniqueKeys: {token: ['token']}}})]}, 'DEM_TYPE');
     await rejectsCode({schemas: [schema({item: {attributes: [{name: 'token', type: {name: 'example.Token16'}, default: 'literal'}]}})]}, 'DEM_TYPE');
+});
+
+test('compilation requires a non-nullable all-orderable key when an attribute lacks ordering', async () => {
+    const container = makeContainer();
+    const registry = await container.get('TeqFw_Dem_Registry$');
+    registry.register([opaque, token, equalityOnly]);
+    registry.finalize();
+    const compile = await container.get('TeqFw_Dem_Compile$');
+    const run = (/** @type {any} */ entity) => compile.exec({schemas: [schema({item: entity})]});
+    const rejectsOrdering = async (/** @type {any} */ entity) => assert.rejects(() => run(entity), (/** @type {any} */ error) => {
+        const diagnostic = error.diagnostics.find((/** @type {any} */ item) => item.details.reason === 'deterministic-ordering-key-required');
+        assert.equal(diagnostic?.code, 'DEM_KEY');
+        assert.equal(diagnostic?.source?.packageName, 'test/extensions');
+        assert.equal(diagnostic?.pointer, '/item/attributes/0/type');
+        return true;
+    });
+    const crypto = {name: 'secret', type: {name: 'web.crypto.CryptoKey'}};
+
+    await rejectsOrdering({attributes: [crypto]});
+    await run({attributes: [crypto, {name: 'token', type: {name: 'example.Token16'}}], uniqueKeys: {token: ['token']}});
+    await rejectsOrdering({attributes: [crypto, {name: 'token', type: {name: 'example.Token16'}, nullable: true}], uniqueKeys: {token: ['token']}});
+    await rejectsOrdering({attributes: [crypto, {name: 'key', type: {name: 'example.EqualityOnly'}}], uniqueKeys: {key: ['key']}});
+    await run({attributes: [crypto, {name: 'id', type: {name: 'integer'}}, {name: 'token', type: {name: 'example.Token16'}}], uniqueKeys: {mixed: ['id', 'token']}});
+    await run({attributes: [crypto, {name: 'primary', type: {name: 'example.EqualityOnly'}}, {name: 'token', type: {name: 'example.Token16'}}], primaryKey: ['primary'], uniqueKeys: {ordered: ['token']}});
+
+    // A key is not required when every attribute already has Ordering; keyless Core fallback remains valid.
+    await run({attributes: [{name: 'id', type: {name: 'integer'}}, {name: 'value', type: {name: 'text'}}]});
+});
+
+test('generation and identity/ref diagnostics point to one accurate declaration location', async () => {
+    const container = makeContainer();
+    const registry = await container.get('TeqFw_Dem_Registry$');
+    registry.register([counter]);
+    registry.finalize();
+    const compile = await container.get('TeqFw_Dem_Compile$');
+    const errors = async (/** @type {any} */ attributes) => {
+        try {
+            await compile.exec({schemas: [schema({item: {attributes}})]});
+            assert.fail('Expected compilation to fail');
+        } catch (/** @type {any} */ error) {
+            return error.diagnostics;
+        }
+    };
+    const generation = await errors([{name: 'value', type: {name: 'example.Counter'}, generation: {strategy: 'bad'}}]);
+    assert.deepEqual(generation.map((/** @type {any} */ item) => [item.code, item.pointer]), [['DEM_TYPE', '/item/attributes/0/generation']]);
+    const identity = await errors([{name: 'id', type: {name: 'identity'}, default: 1}]);
+    assert.deepEqual(identity.map((/** @type {any} */ item) => [item.code, item.pointer]), [['DEM_IDENTITY', '/item/attributes/0/default']]);
+    const ref = await errors([{name: 'link', type: {name: 'ref'}, generation: true}]);
+    assert.deepEqual(ref.map((/** @type {any} */ item) => [item.code, item.pointer]), [['DEM_IDENTITY', '/item/attributes/0/generation']]);
 });
 
 test('registered literal and generation capabilities normalize declarations', async () => {
