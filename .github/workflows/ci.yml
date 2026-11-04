@@ -17,9 +17,8 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          cache: npm
           node-version: ${{ matrix.node }}
-      - run: npm ci
+      - run: npm install
       - run: npm run verify
       - run: npm pack --dry-run
 
@@ -30,20 +29,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          cache: npm
           node-version: 24.x
-      - run: npm ci
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: teqfw/dem-idb
-          ref: de4dd7d9f0b8d57713711608d36b74fe805ddae1
-          path: dem-idb
-      - name: Pack the compatible DEM-IDB source
-        id: dem_idb
-        run: |
-          package_file="$(npm pack ./dem-idb --pack-destination "$RUNNER_TEMP")"
-          echo "file=$package_file" >> "$GITHUB_OUTPUT"
-      - name: Install DEM-IDB artifact for browser tests
-        run: npm install --no-save "$RUNNER_TEMP/${{ steps.dem_idb.outputs.file }}"
+      - run: npm install
       - name: Verify minimal browser composition and fingerprint parity
         run: npm run test:browser
