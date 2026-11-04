@@ -88,6 +88,8 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         assert.equal(declaration.$format, 2);
         assert.equal(declaration.$namespace, '/vnd/catalog/');
         assert.ok(Object.hasOwn(declaration, 'customer'));
+        const typeRegistry = await container.get('TeqFw_Dem_Registry$');
+        typeRegistry.finalize();
         /** @type {TeqFw_Dem_Compile} */
         const compiler = await container.get('TeqFw_Dem_Compile$');
         let compilationCalls = 0;

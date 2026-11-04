@@ -45,6 +45,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
         assert.deepEqual(packed.files.map((/** @type {{path: string}} */ item) => item.path).sort(), expected.sort());
         writeFileSync(join(consumer, 'package.json'), JSON.stringify({
             name: 'dem-consumer', private: true, type: 'module',
+            allowScripts: {'sqlite3@6.0.1': true},
             dependencies: {
                 '@teqfw/di': `file:${join(root, 'node_modules/@teqfw/di')}`,
                 '@teqfw/cli': `file:${join(root, 'node_modules/@teqfw/cli')}`,
@@ -54,8 +55,10 @@ test('real archive installs into a consumer, preserves declarations, and exclude
                 'undici-types': `file:${join(root, 'node_modules/undici-types')}`,
             },
         }));
+        const installEnv = {...process.env};
+        for (const key of Object.keys(installEnv)) if (key.toLowerCase() === 'npm_config_allow_scripts') delete installEnv[key];
         execFileSync('npm', ['install', join(consumer, packed.filename),
-            '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--cache', join(consumer, 'cache')], {cwd: consumer, stdio: 'pipe'});
+            '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--allow-scripts=', '--cache', join(consumer, 'cache')], {cwd: consumer, stdio: 'pipe', env: installEnv});
         const installed = join(consumer, 'node_modules/@teqfw/dem');
         assert.equal(readFileSync(join(installed, 'types.d.ts'), 'utf8'), readFileSync(join(root, 'types.d.ts'), 'utf8'));
         const require = createRequire(join(consumer, 'probe.mjs'));
@@ -70,6 +73,8 @@ import Container from '@teqfw/di';
 
 const container = new Container();
 container.addNamespaceRoot('TeqFw_Dem_', new URL('./node_modules/@teqfw/dem/src', import.meta.url).pathname, '.mjs');
+const registry = await container.get('TeqFw_Dem_Registry$');
+registry.finalize();
 /** @type {TeqFw_Dem_Compile} */
 const compiler = await container.get('TeqFw_Dem_Compile$');
 /** @type {import('@teqfw/dem').DemCompilationResult} */

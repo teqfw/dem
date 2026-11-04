@@ -15,8 +15,9 @@ export default class Compile {
      * @param {TeqFw_Dem_Compile_A_Fingerprint} deps.fingerprint
      * @param {TeqFw_Dem_Util_Data} deps.data
      * @param {TeqFw_Dem_Dto_Compile_Diagnostic} deps.diagnostic
+     * @param {TeqFw_Dem_Registry} deps.registry
      */
-    constructor({ decode, compose, resolve, validate, graph, canonical, fingerprint, data, diagnostic }) {
+    constructor({ decode, compose, resolve, validate, graph, canonical, fingerprint, data, diagnostic, registry }) {
         const successful = new WeakSet();
         /**
          * @param {object} deps
@@ -33,6 +34,7 @@ export default class Compile {
          * @returns {Promise<TeqFw_Dem_CompilationResult>}
          */
         this.exec = async function (input) {
+            registry.assertFinalized();
             const work = decode.exec(input);
             /** @returns {void} */
             const check = function () {
@@ -54,4 +56,4 @@ export default class Compile {
         };
     }
 }
-export const __deps__ = Object.freeze({ default: Object.freeze({ decode: 'TeqFw_Dem_Compile_A_Decode$', compose: 'TeqFw_Dem_Compile_A_Compose$', resolve: 'TeqFw_Dem_Compile_A_Resolve$', validate: 'TeqFw_Dem_Compile_A_Validate$', graph: 'TeqFw_Dem_Compile_A_Graph$', canonical: 'TeqFw_Dem_Compile_A_Canonical$', fingerprint: 'TeqFw_Dem_Compile_A_Fingerprint$', data: 'TeqFw_Dem_Util_Data$', diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic$' }) });
+export const __deps__ = Object.freeze({ default: Object.freeze({ decode: 'TeqFw_Dem_Compile_A_Decode$', compose: 'TeqFw_Dem_Compile_A_Compose$', resolve: 'TeqFw_Dem_Compile_A_Resolve$', validate: 'TeqFw_Dem_Compile_A_Validate$', graph: 'TeqFw_Dem_Compile_A_Graph$', canonical: 'TeqFw_Dem_Compile_A_Canonical$', fingerprint: 'TeqFw_Dem_Compile_A_Fingerprint$', data: 'TeqFw_Dem_Util_Data$', diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic$', registry: 'TeqFw_Dem_Registry$' }) });

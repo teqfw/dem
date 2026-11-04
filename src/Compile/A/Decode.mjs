@@ -210,9 +210,8 @@ export default class Decode {
                             attributes.add(a.name);
                             if (!closed(a.type, ['name', 'params'], source, ptr + '/type') || typeof a.type?.name !== 'string')
                                 fail('DEM_FORMAT', source, ptr + '/type');
-                            for (const key of ['nullable', 'generation'])
-                                if (Object.hasOwn(a, key) && typeof a[key] !== 'boolean')
-                                    fail('DEM_FORMAT', source, ptr + '/' + key);
+                            if (Object.hasOwn(a, 'nullable') && typeof a.nullable !== 'boolean')
+                                fail('DEM_FORMAT', source, ptr + '/nullable');
                         });
                         if (Object.hasOwn(node, 'primaryKey'))
                             list(node.primaryKey, source, pointer + '/primaryKey');

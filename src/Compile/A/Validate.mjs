@@ -6,12 +6,12 @@
 export default class Validate {
     /**
      * @param {object} deps
-     * @param {TeqFw_Dem_Registry_CoreValue} deps.values
      * @param {TeqFw_Dem_Util_Data} deps.data
      * @param {TeqFw_Dem_Compile_A_Path} deps.path
      * @param {TeqFw_Dem_Dto_Compile_Diagnostic} deps.diagnostic
+     * @param {TeqFw_Dem_Registry} deps.registry
      */
-    constructor({ values, data, path, diagnostic }) {
+    constructor({ data, path, diagnostic, registry }) {
         /**
          * @param {TeqFw_Dem_Work} work
          * @returns {TeqFw_Dem_Model}
@@ -62,30 +62,53 @@ export default class Validate {
                 const attributes = [];
                 for (let i = 0; i < info.raw.attributes.length; i++) {
                     const raw = info.raw.attributes[i], ptr = info.pointer + '/attributes/' + i;
-                    let type = values.normalizeType({ type: raw.type });
-                    if (!type) {
+                    let definition;
+                    try { definition = registry.get(raw.type.name); } catch { definition = undefined; }
+                    if (!definition || !data.isObject(raw.type.params ?? {}) || Object.hasOwn(raw.type, 'params') && raw.type.params === null) {
+                        fail('DEM_TYPE', info.schema.source, ptr + '/type');
+                        continue;
+                    }
+                    const supplied = raw.type.params ?? {};
+                    if (Object.keys(supplied).some(name => !Object.hasOwn(definition.parameters, name))) {
+                        fail('DEM_TYPE', info.schema.source, ptr + '/type');
+                        continue;
+                    }
+                    let type;
+                    try {
+                        const params = definition.normalizeParams(supplied);
+                        if (!data.isObject(params) || Object.keys(params).some(name => !Object.hasOwn(definition.parameters, name))) throw new TypeError();
+                        data.serialize(params);
+                        const detached = JSON.parse(data.serialize(params));
+                        type = {name: definition.name, params: detached};
+                    } catch {
                         fail('DEM_TYPE', info.schema.source, ptr + '/type');
                         continue;
                     }
                     if (type.name === 'identity' || type.name === 'ref') {
                         type = type.name === 'identity' ? { name: 'identity', profile: profiles[address]?.[raw.name] ?? { type: 'int', capacity: 'regular' } } : { name: 'ref' };
-                        if (raw.nullable === true && type.name === 'identity' || Object.hasOwn(raw, 'default'))
+                        if (raw.nullable === true && type.name === 'identity' || Object.hasOwn(raw, 'default') || type.name === 'ref' && raw.generation !== undefined && raw.generation !== false)
                             fail('DEM_IDENTITY', info.schema.source, ptr);
                         if (type.name === 'ref' && raw.generation === true)
                             fail('DEM_IDENTITY', info.schema.source, ptr + '/generation');
                     }
                     /** @type {TeqFw_Dem_Attribute} */
-                    const attr = { name: raw.name, type, nullable: raw.nullable ?? false, generation: raw.generation ?? false };
-                    if (Object.hasOwn(raw, 'default') && !['identity', 'ref'].includes(type.name)) {
-                        if (attr.generation || raw.default === null && !attr.nullable)
+                    const attr = { name: raw.name, type, nullable: raw.nullable ?? false, generation: raw.generation === undefined ? false : raw.generation };
+                    if (attr.generation !== false) {
+                        if (!definition.generation || Object.hasOwn(raw, 'default')) {
                             fail('DEM_TYPE', info.schema.source, ptr + '/default');
-                        else
-                            try {
-                                attr.default = raw.default === null ? null : values.normalizeValue({ type, value: raw.default });
-                            }
-                            catch {
-                                fail('DEM_TYPE', info.schema.source, ptr + '/default');
-                            }
+                        } else try {
+                            const normalized = definition.generation.normalize(raw.generation, type.params ?? {});
+                            data.serialize(normalized);
+                            attr.generation = JSON.parse(data.serialize(normalized));
+                        } catch { fail('DEM_TYPE', info.schema.source, ptr + '/generation'); }
+                    } else if (Object.hasOwn(raw, 'default')) {
+                        if (!definition.literal || raw.default === null && !attr.nullable) fail('DEM_TYPE', info.schema.source, ptr + '/default');
+                        else if (raw.default === null) attr.default = null;
+                        else try {
+                            const normalized = definition.literal.normalize(raw.default, type.params ?? {});
+                            data.serialize(normalized);
+                            attr.default = JSON.parse(data.serialize(normalized));
+                        } catch { fail('DEM_TYPE', info.schema.source, ptr + '/default'); }
                     }
                     attributes.push(attr);
                 }
@@ -107,6 +130,9 @@ export default class Validate {
                 for (const list of keyLists)
                     if (list.some(name => !attrs.has(name)))
                         fail('DEM_KEY', info.schema.source, info.pointer, { attributes: list });
+                for (const list of keyLists)
+                    if (list.some(name => { const attr = attrs.get(name); return attr && !registry.get(attr.type.name)?.equality; }))
+                        fail('DEM_KEY', info.schema.source, info.pointer, { attributes: list, reason: 'equality-required' });
                 if (entity.primaryKey?.some(name => attrs.get(name)?.nullable))
                     fail('DEM_KEY', info.schema.source, info.pointer + '/primaryKey');
                 const occurrences = new Map();
@@ -123,6 +149,8 @@ export default class Validate {
                         const attr = attrs.get(local), remote = target.attributes.find(a => a.name === relation.target.attributes[i]);
                         if (!attr || !remote)
                             return;
+                        if (!registry.get(attr.type.name)?.equality || !registry.get(remote.type.name)?.equality)
+                            fail('DEM_RELATION', info.schema.source, ptr, { attribute: local, reason: 'equality-required' });
                         if (attr.type.name === 'ref') {
                             occurrences.set(local, (occurrences.get(local) ?? 0) + 1);
                             if (remote.type.name !== 'identity') {
@@ -154,4 +182,4 @@ export default class Validate {
         };
     }
 }
-export const __deps__ = Object.freeze({ default: Object.freeze({ values: 'TeqFw_Dem_Registry_CoreValue$', data: 'TeqFw_Dem_Util_Data$', path: 'TeqFw_Dem_Compile_A_Path$', diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic$' }) });
+export const __deps__ = Object.freeze({ default: Object.freeze({ data: 'TeqFw_Dem_Util_Data$', path: 'TeqFw_Dem_Compile_A_Path$', diagnostic: 'TeqFw_Dem_Dto_Compile_Diagnostic$', registry: 'TeqFw_Dem_Registry$' }) });

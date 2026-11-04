@@ -44,6 +44,8 @@ test('a Node Host projects its compiled server model to SQLite and performs repo
             assert.equal(acquired.schemas[0].packageName, '@example/catalog');
             assert.equal(acquired.schemas[0].filename, 'etc/dem-schema.json');
 
+            const registry = await container.get('TeqFw_Dem_Registry$');
+            registry.finalize();
             const compiler = await container.get('TeqFw_Dem_Compile$');
             const compiled = await compiler.exec({schemas: acquired.schemas, selection: serverSelection, map: serverMap});
             const {model} = compiled;

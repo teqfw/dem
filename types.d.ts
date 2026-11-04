@@ -45,7 +45,7 @@ declare global {
     type TeqFw_Dem_Api_RepositoryProvider = import("./src/Api/RepositoryProvider.mjs").default;
     type TeqFw_Dem_Api_RepositoryProvider__Class = typeof import("./src/Api/RepositoryProvider.mjs").default;
     type TeqFw_Dem_Api_Repository__Class = typeof import("./src/Api/Repository.mjs").default;
-    type TeqFw_Dem_Attribute = {name: string; type: TeqFw_Dem_Type; nullable: boolean; generation: boolean; default?: unknown};
+    type TeqFw_Dem_Attribute = {name: string; type: TeqFw_Dem_Type; nullable: boolean; generation: TeqFw_Dem_Json; default?: unknown};
     type TeqFw_Dem_BatchOperation = {path:string;method:'create';params:{record:TeqFw_Dem_Record}}|{path:string;method:'read';params:{key:TeqFw_Dem_Key}}|{path:string;method:'delete';params:{key:TeqFw_Dem_Key}}|{path:string;method:'update';params:{key:TeqFw_Dem_Key;changes:TeqFw_Dem_Record}}|{path:string;method:'list';params:{selection:unknown}};
     type TeqFw_Dem_BatchResult = {results:Array<TeqFw_Dem_RecordResultNullable|TeqFw_Dem_DeleteResult|TeqFw_Dem_ListResult>};
     type TeqFw_Dem_Canonical = {domain:string;entities:Record<string,TeqFw_Dem_CanonicalEntity>};
@@ -96,6 +96,10 @@ declare global {
     type TeqFw_Dem_LogicalTypeOptional = TeqFw_Dem_Type|undefined;
     type TeqFw_Dem_Model = {packages: string[]; entities: Record<string,TeqFw_Dem_Entity>};
     type TeqFw_Dem_Never = never;
+    type TeqFw_Dem_Json = null | boolean | number | string | TeqFw_Dem_Json[] | Record<string, TeqFw_Dem_Json>;
+    type TeqFw_Dem_JsonObject = Record<string, TeqFw_Dem_Json>;
+    type TeqFw_Dem_TypeDefinition = {name:string; parameters:Record<string,string>; normalizeParams:(params:TeqFw_Dem_JsonObject)=>TeqFw_Dem_JsonObject; valueDomain:string; preservation:string; valueHandling:string; equality?:string; ordering?:string; literal?:{grammar:string;normalize:(literal:TeqFw_Dem_Json,params:TeqFw_Dem_JsonObject)=>TeqFw_Dem_Json}; generation?:{declaration:string;guarantees:string;normalize:(declaration:TeqFw_Dem_Json,params:TeqFw_Dem_JsonObject)=>TeqFw_Dem_Json}};
+    type TeqFw_Dem_TypeProvider = {getDefinitions:()=>TeqFw_Dem_TypeDefinition[]};
     type TeqFw_Dem_Object = Record<string,unknown>;
     type TeqFw_Dem_Order = {attribute:string;direction:'asc'|'desc';nulls:'first'|'last'};
     type TeqFw_Dem_PathTransform = {path:string;rule:{from:string;to:string}|null};
@@ -109,6 +113,8 @@ declare global {
     type TeqFw_Dem_RecordResultNullable = {record:TeqFw_Dem_Record|null};
     type TeqFw_Dem_Registry_Core = import("./src/Registry/Core.mjs").default;
     type TeqFw_Dem_Registry_CoreValue = import("./src/Registry/CoreValue.mjs").default;
+    type TeqFw_Dem_Registry = import("./src/Registry.mjs").default;
+    type TeqFw_Dem_Registry__Class = typeof import("./src/Registry.mjs").default;
     type TeqFw_Dem_Registry_CoreValue__Class = typeof import("./src/Registry/CoreValue.mjs").default;
     type TeqFw_Dem_Registry_Core__Class = typeof import("./src/Registry/Core.mjs").default;
     type TeqFw_Dem_Relation = {attributes: string[]; target: {path: string; attributes: string[]}};

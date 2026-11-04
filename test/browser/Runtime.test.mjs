@@ -14,6 +14,8 @@ test('browser compilation matches Node.js', async () => {
     const root = fileURLToPath(new URL('../../', import.meta.url));
     const container = new Container();
     container.addNamespaceRoot('TeqFw_Dem_', join(root, 'src'), '.mjs');
+    const registry = await container.get('TeqFw_Dem_Registry$');
+    registry.finalize();
     /** @type {TeqFw_Dem_Compile} */
     const compiler = await container.get('TeqFw_Dem_Compile$');
     const input = scenario();
@@ -28,6 +30,8 @@ test('browser compilation matches Node.js', async () => {
         const {scenario} = await import('/test/browser/Scenario.mjs');
         const container = new Container();
         container.addNamespaceRoot('TeqFw_Dem_', location.origin + '/src', '.mjs');
+        const registry = await container.get('TeqFw_Dem_Registry$');
+        registry.finalize();
         const compiler = await container.get('TeqFw_Dem_Compile$');
         const input = scenario();
         const compiled = await compiler.exec(input);
