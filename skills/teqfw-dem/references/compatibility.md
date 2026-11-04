@@ -73,3 +73,13 @@ release verification must inspect the actual executed matrix.
 
 Optional pgvector can optimize a future similarity API; float32 storage is not a
 lossless replacement for every JavaScript float64 vector value.
+
+## Scope of compatibility
+
+This matrix describes core realizations, not universal storage equivalence or
+future Platform Extensions. Their declaration, registration and runtime contracts
+are undesigned and unimplemented. Host selection of descriptive relations must be
+explicit acceptance of relaxed integrity; it is not strict conformance and must
+not be inferred from an adapter default. Missing applicable capabilities fail
+explicitly. Entity placement and accepted deviations are host storage configuration,
+separate from logical identity; DEM supplies no routing contract across stores.

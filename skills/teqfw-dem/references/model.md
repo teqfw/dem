@@ -118,3 +118,36 @@ maps and profiles. Selected dependencies must be explicitly satisfied; unused
 external contracts add no binding obligation. A common browser/Node declaration
 source and HTTP model delivery are not implemented. The host controls publication
 and placement. See the [selection API and examples](target-api.md#entity-selection).
+
+## Isomorphic Core, extensions and host policy
+
+DEM primarily supports distributed ownership and integration of shared schemas.
+Plugin authors describe an ideal semantic model without choosing storage; hosts
+compose contributions and integrate execution environments. The Isomorphic Core
+shares frequently used structures, types, constraints, relationships and CRUD+List
+semantics, not physical layouts, operational guarantees or universal portability.
+
+Platform Extensions are accepted direction for platform-specific types,
+constraints, indexes and other modeling capabilities. An entity requiring them is
+conceptually valid but usable only with compatible adapters and host configuration.
+Extension declaration grammar, registration and runtime contracts are undesigned
+and unimplemented. Current Format 2 remains closed; no extension fields are accepted.
+
+Declared nullability, value ranges/limits, identity, keys and referential integrity
+are requirements. Indexes express optimization intentions. Native or software
+realization is valid; silent weakening, corruption, truncation and lossy conversions
+are forbidden. The host may explicitly accept deviations in its storage
+configuration; a relaxed profile does not satisfy strict conformance. Missing
+capability without an accepted relaxation must fail explicitly.
+
+Where the language permits omitted constraints, the host and adapter may resolve
+limits. Omission never permits silent data loss. Current type-specific defaults
+and mandatory parameters in [types](types.md) remain unchanged; general optional
+ranges and host relaxation contracts are unresolved, not new compiler inputs.
+
+The effective logical model and its identity remain separate from host-owned
+entity placement, adapter selection and accepted deviations. One logical model may
+span stores in the target architecture. No DEM routing or placement API is
+implemented. Hosts own integration, synchronization, distributed consistency,
+cross-storage transactions and migration. Adapters own connections, physical
+schemas, operational guarantees and lifecycle within that integration.

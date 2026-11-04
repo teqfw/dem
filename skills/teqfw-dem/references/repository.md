@@ -237,3 +237,19 @@ contracts through DI preprocessing, resolve the unchanged application and dispos
 resources. Neither root uses DI test substitution. DEM-RDB test:application checks
 identical module bytes, models/fingerprints and complete results against real Chrome
 IndexedDB; no identifier rewriting is performed. See the adapter READMEs for commands.
+
+## Core scope and host-approved deviations
+
+This reference defines the current Isomorphic Core access contract, including
+JSON-compatible records enforced by Normalize. Future platform-native values have
+no defined normalization, serialization or repository contract; do not pass them
+to current APIs or infer extension hooks from this reference.
+
+The strict requirements above remain unchanged. A host may explicitly choose an
+adapter's documented relaxed profile (for example descriptive relations), recording
+that deviation in host storage configuration. Such execution is not strict
+conformance. Without explicit acceptance, missing capability rejects UNSUPPORTED;
+adapters must never silently weaken invariants, truncate or corrupt values or use
+lossy conversions. Indexes express optimization intentions and may use software
+realization. No generic policy/relaxation flag or storage-routing API exists in DEM.
+See [model](model.md#isomorphic-core-extensions-and-host-policy) for target boundaries.

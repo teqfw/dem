@@ -1,10 +1,46 @@
 # @teqfw/dem
 
-Domain Entity Model composes package-owned schema fragments into complete,
-consistent logical models. The host resolves namespace collisions, binds explicit
-external dependencies, selects identity profiles and decides model-to-database
-placement. DEM runs in Node.js and browsers; adapters own physical projection and
-persistence. DEM defines portable CRUD/List contracts.
+DEM is a tool for distributed development of shared data schemas. Independently
+developed TeqFW plugins contribute domain data definitions and application code;
+host integrators compose and integrate those definitions against an ideal semantic
+model without requiring plugin authors to select physical storage.
+
+Plugin authors own fragments and code operating on their entities. Host integrators
+select entities, resolve namespace collisions and dependencies, choose identity
+profiles, storage implementations and applicable guarantees. DEM runs in Node.js
+and browsers; adapters implement data semantics and CRUD+List with native or
+software mechanisms.
+
+## Isomorphic Core and Platform Extensions
+
+The Isomorphic Core supplies a common language for frequently used structures,
+types, constraints, relationships and CRUD+List. Isomorphism concerns shared
+application semantics; physical representations, capabilities and operational
+guarantees may differ. It promises neither universal data portability nor data
+synchronization.
+
+Platform Extensions are accepted product direction: platform-specific types,
+constraints, indexes and other modeling capabilities can make an entity usable
+only with compatible adapters and host configurations. Their declaration grammar,
+registration mechanisms and runtime contracts are not designed or implemented.
+The current closed Format 2 grammar does not accept arbitrary extensions.
+
+The effective logical domain model is distinct from host-owned storage
+configuration: entity placement, adapters and explicitly accepted deviations from
+ideal semantics. One logical model may span storage systems in the target
+architecture; DEM currently supplies no storage-routing configuration or API.
+Host integration owns cross-storage coordination, transactions, consistency,
+synchronization and migration. Adapters must not silently weaken requirements,
+truncate values or perform lossy conversions.
+
+## Current package
+
+The current implementation provides Format 2 compilation, Format 1 host maps,
+entity selection, Node acquisition, canonical model identity, core JSON-compatible
+record normalization, CRUD+List contracts, shared selection and optional batch
+planning. Independent adapters supply storage. See the references below for exact
+contracts; future platform-native values and generic host relaxation mechanisms
+are not part of these APIs.
 
 ## Compile through DI
 

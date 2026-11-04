@@ -1,6 +1,6 @@
 # Logical Type Contract
 
-Implemented logical type contract for package v0.2.0. A type uses `{name, params?}`.
+Implemented core logical type contract. A type uses `{name, params?}`.
 All numeric parameters are safe JSON integers. Unknown parameters fail. Defaults
 below are materialized in normalized types. No parameter selects a backend type.
 
@@ -52,4 +52,6 @@ alternatives remain distinct by their exact Unicode content.
 Identity and ref use the [declaration contract](declarations.md). Their profiles
 are uuid or int with qualitative capacity; integer bits are not accepted as
 identity-profile parameters. Logical type checking constrains defaults and
-relations during compilation; DEM does not perform application data operations.
+relations during compilation; repository helpers also normalize application values.
+Adapters execute persistence. Platform-native extension values are outside this
+current contract; see the [model design boundary](model.md#isomorphic-core-extensions-and-host-policy).
