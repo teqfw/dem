@@ -34,6 +34,11 @@ test('Token16 flows through Registry, Compiler, binding, Normalize, Selection an
     const b=new Uint8Array(16); b[0]=2;
     const later=new Uint8Array(16); later[0]=3;
     const captured=first.selection.create({entity:firstEntity,selection:{where:eq(a)}});
+    const untyped=first.selection.create({entity:firstEntity,selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'token'},{kind:'value',value:a}]}}});
+    assert.deepEqual(first.select.exec({entity:firstEntity,records:[{id:'1',token:a}],selection:untyped}).records.map((/** @type {any} */ row)=>row.id),['1']);
+    assert.deepEqual(first.select.exec({entity:firstEntity,records:[{id:'1',token:a}],selection:captured}).records.map((/** @type {any} */ row)=>row.id),['1']);
+    assert.throws(()=>first.selection.create({entity:firstEntity,selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'token'},{kind:'value',type:{name:'text'},value:'x'}]}}}),{code:'INVALID_INPUT'});
+    assert.throws(()=>first.selection.create({entity:firstEntity,selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'token'},{kind:'value',type:{name:'example.Token16'},value:new Uint8Array(15)}]}}}),{code:'INVALID_INPUT'});
     a[0]=9;
     const exposed=captured.where.args[1].value;
     exposed[0]=8;
@@ -57,6 +62,36 @@ test('Token16 flows through Registry, Compiler, binding, Normalize, Selection an
     assert.equal(normalized.token[0],2);
     assert.throws(()=>runtime.bind({model:firstCompiled.model,registry,handlers:[]}),{code:'UNSUPPORTED'});
     assert.throws(()=>first.normalize.value({attribute:firstEntity.attributes[1],value:new Uint8Array(15)}),{code:'INVALID_INPUT'});
+});
+
+test('opaque class operands survive Expression and Selection normalization and Select revalidation', async () => {
+    class Token {
+        #byte;
+        /** @param {number} byte */
+        constructor(byte) { this.#byte=byte; }
+        get byte() { return this.#byte; }
+        set(/** @type {number} */ byte) { this.#byte=byte; }
+    }
+    const definition={name:'example.ClassToken',parameters:{},normalizeParams:tokenDefinition.normalizeParams,valueDomain:'A class-based token.',preservation:'Preserve token identity semantics.',valueHandling:'Normalize and copy class instances.',equality:'Bytewise equality.'};
+    const handler={name:'example.ClassToken',normalize:(/** @type {unknown} */ value) => { if (!(value instanceof Token)) throw new TypeError(); return new Token(value.byte); },copy:(/** @type {Token} */ value) => new Token(value.byte),equals:(/** @type {Token} */ left,/** @type {Token} */ right) => left.byte===right.byte};
+    const container=makeContainer();
+    const registry=await container.get('TeqFw_Dem_Registry$');
+    registry.register([definition]); registry.finalize();
+    const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[{packageName:'runtime-test',filename:'schema.json',document:{$format:2,$namespace:'/test/',item:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.ClassToken'}}],primaryKey:['id']}}}]})).model;
+    const bound=(await container.get('TeqFw_Dem_Repository_Runtime$')).bind({model,registry,handlers:[handler]});
+    const entity=model.entities['/test/item'];
+    const input=new Token(7);
+    const selection=bound.selection.create({entity,selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'token'},{kind:'value',value:input}]}}});
+    input.set(9);
+    const exposed=selection.where.args[1].value;
+    assert.ok(exposed instanceof Token);
+    assert.equal(exposed.byte,7);
+    exposed.set(11);
+    assert.equal(selection.where.args[1].value.byte,7);
+    const records=[{id:'1',token:new Token(7)},{id:'2',token:new Token(9)}];
+    assert.deepEqual(bound.select.exec({entity,records,selection}).records.map((/** @type {any} */ row)=>row.id),['1']);
+    assert.deepEqual(bound.select.exec({entity,records,selection}).records.map((/** @type {any} */ row)=>row.id),['1']);
+    assert.throws(()=>bound.selection.create({entity,selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'token'},{kind:'value',value:{byte:7}}]}}}),{code:'INVALID_INPUT'});
 });
 
 test('selection skips a non-orderable primary key in favor of an orderable unique key', async () => {

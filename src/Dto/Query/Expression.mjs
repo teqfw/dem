@@ -37,8 +37,11 @@ export class Factory {
                 visited.add(value);
             if (!value || typeof value !== 'object' || Object.isFrozen(value))
                 return value;
-            for (const key of Reflect.ownKeys(value))
+            for (const key of Reflect.ownKeys(value)) {
+                // Runtime operands are opaque until entity-aware Selection normalization.
+                if (value instanceof Expression && key === 'value') continue;
                 freeze(value[key], visited);
+            }
             return Object.freeze(value);
         };
         /**
@@ -73,7 +76,7 @@ export class Factory {
                 if (!Object.prototype.hasOwnProperty.call(data, 'value'))
                     throw new TypeError('Value expression requires a value field.');
                 result.kind = 'value';
-                result.value = structuredClone(data.value);
+                result.value = data.value;
                 if (data.type !== undefined) {
                     if (!isObject(data.type) || typeof data.type.name !== 'string' || !isObject(data.type.params ?? {})) {
                         throw new TypeError('Value expression type must contain name and params.');

@@ -49,7 +49,7 @@ declare global {
     type TeqFw_Dem_BatchOperation = {path:string;method:'create';params:{record:TeqFw_Dem_Record}}|{path:string;method:'read';params:{key:TeqFw_Dem_Key}}|{path:string;method:'delete';params:{key:TeqFw_Dem_Key}}|{path:string;method:'update';params:{key:TeqFw_Dem_Key;changes:TeqFw_Dem_Record}}|{path:string;method:'list';params:{selection:unknown}};
     type TeqFw_Dem_BatchResult = {results:Array<TeqFw_Dem_RecordResultNullable|TeqFw_Dem_DeleteResult|TeqFw_Dem_ListResult>};
     type TeqFw_Dem_Canonical = {domain:string;entities:Record<string,TeqFw_Dem_CanonicalEntity>};
-    type TeqFw_Dem_CanonicalAttribute = {type:TeqFw_Dem_Type;nullable:boolean;generation:boolean;default?:unknown};
+    type TeqFw_Dem_CanonicalAttribute = {type:TeqFw_Dem_Type;nullable:boolean;generation:TeqFw_Dem_Json;default?:unknown};
     type TeqFw_Dem_CanonicalEntity = {attributes:Record<string,TeqFw_Dem_CanonicalAttribute>;primaryKey:string[]|null;uniqueKeys:Record<string,string[]>;indexes:Record<string,{attributes:string[]}>;relations:Record<string,TeqFw_Dem_Relation>};
     type TeqFw_Dem_CompilationError = {name:string;message:string;diagnostics:TeqFw_Dem_Diagnostic[];warnings:TeqFw_Dem_Diagnostic[]};
     type TeqFw_Dem_CompilationResult = {model:TeqFw_Dem_Model;canonical:TeqFw_Dem_Canonical;fingerprint:string;provenance:TeqFw_Dem_Provenance;graph:TeqFw_Dem_Graph;warnings:TeqFw_Dem_Diagnostic[]};

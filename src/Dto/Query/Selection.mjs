@@ -96,7 +96,8 @@ export class Factory {
                             const declaration = definition.literal.normalize(literal.value, attr.type.params ?? {});
                             value = normalize.value({attribute:attr,value:handler.fromLiteral(declaration, attr.type.params ?? {}),handlers});
                         } catch { return invalid('Invalid literal for attribute type.'); }
-                    } else if (definition) return invalid('Runtime value requires an explicit logical type.');
+                    } else if (definition && !definition.literal) value = normalize.value({attribute:attr,value:literal.value,handlers});
+                    else if (definition) return invalid('Runtime value requires an explicit logical type.');
                     else value = normalize.value({attribute:attr,value:literal.value,handlers});
                 }
                 const captured = /** @type {any} */ ({kind:'value'});
