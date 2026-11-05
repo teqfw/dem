@@ -53,6 +53,15 @@ test('Token16 flows through Registry, Compiler, binding, Normalize, Selection an
     const secondRows=[{id:'1',token:b},{id:'2',token:later}];
     assert.deepEqual(second.select.exec({entity:secondEntity,records:secondRows,selection:{orderBy:[{attribute:'token',direction:'desc',nulls:'last'}]}}).records.map((/** @type {any} */ row)=>row.id),['2','1']);
     assert.deepEqual(first.select.exec({entity:firstEntity,records:firstRows,selection:{orderBy:[{attribute:'token',direction:'asc',nulls:'last'}]}}).records.map((/** @type {any} */ row)=>row.id),['3','1','2']);
+    const firstBatchRows={'/test/first':[]},secondBatchRows={'/test/second':[]};
+    const firstBatchOps=[{path:'/test/first',method:'create',params:{record:{id:'10',token:a}}}];
+    const secondBatchOps=[{path:'/test/second',method:'create',params:{record:{id:'20',token:b}}}];
+    assert.equal(first.batch.validate({model:second.model,operations:firstBatchOps}).length,1);
+    first.batch.plan({rows:firstBatchRows,operations:firstBatchOps,generate:()=>undefined});
+    second.batch.plan({rows:secondBatchRows,operations:secondBatchOps,generate:()=>undefined});
+    first.batch.plan({rows:firstBatchRows,operations:[{path:'/test/first',method:'read',params:{key:{kind:'primary',values:{id:'10'}}}}],generate:()=>undefined});
+    assert.equal(firstBatchRows['/test/first'].length,1);
+    assert.equal(secondBatchRows['/test/second'].length,1);
     const normalized=first.normalize.record({entity:firstEntity,record:firstRows[0],mode:'complete'});
     assert.notEqual(normalized.token,firstRows[0].token);
     const keyInput={kind:'unique',name:'by_token',values:{token:firstRows[0].token}};
@@ -134,19 +143,21 @@ test('bound Batch uses extension equality and isolates command results', async (
     const container=makeContainer();
     container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
     const registry=await container.get('TeqFw_Dem_Registry$'); registry.register([tokenDefinition]); registry.finalize();
-    const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[{packageName:'runtime-test',filename:'batch.json',document:{$format:2,$namespace:'/test/',batch:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],uniqueKeys:{by_token:['token'],by_pair:['id','token']}}}}]})).model;
+    const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[{packageName:'runtime-test',filename:'batch.json',document:{$format:2,$namespace:'/test/',batch:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],uniqueKeys:{by_pair:['label','token']}}}}]})).model;
     const runtime=await container.get('TeqFw_Dem_Repository_Runtime$');
     const bound=runtime.bind({model,registry,handlers:[await container.get('Runtime_Test_Token16__default')]});
     const token=new Uint8Array(16); token[0]=7;
     const equivalent=token.slice();
     const rows={'/test/batch':[]};
-    const result=bound.batch.plan({rows,generate:()=>assert.fail('unexpected generation'),operations:[
+    const otherModel={entities:{}};
+    assert.equal(bound.batch.validate({model:otherModel,operations:[{path:'/test/batch',method:'read',params:{key:{kind:'primary',values:{id:'1'}}}}]}).length,1);
+    const result=bound.batch.plan({model:otherModel,rows,generate:()=>assert.fail('unexpected generation'),operations:[
         {path:'/test/batch',method:'create',params:{record:{id:'1',token,label:'one'}}},
-        {path:'/test/batch',method:'read',params:{key:{kind:'unique',name:'by_token',values:{token:equivalent}}}},
-        {path:'/test/batch',method:'read',params:{key:{kind:'unique',name:'by_pair',values:{id:'1',token:equivalent}}}},
+        {path:'/test/batch',method:'read',params:{key:{kind:'unique',name:'by_pair',values:{label:'one',token:equivalent}}}},
+        {path:'/test/batch',method:'read',params:{key:{kind:'unique',name:'by_pair',values:{label:'one',token:equivalent}}}},
         {path:'/test/batch',method:'update',params:{key:{kind:'primary',values:{id:'1'}},changes:{label:'two'}}},
         {path:'/test/batch',method:'list',params:{selection:{where:eq(token)}}},
-        {path:'/test/batch',method:'delete',params:{key:{kind:'unique',name:'by_token',values:{token:equivalent}}}},
+        {path:'/test/batch',method:'delete',params:{key:{kind:'unique',name:'by_pair',values:{label:'two',token:equivalent}}}},
     ]});
     assert.equal(result.results[0].record.label,'one');
     assert.equal(result.results[1].record.label,'one');
@@ -157,6 +168,12 @@ test('bound Batch uses extension equality and isolates command results', async (
     result.results[3].record.token[0]=99;
     assert.equal(result.results[0].record.token[0],7);
     assert.equal(rows['/test/batch'].length,0);
+
+    const duplicateRows={'/test/batch':[]};
+    assert.throws(()=>bound.batch.plan({rows:duplicateRows,generate:()=>undefined,operations:[
+        {path:'/test/batch',method:'create',params:{record:{id:'10',token,label:'same-group'}}},
+        {path:'/test/batch',method:'create',params:{record:{id:'11',token:equivalent,label:'same-group'}}},
+    ]}),{code:'CONFLICT'});
 });
 
 test('bound Batch compares relation tuples and preserves opaque non-key values', async () => {
@@ -165,8 +182,8 @@ test('bound Batch compares relation tuples and preserves opaque non-key values',
     const opaqueDefinition={name:'example.Opaque',parameters:{},normalizeParams:tokenDefinition.normalizeParams,valueDomain:'Opaque mutable object.',preservation:'Preserve fields.',valueHandling:'Copy object values.'};
     const registry=await container.get('TeqFw_Dem_Registry$'); registry.register([tokenDefinition,opaqueDefinition]); registry.finalize();
     const schema={packageName:'runtime-test',filename:'relations.json',document:{$format:2,$namespace:'/test/',
-        target:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'}}],primaryKey:['id'],uniqueKeys:{by_token:['token']}},
-        source:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'},nullable:true},{name:'opaque',type:{name:'example.Opaque'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],relations:{target:{attributes:['token'],target:{path:'target',attributes:['token']}}}},
+        target:{attributes:[{name:'id',type:{name:'integer'}},{name:'code',type:{name:'example.Token16'}}],primaryKey:['id'],uniqueKeys:{by_code:['code']}},
+        source:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'},nullable:true},{name:'opaque',type:{name:'example.Opaque'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],relations:{target:{attributes:['token'],target:{path:'target',attributes:['code']}}}},
     }};
     const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[schema]})).model;
     /** @param {{payload:any}} value */
@@ -180,7 +197,7 @@ test('bound Batch compares relation tuples and preserves opaque non-key values',
     /** @type {Record<string,any[]>} */ const rows={'/test/target':[],'/test/source':[]};
     /** @type {any} */ let callbackSnapshot;
     const result=bound.batch.plan({rows,generate:()=>assert.fail('unexpected generation'),created:(/** @type {any} */ {path,record})=>{if(path==='/test/source'){callbackSnapshot=record;record.opaque.payload.secret='callback mutation';}},operations:[
-        {path:'/test/target',method:'create',params:{record:{id:'1',token}}},
+        {path:'/test/target',method:'create',params:{record:{id:'1',code:token}}},
         {path:'/test/source',method:'create',params:{record:{id:'1',token:equivalent,opaque:inputOpaque,label:'linked'}}},
         {path:'/test/source',method:'update',params:{key:{kind:'primary',values:{id:'1'}},changes:{label:'updated'}}},
         {path:'/test/source',method:'create',params:{record:{id:'2',token:null,opaque:{payload:{secret:'null-relation'}},label:'nullable'}}},

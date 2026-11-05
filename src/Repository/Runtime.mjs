@@ -58,8 +58,8 @@ export default class Runtime {
                 exec: (/** @type {any} */ input) => select.exec({...input, handlers:runtime, definitions}),
             };
             const boundBatch = Object.freeze({
-                validate: (/** @type {any} */ input) => batch.validate({model,...input,normalize:boundNormalize,selection:boundSelection}),
-                plan: (/** @type {any} */ input) => batch.plan({model,...input,handlers:runtime,normalize:boundNormalize,selection:boundSelection,select:boundSelect}),
+                validate: (/** @type {{operations:unknown}} */ {operations}) => batch.validate({model,operations,normalize:boundNormalize,selection:boundSelection}),
+                plan: (/** @type {{operations:unknown,rows:any,generate:any,created?:any,enforceRelations?:boolean}} */ {operations,rows,generate,created,enforceRelations}) => batch.plan({model,operations,rows,generate,created,enforceRelations,handlers:runtime,normalize:boundNormalize,selection:boundSelection,select:boundSelect}),
             });
             return Object.freeze({model, normalize:boundNormalize, selection:boundSelection, select:boundSelect, batch:boundBatch});
         };

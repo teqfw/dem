@@ -85,7 +85,7 @@ export default class Batch {
                 if (enforceRelations) for (const [p,entity] of Object.entries(model.entities)) for (const relation of Object.values(entity.relations)) {
                     for (const {record} of rows[p]) {
                         if (relation.attributes.some(k=>record[k]===null)) continue;
-                        if (!rows[relation.target.path].some((/** @type {any} */ target)=>tupleEqual(model.entities[relation.target.path],target.record,record,relation.target.attributes,activeHandlers))) fail('RELATION','Relation target is missing or still referenced.');
+                        if (!rows[relation.target.path].some((/** @type {any} */ target)=>relation.attributes.every((/** @type {string} */ sourceName,/** @type {number} */ index)=>equal(entity,sourceName,record[sourceName],target.record[relation.target.attributes[index]],activeHandlers)))) fail('RELATION','Relation target is missing or still referenced.');
                     }
                 }
             };
