@@ -35,7 +35,7 @@ test('a Node Host projects its compiled server model to SQLite and performs repo
         await withHostFixture(async hostRoot => {
             const container = new Container({preprocessors: ['Host_Sqlite__Preprocessor$']});
             container.addNamespaceRoot('TeqFw_Dem_', fileURLToPath(new URL('../../src', import.meta.url)), '.mjs');
-            container.addNamespaceRoot('TeqFw_DemRdb_', fileURLToPath(new URL('../../node_modules/@teqfw/dem-rdb/src', import.meta.url)), '.mjs');
+            container.addNamespaceRoot('TeqFw_Dem_RDb_', fileURLToPath(new URL('../../node_modules/@teqfw/dem-rdb/src', import.meta.url)), '.mjs');
             container.addNamespaceRoot('Host_', fileURLToPath(new URL('../fixtures', import.meta.url)), '.mjs');
 
             const acquire = await container.get('TeqFw_Dem_Acquire$');
@@ -61,7 +61,7 @@ test('a Node Host projects its compiled server model to SQLite and performs repo
 
             const configuration = await container.get('Host_Sqlite__Configuration$');
             configuration.set({model, knex: database});
-            const adapter = await container.get('TeqFw_DemRdb_Adapter$');
+            const adapter = await container.get('TeqFw_Dem_RDb_Adapter$');
             backend = await adapter.open({model, knex: database});
             await backend.createSchema();
 

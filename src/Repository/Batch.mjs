@@ -11,9 +11,8 @@ export default class Batch {
      * @param {TeqFw_Dem_Dto_Query_Selection__Factory} deps.selection
      * @param {TeqFw_Dem_Repository_Error} deps.errors
      * @param {TeqFw_Dem_Util_Data} deps.data
-     * @param {Record<string,any>} [deps.handlers]
      */
-    constructor({normalize,select,selection,errors,data,handlers = {}}) {
+    constructor({normalize,select,selection,errors,data}) {
         /** @param {string} code @param {string} message @returns {TeqFw_Dem_Never} */
         const fail=function (code,message) {throw errors.create({code:/** @type {TeqFw_Dem_RepositoryErrorCode} */(code),message});};
         /** @param {any} value @param {Array<string>} fields @returns {void} */
@@ -44,8 +43,8 @@ export default class Batch {
                 return /** @type {TeqFw_Dem_BatchOperation} */({path,method,params:prepared});
             });
         };
-        /** @param {TeqFw_Dem_Entity} entity @param {string} name @param {any} left @param {any} right @returns {boolean} */
-        const equal=function (entity,name,left,right,activeHandlers=handlers) {
+        /** @param {TeqFw_Dem_Entity} entity @param {string} name @param {any} left @param {any} right @param {Record<string,any>} activeHandlers @returns {boolean} */
+        const equal=function (entity,name,left,right,activeHandlers) {
             if (left === null || right === null) return left === right;
             const attribute=entity.attributes.find((/** @type {any} */ item)=>item.name===name);
             if (!attribute) fail('INVALID_INPUT','Invalid tuple attribute.');
@@ -53,8 +52,8 @@ export default class Batch {
             if (handler) return handler.equals(left,right,attribute.type.params ?? {});
             return data.serialize(left)===data.serialize(right);
         };
-        /** @param {TeqFw_Dem_Entity} entity @param {any} left @param {any} right @param {Array<string>} members @returns {boolean} */
-        const tupleEqual=function (entity,left,right,members,activeHandlers=handlers) {return members.every(name=>equal(entity,name,left[name],right[name],activeHandlers));};
+        /** @param {TeqFw_Dem_Entity} entity @param {any} left @param {any} right @param {Array<string>} members @param {Record<string,any>} activeHandlers @returns {boolean} */
+        const tupleEqual=function (entity,left,right,members,activeHandlers) {return members.every(name=>equal(entity,name,left[name],right[name],activeHandlers));};
         /**
          * Plan in adapter-owned mutable snapshots. Discard the entire snapshot if this throws.
          * Generation/allocation algorithms and all durable effects remain adapter-owned.
@@ -69,7 +68,7 @@ export default class Batch {
          * @param {any} [deps.normalize] @param {any} [deps.selection] @param {any} [deps.select]
          * @returns {TeqFw_Dem_BatchResult}
          */
-        this.plan=function ({model,operations,rows,generate,created,enforceRelations=true,handlers:activeHandlers=handlers,normalize:boundNormalize=normalize,selection:boundSelection=selection,select:boundSelect=select}) {
+        this.plan=function ({model,operations,rows,generate,created,enforceRelations=true,handlers:activeHandlers={},normalize:boundNormalize=normalize,selection:boundSelection=selection,select:boundSelect=select}) {
             const commands=this.validate({model,operations,normalize:boundNormalize,selection:boundSelection});
             /** @param {string} path @returns {void} */
             const validate=function (path) {

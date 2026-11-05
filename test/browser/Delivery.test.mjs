@@ -141,7 +141,7 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         const sqliteTable = entityPath => 'dem_' + Buffer.from(entityPath, 'utf8').toString('hex');
         const configuration = await container.get('Host_Sqlite__Configuration$');
         configuration.set({model: serverModel.model, knex: database});
-        const adapter = await container.get('TeqFw_DemRdb_Adapter$');
+        const adapter = await container.get('TeqFw_Dem_RDb_Adapter$');
         backend = await adapter.open({model: serverModel.model, knex: database});
         await backend.createSchema();
 

@@ -46,7 +46,7 @@
         const container = new Container();
         // Resolve DEM collaborators from this checkout, not the npm DEM dependency of DEM-IDB.
         container.addNamespaceRoot('TeqFw_Dem_', location.origin + '/src', '.mjs');
-        container.addNamespaceRoot('TeqFw_DemIdb_', location.origin + '/node_modules/@teqfw/dem-idb/src', '.mjs');
+        container.addNamespaceRoot('TeqFw_Dem_IDb_', location.origin + '/node_modules/@teqfw/dem-idb/src', '.mjs');
         const normalize = await container.get('TeqFw_Dem_Repository_Normalize$');
         const normalizedRecord = normalize.record({
             entity: cart,
@@ -59,7 +59,7 @@
         if (normalizedRecord.id !== 'abcdef12-3456-7890-abcd-ef1234567890') throw new Error('Received model identity normalization failed.');
         if (normalizedRecord.customer_id !== '12345678-1234-5678-9abc-def012345678') throw new Error('Received model reference normalization failed.');
 
-        const adapter = await container.get('TeqFw_DemIdb_Adapter$');
+        const adapter = await container.get('TeqFw_Dem_IDb_Adapter$');
         backend = await adapter.open({model, name: databaseName, enforceRelations: true});
         const initialized = await backend.createSchema();
         const physicalStores = Array.from(initialized.database.objectStoreNames).sort();

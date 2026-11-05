@@ -17,8 +17,8 @@ export class Configuration {
 export function Preprocessor() {
     /** @param {any} id */
     return id => id.address === 'TeqFw_Dem_Api_RepositoryProvider'
-        ? {...id, address: 'TeqFw_DemRdb_Provider'}
-        : id.address === 'TeqFw_DemRdb_Api_Configuration'
+        ? {...id, address: 'TeqFw_Dem_RDb_Provider'}
+        : id.address === 'TeqFw_Dem_RDb_Api_Configuration'
             ? {...id, address: 'Host_Sqlite', exportName: 'Configuration'}
             : id;
 }
