@@ -84,6 +84,11 @@ published [Type Definition, Type Provider and Runtime Type Handler interfaces](h
 for signatures. A host-selected adapter still owns persistence and must support the
 bound types; binding alone does not acquire a Repository.
 
+Accepted target, not yet implemented: the binding will also expose synchronous
+`batch.validate({operations})` and `batch.plan({operations, rows, generate, created?,
+enforceRelations?})`, capturing the model and selected handlers. See the
+[Batch contract](repository.md#atomic-command-batches).
+
 ## Portable compiler
 
 `TeqFw_Dem_Compile$.exec({schemas, map?, selection?})` returns a Promise. Schemas is a required

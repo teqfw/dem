@@ -214,6 +214,17 @@ snapshot; adapters own persistence, transaction scope and generation. This helpe
 does not create an in-memory backend. JSON and vectors normalize numeric negative
 zero to zero; sparse entry objects are detached from caller inputs.
 
+**Accepted target; not implemented:** model-bound Batch uses the same Normalize,
+Selection and Select operations and handler Equality for corresponding non-null key
+and relation tuple members. It never serializes opaque values or compares their object
+identity. Attributes without Equality or Ordering remain valid outside keys and
+relations. The adapter supplies disposable complete-record rows and synchronous
+generation, commits or rolls back physically, and publishes results only after commit.
+Each result and callback record is detached; later commands cannot change earlier
+results. Patches preserve omitted values. The bound signatures are
+`validate({operations})` and `plan({operations, rows, generate, created?, enforceRelations?})`;
+planning itself remains synchronous and does not commit.
+
 The values conformance export also supplies atomic, extended-representation and
 evolution workloads (`exerciseAtomic`, `exerciseExtended`, `exerciseEvolution`).
 Evolution compares additive defaults, retained removed entities, stale providers,
