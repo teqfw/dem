@@ -10,8 +10,9 @@ export default class Runtime {
      * @param {TeqFw_Dem_Dto_Query_Selection__Factory} deps.selection
      * @param {TeqFw_Dem_Repository_Select} deps.select
      * @param {TeqFw_Dem_Repository_Error} deps.errors
+     * @param {TeqFw_Dem_Repository_Batch} deps.batch
      */
-    constructor({normalize, selection, select, errors}) {
+    constructor({normalize, selection, select, errors, batch}) {
         /**
          * @param {object} deps
          * @param {TeqFw_Dem_Model} deps.model
@@ -56,8 +57,12 @@ export default class Runtime {
             const boundSelect = {
                 exec: (/** @type {any} */ input) => select.exec({...input, handlers:runtime, definitions}),
             };
-            return Object.freeze({model, normalize:boundNormalize, selection:boundSelection, select:boundSelect});
+            const boundBatch = Object.freeze({
+                validate: (/** @type {any} */ input) => batch.validate({model,...input,normalize:boundNormalize,selection:boundSelection}),
+                plan: (/** @type {any} */ input) => batch.plan({model,...input,handlers:runtime,normalize:boundNormalize,selection:boundSelection,select:boundSelect}),
+            });
+            return Object.freeze({model, normalize:boundNormalize, selection:boundSelection, select:boundSelect, batch:boundBatch});
         };
     }
 }
-export const __deps__ = Object.freeze({default:Object.freeze({normalize:'TeqFw_Dem_Repository_Normalize$',selection:'TeqFw_Dem_Dto_Query_Selection__Factory$',select:'TeqFw_Dem_Repository_Select$',errors:'TeqFw_Dem_Repository_Error$'})});
+export const __deps__ = Object.freeze({default:Object.freeze({normalize:'TeqFw_Dem_Repository_Normalize$',selection:'TeqFw_Dem_Dto_Query_Selection__Factory$',select:'TeqFw_Dem_Repository_Select$',errors:'TeqFw_Dem_Repository_Error$',batch:'TeqFw_Dem_Repository_Batch$'})});

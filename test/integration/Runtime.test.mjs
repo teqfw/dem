@@ -129,3 +129,72 @@ test('selection rejects unsupported runtime comparisons', async () => {
     const bound=(await container.get('TeqFw_Dem_Repository_Runtime$')).bind({model,registry,handlers:[handler]});
     assert.throws(()=>bound.selection.create({entity:model.entities['/test/item'],selection:{orderBy:[{attribute:'value',direction:'asc',nulls:'last'}]}}),{code:'INVALID_INPUT'});
 });
+
+test('bound Batch uses extension equality and isolates command results', async () => {
+    const container=makeContainer();
+    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
+    const registry=await container.get('TeqFw_Dem_Registry$'); registry.register([tokenDefinition]); registry.finalize();
+    const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[{packageName:'runtime-test',filename:'batch.json',document:{$format:2,$namespace:'/test/',batch:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],uniqueKeys:{by_token:['token'],by_pair:['id','token']}}}}]})).model;
+    const runtime=await container.get('TeqFw_Dem_Repository_Runtime$');
+    const bound=runtime.bind({model,registry,handlers:[await container.get('Runtime_Test_Token16__default')]});
+    const token=new Uint8Array(16); token[0]=7;
+    const equivalent=token.slice();
+    const rows={'/test/batch':[]};
+    const result=bound.batch.plan({rows,generate:()=>assert.fail('unexpected generation'),operations:[
+        {path:'/test/batch',method:'create',params:{record:{id:'1',token,label:'one'}}},
+        {path:'/test/batch',method:'read',params:{key:{kind:'unique',name:'by_token',values:{token:equivalent}}}},
+        {path:'/test/batch',method:'read',params:{key:{kind:'unique',name:'by_pair',values:{id:'1',token:equivalent}}}},
+        {path:'/test/batch',method:'update',params:{key:{kind:'primary',values:{id:'1'}},changes:{label:'two'}}},
+        {path:'/test/batch',method:'list',params:{selection:{where:eq(token)}}},
+        {path:'/test/batch',method:'delete',params:{key:{kind:'unique',name:'by_token',values:{token:equivalent}}}},
+    ]});
+    assert.equal(result.results[0].record.label,'one');
+    assert.equal(result.results[1].record.label,'one');
+    assert.equal(result.results[2].record.label,'one');
+    assert.equal(result.results[3].record.label,'two');
+    assert.equal(result.results[4].records[0].label,'two');
+    assert.deepEqual(result.results[5],{deleted:true});
+    result.results[3].record.token[0]=99;
+    assert.equal(result.results[0].record.token[0],7);
+    assert.equal(rows['/test/batch'].length,0);
+});
+
+test('bound Batch compares relation tuples and preserves opaque non-key values', async () => {
+    const container=makeContainer();
+    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
+    const opaqueDefinition={name:'example.Opaque',parameters:{},normalizeParams:tokenDefinition.normalizeParams,valueDomain:'Opaque mutable object.',preservation:'Preserve fields.',valueHandling:'Copy object values.'};
+    const registry=await container.get('TeqFw_Dem_Registry$'); registry.register([tokenDefinition,opaqueDefinition]); registry.finalize();
+    const schema={packageName:'runtime-test',filename:'relations.json',document:{$format:2,$namespace:'/test/',
+        target:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'}}],primaryKey:['id'],uniqueKeys:{by_token:['token']}},
+        source:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'},nullable:true},{name:'opaque',type:{name:'example.Opaque'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],relations:{target:{attributes:['token'],target:{path:'target',attributes:['token']}}}},
+    }};
+    const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[schema]})).model;
+    /** @param {{payload:any}} value */
+    const copyObject=(value)=>({payload:structuredClone(value.payload)});
+    const opaqueHandler={name:'example.Opaque',normalize:copyObject,copy:copyObject};
+    const runtime=await container.get('TeqFw_Dem_Repository_Runtime$');
+    const bound=runtime.bind({model,registry,handlers:[await container.get('Runtime_Test_Token16__default'),opaqueHandler]});
+    const token=new Uint8Array(16); token[0]=4;
+    const equivalent=token.slice();
+    const inputOpaque={payload:{secret:'retained'}};
+    /** @type {Record<string,any[]>} */ const rows={'/test/target':[],'/test/source':[]};
+    /** @type {any} */ let callbackSnapshot;
+    const result=bound.batch.plan({rows,generate:()=>assert.fail('unexpected generation'),created:(/** @type {any} */ {path,record})=>{if(path==='/test/source'){callbackSnapshot=record;record.opaque.payload.secret='callback mutation';}},operations:[
+        {path:'/test/target',method:'create',params:{record:{id:'1',token}}},
+        {path:'/test/source',method:'create',params:{record:{id:'1',token:equivalent,opaque:inputOpaque,label:'linked'}}},
+        {path:'/test/source',method:'update',params:{key:{kind:'primary',values:{id:'1'}},changes:{label:'updated'}}},
+        {path:'/test/source',method:'create',params:{record:{id:'2',token:null,opaque:{payload:{secret:'null-relation'}},label:'nullable'}}},
+        {path:'/test/source',method:'read',params:{key:{kind:'primary',values:{id:'1'}}}},
+    ]});
+    assert.equal(result.results[4].record.label,'updated');
+    assert.equal(result.results[4].record.opaque.payload.secret,'retained');
+    assert.equal(callbackSnapshot.opaque.payload.secret,'callback mutation');
+    assert.equal(rows['/test/source'][0].record.opaque.payload.secret,'retained');
+    assert.notEqual(rows['/test/source'][0].record.opaque,inputOpaque);
+    assert.equal(rows['/test/source'].length,2);
+
+    const missing=token.slice(); missing[0]=9;
+    assert.throws(()=>bound.batch.plan({rows:{'/test/target':rows['/test/target'].map(row=>({record:row.record,key:row.key})),'/test/source':[]},generate:()=>undefined,operations:[
+        {path:'/test/source',method:'create',params:{record:{id:'9',token:missing,opaque:{payload:{}},label:'orphan'}}},
+    ]}),{code:'RELATION'});
+});
