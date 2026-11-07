@@ -4,9 +4,13 @@ The relations row states normative host-authority policy. Other rows describe
 executable adapter facilities for consumer selection, not backward-compatibility
 obligations or a requirement to build a broad verification matrix.
 
-DEM defines logical behavior. Adapters use native facilities or reversible software
-realizations to maximize shared functionality. DEM-RDB has one relational
-projection, with table and column names derived directly from the Effective DEM.
+DEM defines logical capabilities and semantics, but does not guarantee their
+availability in every storage environment. An adapter implements what it can
+support correctly, using native facilities or software realization where justified.
+It explicitly rejects unsupported requirements and must not silently weaken
+supported semantics or corrupt data. Emulating missing capabilities merely for
+cross-platform compatibility is not required. DEM-RDB has one relational projection,
+with table and column names derived directly from the Effective DEM.
 
 | Capability | IndexedDB | RDB (SQLite / PostgreSQL / MariaDB) |
 | --- | --- | --- |

@@ -11,8 +11,8 @@ model without requiring plugin authors to select physical storage.
 Plugin authors own fragments and code operating on their entities. Host integrators
 select entities, resolve namespace collisions and dependencies, choose identity
 profiles, storage implementations and applicable guarantees. DEM runs in Node.js
-and browsers; adapters implement data semantics and CRUD+List with native or
-software mechanisms.
+and browsers. Adapters implement the logical capabilities they can support
+correctly, using native facilities or software realization where justified.
 
 DEM's design is governed by its shared-schema purpose and TeqFW conventions.
 Runtime components use [TeqFW DI](https://github.com/teqfw/di/blob/main/README.md)
@@ -28,7 +28,9 @@ The Isomorphic Core supplies a common language for frequently used structures,
 types, constraints, relationships and CRUD+List. Isomorphism concerns shared
 application semantics; physical representations, capabilities and operational
 guarantees may differ. It promises neither universal data portability nor data
-synchronization.
+synchronization. DEM does not guarantee that every capability is available in every
+storage environment. Adapters reject unsupported requirements explicitly; they need
+not emulate missing capabilities merely for cross-platform compatibility.
 
 Platform Extensions are accepted product direction: platform-specific types,
 constraints, indexes and other modeling capabilities can make an entity usable
@@ -184,6 +186,9 @@ npm pack --dry-run
 teqfw-platform .
 teqfw-esm-validator . --profile base
 ```
+
+`npm run verify` runs ESM validation and Node tests. `npm run typecheck` is a
+separate optional check; `npm run test:browser` runs the browser checks.
 
 Tests cover logical composition, acquisition, exact normalization, independent
 canonical/hash fixtures and a real installed archive. CI performs full Node
