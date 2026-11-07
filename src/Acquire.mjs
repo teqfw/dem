@@ -48,7 +48,7 @@ export default class Acquire {
             catch (error) {
                 fail('DEM_DISCOVERY', null, '', { error: String(error) });
                 check();
-                return { schemas: [] };
+                return { schemas: [], trustedPackages: [] };
             }
             const names = new Set();
             for (const record of records) {
@@ -64,7 +64,7 @@ export default class Acquire {
             if (!host)
                 fail('DEM_DISCOVERY', null, '', { hostRoot });
             check();
-            /** @type {{schemas:TeqFw_Dem_Envelope[],map?:TeqFw_Dem_Envelope}} */ const result = { schemas: [] };
+            /** @type {{schemas:TeqFw_Dem_Envelope[],trustedPackages:string[],map?:TeqFw_Dem_Envelope}} */ const result = { schemas: [], trustedPackages: [...names].filter(name => name === '@teqfw/dem' || name.startsWith('@teqfw/dem-')).sort() };
             for (const record of [...records].sort((a, b) => String(a.packageJson.name) < String(b.packageJson.name) ? -1 : 1)) {
                 const name = String(record.packageJson.name), selected = !input.packageNames || input.packageNames.includes(name), isHost = record === host;
                 if (!selected && !isHost)

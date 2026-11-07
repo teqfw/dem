@@ -1,5 +1,9 @@
 # Release Notes
 
+## Unreleased
+
+- Add the ordinary DEM model-history schema and reserve `/dem/` for trusted DEM-family declarations.
+
 ## 0.3.0 — 2026-11-02
 
 - Add per-compilation entity selection so one acquired declaration set can produce

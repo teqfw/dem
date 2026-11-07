@@ -70,6 +70,16 @@ test('Format 1 and mixed schema descriptors are rejected explicitly', async () =
     ]}, 'DEM_FORMAT', '/$format');
 });
 
+test('the DEM namespace requires trusted package-registry provenance', async () => {
+    const infrastructure=envelope({$format:2,$namespace:'/dem/',snapshot:{attributes:[identity()]}},'@teqfw/dem');
+    await rejects({schemas:[infrastructure]},'DEM_PATH');
+    const compiled=await compiler.exec({schemas:[infrastructure],trustedPackages:['@teqfw/dem']});
+    assert.ok(compiled.model.entities['/dem/snapshot']);
+    await rejects({schemas:[envelope(infrastructure.document,'@example/application')],trustedPackages:['@example/application']},'DEM_PATH');
+    const mapped=envelope({$format:2,$namespace:'/app/',item:{attributes:[identity()]}},'@example/application');
+    await rejects({schemas:[mapped],trustedPackages:['@example/application'],map:mapEnvelope({$format:1,sources:{'@example/application':{rename:{'/app/':'/dem/'}}}})},'DEM_PATH');
+});
+
 test('missing and malformed namespaces and noncanonical declaration keys fail', async () => {
     await rejects({schemas: [envelope({$format: 2, item: {attributes: [identity()]}})]}, 'DEM_FORMAT', '/$namespace');
     for (const namespace of ['app/', '/app', '/app//team/', '/App/team/', '/app/team_name/', '/'])

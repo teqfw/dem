@@ -2,9 +2,9 @@
 /** Host-owned RDB configuration initialized with the compiled model and connection. */
 export class Configuration {
     constructor() {
-        /** @type {{model: any, knex: any} | undefined} */
+        /** @type {{model: any} | undefined} */
         let options;
-        /** @param {{model: any, knex: any}} value */
+        /** @param {{model: any}} value */
         this.set = value => { options = value; };
         this.get = async () => {
             if (!options) throw new Error('Host is not configured.');

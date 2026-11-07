@@ -17,7 +17,7 @@ export default class Decode {
          */
         this.exec = function (input) {
             /** @type {TeqFw_Dem_Work} */
-            const work = { schemas: [], map: { sources: {}, identityProfiles: {} }, mapSource: null, selectionProvided: false, selectionInput: undefined, diagnostics: [], entities: {}, packages: [], provenance: { entities: {}, map: null, pathMappings: [], bindings: [] } };
+            const work = { schemas: [], trustedPackages: [], map: { sources: {}, identityProfiles: {} }, mapSource: null, selectionProvided: false, selectionInput: undefined, diagnostics: [], entities: {}, packages: [], provenance: { entities: {}, map: null, pathMappings: [], bindings: [] } };
             /**
              * @param {string} code
              * @param {TeqFw_Dem_SourceNullable} source
@@ -89,6 +89,8 @@ export default class Decode {
             const escape = function (/** @type {string} */ k) {
                 return k.replace(/~/g, '~0').replace(/\//g, '~1');
             };
+            /** @param {string} name @returns {boolean} */
+            const trustedPackage = function (name) { return (name === '@teqfw/dem' || name.startsWith('@teqfw/dem-')) && work.trustedPackages.includes(name); };
             try {
                 input = JSON.parse(data.serialize(input));
             }
@@ -96,10 +98,12 @@ export default class Decode {
                 fail('DEM_INPUT', null, '');
                 return work;
             }
-            if (!data.isObject(input) || Object.keys(input).some(k => !['schemas', 'map', 'selection'].includes(k)) || !Array.isArray(input.schemas)) {
+            if (!data.isObject(input) || Object.keys(input).some(k => !['schemas', 'map', 'selection', 'trustedPackages'].includes(k)) || !Array.isArray(input.schemas)
+                || Object.hasOwn(input, 'trustedPackages') && (!Array.isArray(input.trustedPackages) || input.trustedPackages.some(n => typeof n !== 'string' || !n) || new Set(input.trustedPackages).size !== input.trustedPackages.length)) {
                 fail('DEM_INPUT', null, '');
                 return work;
             }
+            work.trustedPackages = input.trustedPackages ?? [];
             work.selectionProvided = Object.hasOwn(input, 'selection');
             work.selectionInput = input.selection;
             const names = new Set();
@@ -179,7 +183,7 @@ export default class Decode {
                             fail('DEM_PATH', source, pointer);
                             continue;
                         }
-                        if (path.isReserved(address)) {
+                        if (path.isReserved(address) && !trustedPackage(source.packageName)) {
                             fail('DEM_PATH', source, pointer, {reason: 'reserved-namespace', path: address});
                             continue;
                         }

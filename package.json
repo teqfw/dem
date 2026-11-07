@@ -5,6 +5,7 @@
   "type": "module",
   "files": [
     "conformance/",
+    "etc/",
     "skills/",
     "src/",
     "CHANGELOG.md",
@@ -46,6 +47,7 @@
     ".": {
       "types": "./types.d.ts"
     },
+    "./etc/dem-schema.json": "./etc/dem-schema.json",
     "./conformance": "./conformance/Repository.mjs",
     "./conformance/values": "./conformance/Values.mjs",
     "./conformance/application": "./conformance/application/Workflow.mjs",

@@ -6,7 +6,6 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
 import Container from '@teqfw/di';
-import knex from 'knex';
 import {serverMap, serverSelection, withHostFixture} from '../fixtures/HostComposition.mjs';
 
 const serverPaths = [
@@ -16,27 +15,24 @@ const serverPaths = [
 ];
 
 /** @param {string} path */
-const sqliteTable = path => 'dem_' + Buffer.from(path, 'utf8').toString('hex');
+const sqliteTable = path => path.slice(1).replaceAll('/', '_');
 
 test('a Node Host projects its compiled server model to SQLite and performs repository CRUD', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'dem-host-sqlite-'));
-    /** @type {import('knex').Knex | undefined} */ let db;
+    /** @type {TeqFw_Dem_RDb_Connection} */ let connection;
+    /** @type {import('knex').Knex} */ let db;
     /** @type {any} */ let backend;
     /** @type {any} */ let provider;
     try {
-        const database = knex({
-            client: 'sqlite3',
-            connection: {filename: join(directory, 'host.sqlite')},
-            useNullAsDefault: true,
-            pool: {min: 1, max: 1},
-        });
-        db = database;
-
         await withHostFixture(async hostRoot => {
             const container = new Container({preprocessors: ['Host_Sqlite__Preprocessor$']});
             container.addNamespaceRoot('TeqFw_Dem_', fileURLToPath(new URL('../../src', import.meta.url)), '.mjs');
             container.addNamespaceRoot('TeqFw_Dem_RDb_', fileURLToPath(new URL('../../node_modules/@teqfw/dem-rdb/src', import.meta.url)), '.mjs');
             container.addNamespaceRoot('Host_', fileURLToPath(new URL('../fixtures', import.meta.url)), '.mjs');
+
+            connection = await container.get('TeqFw_Dem_RDb_Connection$');
+            await connection.init({client:'sqlite3',connection:{filename:join(directory,'host.sqlite')},useNullAsDefault:true,pool:{min:1,max:1}});
+            db = connection.getClient();
 
             const acquire = await container.get('TeqFw_Dem_Acquire$');
             const acquired = await acquire.exec({hostRoot});
@@ -60,17 +56,17 @@ test('a Node Host projects its compiled server model to SQLite and performs repo
             }
 
             const configuration = await container.get('Host_Sqlite__Configuration$');
-            configuration.set({model, knex: database});
+            configuration.set({model});
             const adapter = await container.get('TeqFw_Dem_RDb_Adapter$');
-            backend = await adapter.open({model, knex: database});
+            backend = await adapter.open({model, connection});
             await backend.createSchema();
 
-            const tables = await database('sqlite_master').select('name').where({type: 'table'}).orderBy('name');
+            const tables = await db('sqlite_master').select('name').where({type: 'table'}).whereNot('name','like','sqlite_%').orderBy('name');
             assert.deepEqual(tables.map(row => row.name), serverPaths.map(sqliteTable).sort());
 
             const orderTable = sqliteTable('/models/server/order');
             const customerTable = sqliteTable('/models/server/customer');
-            const relations = await database.raw(
+            const relations = await db.raw(
                 'SELECT "table", "from", "to" FROM pragma_foreign_key_list(?)',
                 [orderTable],
             );
@@ -119,6 +115,6 @@ test('a Node Host projects its compiled server model to SQLite and performs repo
     }
     finally {
         try { try { await provider?.close(); } finally { await backend?.close(); } }
-        finally { try { await db?.destroy(); } finally { await rm(directory, {recursive: true, force: true}); } }
+        finally { try { await connection?.disconnect(); } finally { await rm(directory, {recursive: true, force: true}); } }
     }
 });

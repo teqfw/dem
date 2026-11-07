@@ -15,7 +15,7 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.name, '@teqfw/dem');
     assert.equal(manifest.type, 'module');
     assert.equal(manifest.license, 'Apache-2.0');
-    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './conformance':'./conformance/Repository.mjs', './conformance/values':'./conformance/Values.mjs', './conformance/application':'./conformance/application/Workflow.mjs', './conformance/application/schema':'./conformance/application/Schema.mjs'});
+    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './etc/dem-schema.json':'./etc/dem-schema.json', './conformance':'./conformance/Repository.mjs', './conformance/values':'./conformance/Values.mjs', './conformance/application':'./conformance/application/Workflow.mjs', './conformance/application/schema':'./conformance/application/Schema.mjs'});
     assert.equal(manifest.types, 'types.d.ts');
     assert.ok(manifest.dependencies['@teqfw/cli']);
     assert.equal(manifest.teqfw.namespaces, undefined);
@@ -35,7 +35,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             '--cache', join(consumer, 'cache'),
         ], {cwd: root, encoding: 'utf8'}))[0];
         const expected = [
-            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'conformance/Repository.mjs', 'conformance/Values.mjs', 'conformance/application/Workflow.mjs', 'conformance/application/Schema.mjs',
+            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'etc/dem-schema.json', 'conformance/Repository.mjs', 'conformance/Values.mjs', 'conformance/application/Workflow.mjs', 'conformance/application/Schema.mjs',
             ...readdirSync(join(root, 'skills'), {recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()).map(entry=>'skills/'+join(entry.parentPath,entry.name).slice(join(root,'skills').length+1)),
             'types.d.ts',
             ...readdirSync(join(root, 'src'), {recursive: true, withFileTypes: true})

@@ -18,7 +18,7 @@ test('real CLI package-registry mechanism acquires default and overridden paths 
     const onlyHost=await acquire.exec({hostRoot:root,packageNames:['host']});assert.equal(onlyHost.schemas.length,0);assert.ok(onlyHost.map);
 }));
 test('missing implicit files are allowed, but explicit missing files and directories fail',()=>fixture(async root=>{
-    assert.deepEqual(await acquire.exec({hostRoot:root}),{schemas:[]});
+    assert.deepEqual(await acquire.exec({hostRoot:root}),{schemas:[],trustedPackages:[]});
     await write(root,'node_modules/plugin/package.json',{name:'plugin',version:'1.0.0',teqfw:{dem:{schema:'missing.json'}}});await rejects(root,'DEM_FILE');
     await mkdir(join(root,'node_modules/plugin/missing.json'));await rejects(root,'DEM_FILE');
 }));

@@ -1,0 +1,30 @@
+{
+  "$format": 2,
+  "$namespace": "/dem/",
+  "snapshot": {
+    "attributes": [
+      {"name": "id", "type": {"name": "identity"}, "generation": true},
+      {"name": "canonical", "type": {"name": "text"}},
+      {"name": "fingerprint", "type": {"name": "string", "params": {"length": 80}}},
+      {"name": "canonicalization", "type": {"name": "string", "params": {"length": 80}}},
+      {"name": "provenance", "type": {"name": "json"}, "nullable": true}
+    ]
+  },
+  "application": {
+    "attributes": [
+      {"name": "id", "type": {"name": "identity"}, "generation": true},
+      {"name": "scope", "type": {"name": "text"}},
+      {"name": "source_id", "type": {"name": "ref"}, "nullable": true},
+      {"name": "target_id", "type": {"name": "ref"}},
+      {"name": "outcome", "type": {"name": "enum", "params": {"values": ["started", "confirmed", "failed"]}}},
+      {"name": "evidence", "type": {"name": "text"}, "nullable": true}
+    ],
+    "relations": {
+      "source_snapshot": {"attributes": ["source_id"], "target": {"path": "/dem/snapshot", "attributes": ["id"]}},
+      "target_snapshot": {"attributes": ["target_id"], "target": {"path": "/dem/snapshot", "attributes": ["id"]}}
+    },
+    "indexes": {
+      "by_scope": {"attributes": ["scope"]}
+    }
+  }
+}

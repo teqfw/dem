@@ -38,7 +38,7 @@ export interface DemWorkingState extends TeqFw_Dem_WorkingState {}
 declare global {
     type TeqFw_Dem_Acquire = import("./src/Acquire.mjs").default;
     type TeqFw_Dem_Acquire__Class = typeof import("./src/Acquire.mjs").default;
-    type TeqFw_Dem_AcquisitionResult = {schemas:TeqFw_Dem_Envelope[];map?:TeqFw_Dem_Envelope};
+    type TeqFw_Dem_AcquisitionResult = {schemas:TeqFw_Dem_Envelope[];trustedPackages:ReadonlyArray<string>;map?:TeqFw_Dem_Envelope};
     type TeqFw_Dem_Api_Repository = import("./src/Api/Repository.mjs").default;
     type TeqFw_Dem_Api_RepositoryBatch = import("./src/Api/RepositoryBatch.mjs").default;
     type TeqFw_Dem_Api_RepositoryBatch__Class = typeof import("./src/Api/RepositoryBatch.mjs").default;
@@ -54,7 +54,7 @@ declare global {
     type TeqFw_Dem_CompilationError = {name:string;message:string;diagnostics:TeqFw_Dem_Diagnostic[];warnings:TeqFw_Dem_Diagnostic[]};
     type TeqFw_Dem_CompilationResult = {model:TeqFw_Dem_Model;canonical:TeqFw_Dem_Canonical;fingerprint:string;provenance:TeqFw_Dem_Provenance;graph:TeqFw_Dem_Graph;warnings:TeqFw_Dem_Diagnostic[]};
     type TeqFw_Dem_Compile = import("./src/Compile.mjs").default;
-    type TeqFw_Dem_CompileInput = {schemas:ReadonlyArray<TeqFw_Dem_Envelope>;map?:TeqFw_Dem_Envelope;selection?:ReadonlyArray<TeqFw_Dem_EntitySelector>};
+    type TeqFw_Dem_CompileInput = {schemas:ReadonlyArray<TeqFw_Dem_Envelope>;map?:TeqFw_Dem_Envelope;selection?:ReadonlyArray<TeqFw_Dem_EntitySelector>;trustedPackages?:ReadonlyArray<string>};
     type TeqFw_Dem_Compile_A_Canonical = import("./src/Compile/A/Canonical.mjs").default;
     type TeqFw_Dem_Compile_A_Canonical__Class = typeof import("./src/Compile/A/Canonical.mjs").default;
     type TeqFw_Dem_Compile_A_Compose = import("./src/Compile/A/Compose.mjs").default;
@@ -140,6 +140,6 @@ declare global {
     type TeqFw_Dem_Util_Data = import("./src/Util/Data.mjs").default;
     type TeqFw_Dem_Util_Data__Class = typeof import("./src/Util/Data.mjs").default;
     type TeqFw_Dem_Work = TeqFw_Dem_WorkingState;
-    type TeqFw_Dem_WorkingState = {schemas:TeqFw_Dem_SchemaWork[];map:{sources:Record<string,any>;identityProfiles:Record<string,any>};mapSource:TeqFw_Dem_Source|null;selectionProvided:boolean;selectionInput:unknown;diagnostics:TeqFw_Dem_Diagnostic[];entities:Record<string,TeqFw_Dem_EntityWork>;packages:string[];provenance:TeqFw_Dem_Provenance};
+    type TeqFw_Dem_WorkingState = {schemas:TeqFw_Dem_SchemaWork[];trustedPackages:string[];map:{sources:Record<string,any>;identityProfiles:Record<string,any>};mapSource:TeqFw_Dem_Source|null;selectionProvided:boolean;selectionInput:unknown;diagnostics:TeqFw_Dem_Diagnostic[];entities:Record<string,TeqFw_Dem_EntityWork>;packages:string[];provenance:TeqFw_Dem_Provenance};
 }
 export {};

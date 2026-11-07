@@ -151,7 +151,8 @@ export default class Compose {
                         fail('DEM_PATH', schema.source, node.pointer, {reason: 'invalid-effective-path', originalPath: original, effectivePath: effective});
                         continue;
                     }
-                    if (path.isReserved(effective)) {
+                    const trustedPackage=(schema.source.packageName === '@teqfw/dem' || schema.source.packageName.startsWith('@teqfw/dem-')) && work.trustedPackages.includes(schema.source.packageName);
+                    if (path.isReserved(effective) && !trustedPackage) {
                         fail('DEM_PATH', schema.source, node.pointer, {
                             reason: 'reserved-effective-path',
                             originalPath: original,

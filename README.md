@@ -53,6 +53,15 @@ adapters supply storage. See the [implementation status](skills/teqfw-dem/refere
 and [extension composition](skills/teqfw-dem/references/target-api.md#extension-composition)
 for supported behavior and limitations.
 
+DEM owns the ordinary infrastructure descriptors in `etc/dem-schema.json`,
+including `/dem/snapshot` and `/dem/application` for canonical model history. A
+host composes these entities through normal acquisition and selection with every
+model stored in a participating backend. They are never inserted by the compiler.
+Acquisition returns `trustedPackages` from the package registry; pass that value
+to compilation when composing the DEM family schema so package names alone do not
+grant access to reserved `/dem/` paths. The compiler does not plan or execute
+migrations.
+
 ## Compile through DI
 
 Register namespace roots before resolving components. The package root exports
