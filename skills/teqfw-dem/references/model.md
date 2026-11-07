@@ -49,6 +49,14 @@ Ordinary type parameters constrain values, independently of physical representat
 
 ## Paths and composition
 
+Design namespaces around meaningful domain boundaries. Related entities should
+generally share a domain namespace; avoid repeating that domain in their names.
+For example, prefer `/pde/gate/desk/key` and `/pde/gate/desk/route` to
+`/pde/gate/deskkey` and `/pde/gate/deskroute`. Add levels when they convey
+meaning, avoiding unnecessary hierarchy. This is design guidance, not a compiler
+validation rule or a fixed-depth requirement. Source ownership and host mapping
+remain independent.
+
 Packages are logical directories, entities are logical files, and namespace is a
 package path. Segments match `[a-z][a-z0-9]*`; `/` is the separator.
 Underscores and repeated separators are invalid. Absolute paths start with `/`.

@@ -102,6 +102,7 @@ separators are invalid. Package addresses
 end with `/`; entity addresses do not. Package directories merge, entities never
 merge. Local references preserve their original dependencies through path remapping.
 External entity/attribute contracts used by selected entities require explicit host binding.
+For namespace design guidance, see [Paths and composition](skills/teqfw-dem/references/model.md#paths-and-composition).
 
 The fingerprint is `dem-sha256-1:` plus a SHA-256 digest of canonical logical JSON.
 It excludes comments, origins, empty packages, assembly steps and attribute

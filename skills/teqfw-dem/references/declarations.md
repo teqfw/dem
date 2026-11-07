@@ -7,6 +7,8 @@ Schema descriptors require `$format: 2` and a canonical absolute directory
 are rejected and no legacy compatibility mode is provided. Host maps are a
 separate contract and continue to use `$format: 1`.
 
+For semantic grouping and naming guidance, see [Paths and composition](model.md#paths-and-composition).
+
 Entity and explicit package-node keys are relative to `$namespace`; package keys
 end with `/`, entity keys do not. Each path segment matches `[a-z][a-z0-9]*`.
 Reject absolute keys, empty or repeated segments, dot segments, underscores,
