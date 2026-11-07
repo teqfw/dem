@@ -241,13 +241,10 @@ input to both hosts. Exports are `@teqfw/dem/conformance/application` and
 `@teqfw/dem/conformance/application/schema`. These are example artifacts, not a new
 repository API or an application framework.
 
-DEM-RDB test/compare/application/Node.mjs and DEM-IDB
-test/browser/application/Browser.mjs are the environment-specific Composition Roots.
-They compile, configure and initialize actual storage, map the provider/configuration
-contracts through DI preprocessing, resolve the unchanged application and dispose
-resources. Neither root uses DI test substitution. DEM-RDB test:application checks
-identical module bytes, models/fingerprints and complete results against real Chrome
-IndexedDB; no identifier rewriting is performed. See the adapter READMEs for commands.
+The published Workflow and Schema provide an unchanged-consumer example. They are
+not a cross-store test harness. Package integration and browser tests exercise the
+adapter contracts documented by each package; see the adapter READMEs for current
+storage setup and verification commands.
 
 ## Core scope and host-approved deviations
 

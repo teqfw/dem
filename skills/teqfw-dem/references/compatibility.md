@@ -5,50 +5,37 @@ executable adapter facilities for consumer selection, not backward-compatibility
 obligations or a requirement to build a broad verification matrix.
 
 DEM defines logical behavior. Adapters use native facilities or reversible software
-realizations to maximize shared functionality. RDB's explicit `projection:'portable'`
-mode provides the broadest common surface; `native` remains its default and retains
-existing physical layouts. These modes are separate layouts, not interchangeable
-views of existing tables.
+realizations to maximize shared functionality. DEM-RDB has one relational
+projection, with table and column names derived directly from the Effective DEM.
 
-| Capability | IndexedDB | RDB portable (SQLite / PostgreSQL / MariaDB) | RDB native |
-| --- | --- | --- | --- |
-| All core DEM values | Structured logical values | Per-attribute native columns plus reversible codecs | Native columns plus reversible codecs |
-| Exact integers and decimals | Canonical strings | Native numeric where lossless, text/binary fallback | Same for ordinary values |
-| Integer identities and refs | Persistent exact counters | Persistent exact counters and textual values | Signed 64-bit SQLite/PG; unsigned 64-bit MariaDB |
-| Long/composite/structured logical keys | Software checks | Software checks; private UUID row key | Physical key and index limits apply |
-| Valid scalar strings including NUL | Yes | JSON-encoded textual scalars | PostgreSQL native text rejects NUL |
-| JSON / binary / dense, bit, sparse vectors | Yes | Yes | Yes, MariaDB indexed payload limited to 512 bytes |
-| Null/default/key semantics | DEM normalization and checks | DEM normalization and checks | DEM normalization plus native constraints |
-| Relations | Checked unless the host explicitly accepts descriptive relations | Checked unless the host explicitly accepts descriptive relations | Checked native constraints |
-| All-core comparison and ordering | Shared evaluator | Shared evaluator | Native eligible cases; shared fallback |
-| Atomic command batches | One IDB data transaction | One SQL transaction | One outer SQL transaction |
-| Schema history and additive evolution | Versioned snapshots | Versioned snapshots | Initial creation only |
-| Query optimization | Eligible key/equality index lookup; safe fallback | Scope lock and logical snapshot evaluation | Native eligible queries; logical fallback |
+| Capability | IndexedDB | RDB (SQLite / PostgreSQL / MariaDB) |
+| --- | --- | --- |
+| Core values | Structured logical values | Declared columns with reversible codecs where supported |
+| Keys and constraints | Store and index limits apply | Physical key, index and identifier limits apply |
+| Relations | Checked unless the host explicitly accepts descriptive relations | Checked by SQL constraints |
+| Query behavior | DEM selection semantics | Engine-backed queries with logical fallback where needed |
+| Atomic command batches | One IDB data transaction | One SQL transaction |
+| Physical projection | Object stores and indexes | One ordinary table per DEM path; columns match attribute names |
 
 Enforce declared relations unless the host explicitly accepts relaxed integrity.
 An adapter default is not host acceptance. This is the required policy for code
 and tests; implementation drift must be corrected rather than preserved as a
 parallel contract. No generic DEM policy interface is specified. Data
-operations serialize conservatively in the portable profile; performance and native
-index coverage are not shared guarantees. Every physical engine still has storage,
-object-count, transaction and resource limits. No artificial native integer or index
-width restriction is imposed on portable logical keys. Large workloads can require
-substantial memory because software operations materialize logical records.
+operations use logical semantics; performance and index coverage are not shared
+guarantees. Every physical engine still has storage, object-count, transaction and
+resource limits. Large workloads can require substantial memory because software
+operations materialize logical records.
 
 Binary compares decoded bytes. Dense/bit vectors compare numeric elements; sparse
 vectors compare conceptual dense values with absent entries zero. JSON compares
 canonical serialization by Unicode scalar sequence, not domain numeric or similarity
 semantics. All core types support deterministic ordering, including keyless records.
 JSON/vector negative zero canonicalizes to zero. Lone UTF16 surrogates are rejected
-by DEM itself; valid Unicode scalars and NUL are covered by the portable workload.
+by DEM itself; valid Unicode scalars and NUL are covered by the value workload.
 
-Structural evolution preserves removed physical data, supports additive tables,
-columns and logical defaults, and records complete model snapshots. Physical type
-changes requiring value migration reject. Hosts close stale repositories and reopen
-against the accepted model. MariaDB DDL is not transactional: schema updates require
-host quiescence; failed attempts clean up their additions where possible, while
-process interruption or failed cleanup can require operator repair. No online DDL
-atomicity is promised. Projection switching requires explicit host migration.
+History-managed relational storage records the confirmed initial model and rejects
+model mismatches. Automatic schema migration is not provided. Physical changes that
+require data migration need explicit host-directed work.
 
 The separate optional RepositoryBatch contract supports ordered existing CRUD/list
 commands with one commit and rollback on failure. Arbitrary async transaction
@@ -62,12 +49,9 @@ engine-specific transaction lifetimes or unchosen domain semantics.
 
 `@teqfw/dem/conformance` supplies strict repository checks. The `conformance/values`
 export supplies value, atomic, extended-representation and evolution transcripts.
-DEM-RDB `test:compare` compares them with real Chrome IndexedDB and enabled SQL
-engines. Engine tests separately cover failure injection, concurrency and native
-numeric limits. Passing these checks proves the covered scenarios, not every
-possible engine configuration or schema. Missing engine credentials are skips;
-report the scope actually executed. Use a cross-engine matrix only for a concrete
-integration requirement or defect, not as a routine gate for every change.
+DEM-RDB's integration suite exercises SQLite storage. Optional PostgreSQL and MariaDB
+suites require separately configured databases. Passing checks proves only the
+scenarios and engines they execute.
 
 ## Physical facilities consulted
 

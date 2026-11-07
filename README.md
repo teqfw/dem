@@ -217,8 +217,8 @@ workload and logical transcript for direct comparisons of real backends.
 ## Isomorphic data access
 
 The same compiled model and repository commands can be used with DEM-IDB in the
-browser and DEM-RDB in Node. RDB offers an explicit portable projection for broad
-logical key/value support and versioned structural evolution. See the published
+browser and DEM-RDB in Node. DEM-RDB uses one relational projection: each DEM path
+maps to a table and each declared attribute maps to a column. See the published
 [compatibility matrix](skills/teqfw-dem/references/compatibility.md) and
 [repository contract](skills/teqfw-dem/references/repository.md).
 
@@ -230,8 +230,7 @@ own persistence and generation. No implicit synchronization is supplied.
 
 A runnable unchanged application component is published at
 `conformance/application/Workflow.mjs`, with its logical schema alongside it. It
-depends only on DEM contracts. DEM-RDB's `test:application` compares its execution
-in SQLite and real browser IndexedDB through two host Composition Roots; see the
+depends only on DEM contracts. See the
 [application guidance](skills/teqfw-dem/references/repository.md#unchanged-application-example).
 
 ## Development direction
