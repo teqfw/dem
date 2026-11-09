@@ -20,7 +20,7 @@ import {createRequire} from 'node:module';
 import {dirname, join} from 'node:path';
 
 const require = createRequire(import.meta.url);
-const demRoot = dirname(dirname(require.resolve('@teqfw/dem/conformance')));
+const demRoot = dirname(dirname(require.resolve('@teqfw/dem/etc/dem-schema.json')));
 const container = new Container({
     namespaces: [{prefix: 'TeqFw_Dem_', target: join(demRoot, 'src'), defaultExt: '.mjs'}],
 });

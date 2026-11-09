@@ -86,7 +86,7 @@ import {createRequire} from 'node:module';
 import {dirname, join} from 'node:path';
 
 const require = createRequire(import.meta.url);
-const demRoot = dirname(dirname(require.resolve('@teqfw/dem/conformance')));
+const demRoot = dirname(dirname(require.resolve('@teqfw/dem/etc/dem-schema.json')));
 const container = new Container({
     namespaces: [{prefix: 'TeqFw_Dem_', target: join(demRoot, 'src'), defaultExt: '.mjs'}],
 });
@@ -155,8 +155,12 @@ Repository supports create/read/update/delete/list with explicit named parameter
 Single-record addressing uses complete primary or named unique keys. Logical
 normalization, filtering operators, ordering, nulls, pagination, results and errors
 are defined in [Portable entity access](skills/teqfw-dem/references/repository.md).
-No backend ships here. Future backends can import the reusable behavioral suite
-from `@teqfw/dem/conformance` and run it against real storage.
+No backend ships here. Adapter tests can resolve `TeqFw_Dem_Conformance_Repository$`
+through DI and run its behavioral suite against real storage. The shared
+`TeqFw_Dem_Conformance_Values$`, `TeqFw_Dem_Conformance_Atomic$`,
+`TeqFw_Dem_Conformance_Extended$` and `TeqFw_Dem_Conformance_Evolution$`
+components cover value portability, atomic batches, extended representations and
+schema evolution respectively.
 
 ## Acquire declarations in Node.js
 
@@ -227,7 +231,7 @@ Apache-2.0.
 Adapters can share exact in-memory selection behavior through
 `TeqFw_Dem_Repository_Select$` (`exec({entity, records, selection})`). The component
 normalizes detached records and applies DEM filters, ordering and pagination
-without persistence. `@teqfw/dem/conformance/values` supplies a common all-type
+without persistence. `TeqFw_Dem_Conformance_Values$` supplies a common all-type
 workload and logical transcript for direct comparisons of real backends.
 
 ## Isomorphic data access
@@ -244,9 +248,9 @@ returns {results} after one commit; failures roll back the batch. Existing CRUD/
 parameter/result shapes are retained. DEM owns logical planning, while adapters
 own persistence and generation. No implicit synchronization is supplied.
 
-A runnable unchanged application component is published at
-`conformance/application/Workflow.mjs`, with its logical schema alongside it. It
-depends only on DEM contracts. See the
+A runnable unchanged application is available through DI as
+`TeqFw_Dem_Conformance_Application_Workflow$`, with its schema at
+`TeqFw_Dem_Conformance_Application_Schema$`. It depends only on DEM contracts. See the
 [application guidance](skills/teqfw-dem/references/repository.md#unchanged-application-example).
 
 ## Development direction

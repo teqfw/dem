@@ -164,8 +164,8 @@ these signatures or promise equivalent cross-backend transaction lifetimes.
 
 ## Backend conformance
 
-Import `register` from `@teqfw/dem/conformance`. Pass node:test's test, strict assert
-and an async open({schema}) harness. Each open compiles the supplied schema, starts
+Resolve `TeqFw_Dem_Conformance_Repository$` through DI and call `register` with
+node:test's test, strict assert and an async open({schema}) harness. Each open compiles the supplied schema, starts
 an isolated empty real backend, and returns `{provider,selection,model,close}`.
 Selection is DEM's Factory, model is the effective model, and close cleans storage.
 Tests cover results, keys, patches, normalization, constraints, ordering, null
@@ -174,6 +174,12 @@ persistence mock. Backend projects run this suite for their real implementations
 and extend it for supported ordinary types, generation/capacity limits, concurrent
 constraint races, capability rejection and failure injection. Passing DEM unit
 checks alone is not evidence of backend conformance.
+
+```js
+// container is configured by the test host; open creates a real isolated backend.
+const suite = await container.get('TeqFw_Dem_Conformance_Repository$');
+suite.register({test, assert, open});
+```
 
 ## Shared in-memory selection evaluation
 
@@ -184,7 +190,7 @@ or runtime-specific imports. Backends may use it when translating a selection to
 native operations would lose precision or change ordering. This component is not
 an in-memory repository engine and provides no persistence or transactions.
 
-`@teqfw/dem/conformance/values` publishes `schema`, host `map` and
+`TeqFw_Dem_Conformance_Values$` provides `schema`, host `map` and
 `exercise({provider, assert})`, a shared all-core-type workload returning a logical
 observation transcript. Run it against actual providers and compare transcripts to
 establish bounded cross-backend parity. It covers large texts/binary, nested JSON,
@@ -225,21 +231,21 @@ results. Patches preserve omitted values. The bound signatures are
 `validate({operations})` and `plan({operations, rows, generate, created?, enforceRelations?})`;
 planning itself remains synchronous and does not commit.
 
-The values conformance export also supplies atomic, extended-representation and
-evolution workloads (`exerciseAtomic`, `exerciseExtended`, `exerciseEvolution`).
+Resolve `TeqFw_Dem_Conformance_Atomic$`, `TeqFw_Dem_Conformance_Extended$` and
+`TeqFw_Dem_Conformance_Evolution$` for the atomic, extended-representation and
+evolution workloads. Each provides an `exercise` method; Atomic and Extended also
+provide `schema`, while Evolution provides `schemas()`.
 Evolution compares additive defaults, retained removed entities, stale providers,
 idempotent application and schema snapshots through adapter lifecycle APIs.
 
 ## Unchanged application example
 
-The published `conformance/application/Workflow.mjs` is a compact task-triage
-application component, resolved as `Demo_Workflow$` after the host registers its
-directory under `Demo_`. Its only injected tokens are RepositoryProvider and the
-Selection factory. exec({model}) uses a logical entity path and returns complete
-CRUD/list observations. The companion Schema module supplies the same compiler
-input to both hosts. Exports are `@teqfw/dem/conformance/application` and
-`@teqfw/dem/conformance/application/schema`. These are example artifacts, not a new
-repository API or an application framework.
+Resolve `TeqFw_Dem_Conformance_Application_Workflow$` as a compact task-triage
+application component. Its injected tokens are RepositoryProvider and the
+Selection factory. The host selects the provider via DI preprocessing. Its
+`exec({model})` uses a logical entity path and returns CRUD/list observations.
+Resolve `TeqFw_Dem_Conformance_Application_Schema$` and use its `source` as
+compiler input. These are example components, not a new repository API.
 
 The published Workflow and Schema provide an unchanged-consumer example. They are
 not a cross-store test harness. Package integration and browser tests exercise the

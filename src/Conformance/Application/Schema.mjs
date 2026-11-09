@@ -1,6 +1,13 @@
 // @ts-check
+/**
+ * @namespace TeqFw_Dem_Conformance_Application_Schema
+ * @description Shared conformance component.
+ */
+export default class Schema {
+ /** Create the component. */
+ constructor() {
 /** @description Shared logical input for the task-triage application example. */
-export const schema = {
+const schema = {
     $format: 2,
     $namespace: '/demo/',
     task: {attributes: [
@@ -12,4 +19,8 @@ export const schema = {
         {name: 'metadata', type: {name: 'json'}},
     ]},
 };
-export const source = {packageName: 'demo', filename: 'etc/dem-schema.json', document: schema};
+this.source = {packageName: 'demo', filename: 'etc/dem-schema.json', document: schema};
+
+this.schema = schema;
+ }
+}

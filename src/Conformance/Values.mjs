@@ -1,6 +1,13 @@
 // @ts-check
+/**
+ * @namespace TeqFw_Dem_Conformance_Values
+ * @description Shared conformance component.
+ */
+export default class Values {
+ /** Create the component. */
+ constructor() {
 /** Shared cross-backend value workload. No persistence or Node dependency is provided here. */
-export const schema = Object.freeze({$format:2,$namespace:'/portable/',
+const schema = Object.freeze({$format:2,$namespace:'/portable/',
     value:{attributes:[
         {name:'id',type:{name:'identity'},generation:true},
         {name:'code',type:{name:'string',params:{length:64}}},
@@ -26,13 +33,15 @@ export const schema = Object.freeze({$format:2,$namespace:'/portable/',
     proto:{attributes:[{name:'__proto__',type:{name:'identity'},generation:true},{name:'constructor',type:{name:'text'}}]},
     uuid:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},
 });
-export const map = Object.freeze({$format:1,identityProfiles:{'/portable/uuid':{id:{type:'uuid'}}}});
+const map = Object.freeze({$format:1,identityProfiles:{'/portable/uuid':{id:{type:'uuid'}}}});
 /**
  * Run identical operations in a real provider. Results contain no backend-specific generated UUID.
- * @param {{provider:any, assert:any}} env
+ * @param {object} deps
+ * @param {any} deps.provider
+ * @param {any} deps.assert
  * @returns {Promise<any>}
  */
-export async function exercise({provider,assert}) {
+this.exercise = async function ({provider,assert}) {
     const repo=await provider.get({path:'/portable/value'});
     const input={code:'first',wide:'18446744073709551615',amount:'9007199254740993.0001',precise:'0.'+'0'.repeat(49)+'1',
         text:'🌍'.repeat(2000)+' trailing z',flag:true,binary:'AQID'.repeat(2048),data:{zero:-0,nested:[1,null,{key:'value'}]},
@@ -95,112 +104,7 @@ export async function exercise({provider,assert}) {
     return {record,read,ordered,orderedText,filtered,sparseOrdered,updated,conflict,remaining:await repo.list({selection:{}}),largeRecords,largeConcurrent,prototypeRecord,keylessOrdered,keylessFiltered,vectorFiltered,binaryRange,vectorOrdered,jsonRange,vectorRange,uuidGenerated:true};
 }
 
-/** Common atomic workload; generation values are validated without assuming a sequence algorithm. */
-export const atomicSchema=Object.freeze({$format:2,$namespace:'/batch/',
-    account:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}},{name:'score',type:{name:'integer'},default:0}],uniqueKeys:{name:['name']}},
-    entry:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'account',type:{name:'ref'}},{name:'amount',type:{name:'decimal',params:{precision:20,scale:4}}}],relations:{account:{attributes:['account'],target:{path:'/batch/account',attributes:['id']}}}},
-});
-/** @param {{provider:any,assert:any}} env @returns {Promise<any>} */
-export async function exerciseAtomic({provider,assert}) {
-    const key={kind:'primary',values:{id:'1'}};
-    const initial=await provider.execute({operations:[
-        {path:'/batch/account',method:'create',params:{record:{id:'1',name:'a'}}},
-        {path:'/batch/entry',method:'create',params:{record:{id:'10',account:'1',amount:'1.25'}}},
-        {path:'/batch/account',method:'read',params:{key}},
-        {path:'/batch/account',method:'update',params:{key,changes:{score:5}}},
-        {path:'/batch/entry',method:'list',params:{selection:{}}},
-    ]});
-    assert.equal(initial.results[2].record.score,'0');assert.equal(initial.results[3].record.score,'5');
-    const account=await provider.get({path:'/batch/account'});
-    await assert.rejects(provider.execute({operations:[
-        {path:'/batch/account',method:'create',params:{record:{id:'2',name:'b'}}},
-        {path:'/batch/account',method:'create',params:{record:{id:'3',name:'a'}}},
-    ]}),{code:'CONFLICT'});
-    assert.deepEqual(await account.read({key:{kind:'primary',values:{id:'2'}}}),{record:null});
-    await assert.rejects(provider.execute({operations:[
-        {path:'/batch/account',method:'update',params:{key,changes:{name:'changed'}}},
-        {path:'/batch/entry',method:'create',params:{record:{id:'20',account:'999',amount:'2'}}},
-    ]}),{code:'RELATION'});
-    assert.equal((await account.read({key})).record.name,'a');
-    await assert.rejects(provider.execute({operations:[
-        {path:'/batch/account',method:'delete',params:{key}},
-    ]}),{code:'RELATION'});
-    await assert.rejects(provider.execute({operations:[]}),{code:'INVALID_INPUT'});
-    await assert.rejects(provider.execute({operations:[{path:'/batch/missing',method:'list',params:{selection:{}}}]}),{code:'NOT_FOUND'});
-    const operations=[{path:'/batch/account',method:'create',params:{record:{id:'50',name:'concurrent'}}}];
-    const competing=await Promise.allSettled([provider.execute({operations}),provider.execute({operations})]);
-    assert.equal(competing.filter(r=>r.status==='fulfilled').length,1);
-    assert.equal(competing.filter(r=>r.status==='rejected' && r.reason.code==='CONFLICT').length,1);
-    const before=await account.list({selection:{}});
-    const removed=await provider.execute({operations:[
-        {path:'/batch/entry',method:'delete',params:{key:{kind:'primary',values:{id:'10'}}}},
-        {path:'/batch/account',method:'delete',params:{key}},
-        {path:'/batch/account',method:'list',params:{selection:{}}},
-    ]});
-    return {initial,before,removed};
-}
 
-/** Values requiring software keys or reversible text beyond native SQL key/encoding bounds. */
-export const extendedSchema=Object.freeze({$format:2,$namespace:'/extended/',
-    key:{attributes:[{name:'tenant',type:{name:'text'}},{name:'token',type:{name:'text'}},{name:'payload',type:{name:'json'}}],primaryKey:['tenant','token'],uniqueKeys:{payload:['payload']},indexes:{tenant:{attributes:['tenant']}}},
-    id:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'owner',type:{name:'ref'},nullable:true}],relations:{owner:{attributes:['owner'],target:{path:'/extended/id',attributes:['id']}}}},
-    unicode:{attributes:[{name:'key',type:{name:'text'}},{name:'value',type:{name:'text'}}],primaryKey:['key']},
-});
-/** @param {{provider:any,assert:any}} env @returns {Promise<any>} */
-export async function exerciseExtended({provider,assert}) {
-    const repo=await provider.get({path:'/extended/key'});
-    const record={tenant:'tenant\0\ud7ff'+'🌍'.repeat(3000),token:'token'+'x'.repeat(10000),payload:{b:2,a:{name:'\ue000\0'}}};
-    await repo.create({record});
-    const read=await repo.read({key:{kind:'primary',values:{token:record.token,tenant:record.tenant}}});
-    assert.deepEqual(read,{record});
-    const unique=await repo.read({key:{kind:'unique',name:'payload',values:{payload:{a:{name:'\ue000\0'},b:2}}}});
-    assert.deepEqual(unique,{record});
-    await assert.rejects(repo.create({record}),{code:'CONFLICT'});
-    await assert.rejects(repo.create({record:{...record,token:'another'}}),{code:'CONFLICT'});
-    const ids=await provider.get({path:'/extended/id'}),huge='1'+'0'.repeat(100);
-    await ids.create({record:{id:huge,owner:null}});
-    const generated=await ids.create({record:{owner:huge}});
-    assert.equal(generated.record.id,(BigInt(huge)+1n).toString());
-    const unicode=await provider.get({path:'/extended/unicode'});
-    const expected=['','\0','\u0001','A','a','\ud7ff','\ue000','\ufffd','\u{10000}'];
-    for (const key of expected.slice().reverse()) await unicode.create({record:{key,value:'value:'+key}});
-    const ordered=await unicode.list({selection:{}});
-    assert.deepEqual(ordered.records.map((/** @type {any} */ row)=>row.key),expected);
-    await assert.rejects(unicode.create({record:{key:'\ud800',value:'invalid Unicode'}}),{code:'INVALID_INPUT'});
-    const scalarRead=await unicode.read({key:{kind:'primary',values:{key:'\ud7ff'}}});
-    assert.equal(scalarRead.record.value,'value:\ud7ff');
-    return {read,unique,generated,ordered,scalarRead,ids:await ids.list({selection:{}})};
-}
-
-/** @returns {Array<any>} */
-export function evolutionSchemas() {
-    const original=/** @type {any} */({$format:2,$namespace:'/evolution/',item:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},removed:{attributes:[{name:'value',type:{name:'text'}}]}});
-    const added=structuredClone(original);delete added.removed;
-    added.item.attributes.push(/** @type {any} */({name:'category',type:{name:'text'},default:'default'}));
-    added.item.indexes=/** @type {any} */({category:{attributes:['category']}});
-    return [original,added];
-}
-/**
- * open creates a backend in the same test-owned scope without initializing it.
- * The harness owns all connections and final cleanup.
- * @param {{open:(schema:any)=>Promise<any>,assert:any}} env
- * @returns {Promise<any>}
- */
-export async function exerciseEvolution({open,assert}) {
-    const schemas=evolutionSchemas(),backends=[];
-    try {
-        const first=await open(schemas[0]);backends.push(first);
-        assert.equal((await first.createSchema()).version,1);
-        const repo=await first.get({path:'/evolution/item'});
-        await repo.create({record:{name:'old'}});
-        assert.equal((await first.createSchema()).version,1);
-        const second=await open(schemas[1]);backends.push(second);
-        assert.equal((await second.createSchema()).version,2);
-        await assert.rejects(repo.list({selection:{}}),{code:'STORAGE'});
-        await assert.rejects(second.get({path:'/evolution/removed'}),{code:'NOT_FOUND'});
-        const upgraded=await (await second.get({path:'/evolution/item'})).list({selection:{where:{kind:'call',operator:'eq',args:[{kind:'attr',name:'category'},{kind:'value',value:'default'}]}}});
-        assert.equal(upgraded.records[0].name,'old');
-        const history=await second.getSchemaHistory();assert.equal(history.schemas.length,2);
-        return {upgraded,history};
-    } finally {for(const backend of backends)await backend.close();}
+this.schema = schema; this.map = map;
+ }
 }

@@ -1,6 +1,15 @@
 // @ts-check
+/**
+ * @namespace TeqFw_Dem_Conformance_Repository
+ * @description Shared conformance component.
+ */
+/** @typedef {(env: any) => Promise<void>} ConformanceBody */
+/** @typedef {(value: any) => boolean} ConformanceErrorPredicate */
+export default class Repository {
+ /** Create the component. */
+ constructor() {
 /** Backend-neutral behavioral requirements. The harness supplies test/assert and real storage setup. */
-export const schema = Object.freeze({
+const schema = Object.freeze({
     $format: 2,
     $namespace: '/contract/',
     item: {
@@ -26,17 +35,26 @@ export const schema = Object.freeze({
 /**
  * open must compile the supplied schema and return an empty isolated real backend.
  * Cleanup runs even after failures. No persistence implementation is supplied here.
- * @param {{test:(name:string,body:()=>Promise<void>)=>unknown,assert:any,open:(params:{schema:unknown})=>Promise<{provider:TeqFw_Dem_Api_RepositoryProvider,selection:TeqFw_Dem_Dto_Query_Selection__Factory,model:TeqFw_Dem_Model,close:()=>Promise<void>}>}} harness
+ * @param {object} deps
+ * @param {Function} deps.test
+ * @param {any} deps.assert
+ * @param {Function} deps.open
  */
-export function register({test,assert,open}) {
-    /** @param {string} name @param {(env:any)=>Promise<void>} body */
+this.register = function ({test,assert,open}) {
+    /**
+     * @param {string} name
+     * @param {ConformanceBody} body
+     */
     const check = function (name, body) {
         test(name,async function () {
             const env=await open({schema:structuredClone(schema)});
             try { await body(env); } finally { await env.close(); }
         });
     };
-    /** @param {string} code @returns {(error:any)=>boolean} */
+    /**
+     * @param {string} code
+     * @returns {ConformanceErrorPredicate}
+     */
     const error = function (code) { return value=>value instanceof Error && value.name === 'DemRepositoryError' && /** @type {TeqFw_Dem_RepositoryError} */(value).code === code; };
     check('repository: resolution and absent implementation paths',async({provider})=>{
         await assert.rejects(provider.get({path:'/contract/missing'}),error('NOT_FOUND'));
@@ -83,12 +101,21 @@ export function register({test,assert,open}) {
         const repo=await provider.get({path:'/contract/item'});
         const entity=model.entities['/contract/item'];
         for(const record of [{id:'1',code:'a',group:'a',rank:10,note:'z'},{id:'2',code:'b',group:'b',rank:2},{id:'3',code:'c',group:'c',rank:2,note:'a'}]) await repo.create({record});
+        /**
+         * @param {any} input
+         * @returns {Promise<any>}
+         */
         const list=async(/** @type {any} */ input)=> (await repo.list({selection:selection.create({entity,selection:input})})).records;
         const orderBy=[{attribute:'rank',direction:'asc',nulls:'last'}];
         assert.deepEqual((await list({orderBy})).map((/** @type {TeqFw_Dem_Record} */ r)=>r.code),['b','c','a']);
         assert.deepEqual((await list({orderBy,offset:1,limit:1})).map((/** @type {TeqFw_Dem_Record} */ r)=>r.code),['c']);
         assert.deepEqual(await list({limit:0}),[]);
         assert.deepEqual(await list({offset:100}),[]);
+        /**
+         * @param {string} operator
+         * @param {unknown} value
+         * @returns {object}
+         */
         const compare=(/** @type {string} */ operator,/** @type {unknown} */ value)=>({kind:'call',operator,args:[{kind:'attr',name:'note'},{kind:'value',value}]});
         assert.deepEqual((await list({where:compare('ne','z')})).map((/** @type {TeqFw_Dem_Record} */ r)=>r.code),['c']);
         assert.deepEqual(await list({where:compare('eq',null)}),[]);
@@ -100,7 +127,16 @@ export function register({test,assert,open}) {
     check('repository: all scalar operators, boolean trees and Unicode scalar ordering',async({provider,selection,model})=>{
         const repo=await provider.get({path:'/contract/item'}), entity=model.entities['/contract/item'];
         for(const [rank,note] of [[1,'A'],[2,'a'],[10,'\uE000'],[20,'🌍']]) await repo.create({record:{id:String(rank),code:String(rank),group:String(rank),rank,note}});
+        /**
+         * @param {any} input
+         * @returns {Promise<any>}
+         */
         const query=async(/** @type {any} */ input)=> (await repo.list({selection:selection.create({entity,selection:input})})).records;
+        /**
+         * @param {string} operator
+         * @param {unknown} value
+         * @returns {object}
+         */
         const compare=(/** @type {string} */ operator,/** @type {unknown} */ value)=>({kind:'call',operator,args:[{kind:'attr',name:'rank'},{kind:'value',value}]});
         for(const [operator,codes] of [['eq',['2']],['ne',['1','10','20']],['lt',['1']],['lte',['1','2']],['gt',['10','20']],['gte',['2','10','20']]]) {
             assert.deepEqual((await query({where:compare(/** @type {string} */(operator),2)})).map((/** @type {any} */r)=>r.code),codes);
@@ -151,4 +187,8 @@ export function register({test,assert,open}) {
         assert.deepEqual(await repo.list({selection:selection.create({entity:model.entities['/contract/keyless'],selection:{}})}),{records:[{label:'a'},{label:'a'},{label:'z'}]});
         await assert.rejects(repo.read({key:{kind:'primary',values:{label:'a'}}}),error('UNSUPPORTED'));
     });
+}
+
+this.schema = schema;
+ }
 }

@@ -51,7 +51,7 @@ engine-specific transaction lifetimes or unchosen domain semantics.
 
 ## Verification reach
 
-`@teqfw/dem/conformance` supplies strict repository checks. The `conformance/values`
+`TeqFw_Dem_Conformance_Repository$` supplies strict repository checks. The `TeqFw_Dem_Conformance_Values$` component
 export supplies value, atomic, extended-representation and evolution transcripts.
 DEM-RDB's integration suite exercises SQLite storage. Optional PostgreSQL and MariaDB
 suites require separately configured databases. Passing checks proves only the

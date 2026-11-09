@@ -26,8 +26,7 @@
     "node_modules/@flancer32",
     "node_modules/@teqfw",
     "src/**/*.mjs",
-    "test/**/*.mjs",
-    "conformance/application/*.mjs"
+    "test/**/*.mjs"
   ],
   "exclude": [
     "ctx"

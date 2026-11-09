@@ -36,6 +36,21 @@ export interface DemType extends TeqFw_Dem_Type {}
 export interface DemWorkingState extends TeqFw_Dem_WorkingState {}
 
 declare global {
+    type TeqFw_Dem_Conformance_Repository = import("./src/Conformance/Repository.mjs").default;
+    type TeqFw_Dem_Conformance_Repository__Class = typeof import("./src/Conformance/Repository.mjs").default;
+    type TeqFw_Dem_Conformance_Values = import("./src/Conformance/Values.mjs").default;
+    type TeqFw_Dem_Conformance_Values__Class = typeof import("./src/Conformance/Values.mjs").default;
+    type TeqFw_Dem_Conformance_Atomic = import("./src/Conformance/Atomic.mjs").default;
+    type TeqFw_Dem_Conformance_Atomic__Class = typeof import("./src/Conformance/Atomic.mjs").default;
+    type TeqFw_Dem_Conformance_Extended = import("./src/Conformance/Extended.mjs").default;
+    type TeqFw_Dem_Conformance_Extended__Class = typeof import("./src/Conformance/Extended.mjs").default;
+    type TeqFw_Dem_Conformance_Evolution = import("./src/Conformance/Evolution.mjs").default;
+    type TeqFw_Dem_Conformance_Evolution__Class = typeof import("./src/Conformance/Evolution.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Schema = import("./src/Conformance/Application/Schema.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Schema__Class = typeof import("./src/Conformance/Application/Schema.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Workflow = import("./src/Conformance/Application/Workflow.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Workflow__Class = typeof import("./src/Conformance/Application/Workflow.mjs").default;
+
     type TeqFw_Dem_Acquire = import("./src/Acquire.mjs").default;
     type TeqFw_Dem_Acquire__Class = typeof import("./src/Acquire.mjs").default;
     type TeqFw_Dem_AcquisitionResult = {schemas:TeqFw_Dem_Envelope[];trustedPackages:ReadonlyArray<string>;map?:TeqFw_Dem_Envelope};

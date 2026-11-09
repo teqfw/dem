@@ -2,6 +2,8 @@
 
 ## 0.4.0 — Release candidate
 
+- Resolve published conformance workloads and example application through TeqFW DI; remove the former conformance ESM entry points.
+
 - Require Format 2 schemas; Format 1 host maps remain supported.
 - Add model-bound runtime and batch operations, extension type registration and DEM history descriptors.
 

@@ -1,9 +1,12 @@
 // @ts-nocheck
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {register,schema} from '../../conformance/Repository.mjs';
-import {schema as values,map,atomicSchema,extendedSchema,evolutionSchemas} from '../../conformance/Values.mjs';
 import {container} from '../TestEnv.mjs';
+const {register,schema}=await container.get('TeqFw_Dem_Conformance_Repository$');
+const {schema:values,map}=await container.get('TeqFw_Dem_Conformance_Values$');
+const {schema:atomicSchema}=await container.get('TeqFw_Dem_Conformance_Atomic$');
+const {schema:extendedSchema}=await container.get('TeqFw_Dem_Conformance_Extended$');
+const {schemas:evolutionSchemas}=await container.get('TeqFw_Dem_Conformance_Evolution$');
 test('backend conformance fixture compiles without altering logical compiler',async()=>{
  const compile=await container.get('TeqFw_Dem_Compile$');
  const result=await compile.exec({schemas:[{packageName:'@contract/backend',filename:'fixture.json',document:structuredClone(schema)}]});

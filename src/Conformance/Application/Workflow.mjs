@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @namespace Demo_Workflow
+ * @namespace TeqFw_Dem_Conformance_Application_Workflow
  * @description Triage tasks through portable logical repositories and selections.
  */
 export default class Workflow {

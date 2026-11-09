@@ -15,7 +15,7 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.name, '@teqfw/dem');
     assert.equal(manifest.type, 'module');
     assert.equal(manifest.license, 'Apache-2.0');
-    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './etc/dem-schema.json':'./etc/dem-schema.json', './conformance':'./conformance/Repository.mjs', './conformance/values':'./conformance/Values.mjs', './conformance/application':'./conformance/application/Workflow.mjs', './conformance/application/schema':'./conformance/application/Schema.mjs'});
+    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './etc/dem-schema.json':'./etc/dem-schema.json'});
     assert.equal(manifest.types, 'types.d.ts');
     assert.ok(manifest.dependencies['@teqfw/cli']);
     assert.equal(manifest.teqfw.namespaces, undefined);
@@ -35,7 +35,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             '--cache', join(consumer, 'cache'),
         ], {cwd: root, encoding: 'utf8'}))[0];
         const expected = [
-            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'etc/dem-schema.json', 'conformance/Repository.mjs', 'conformance/Values.mjs', 'conformance/application/Workflow.mjs', 'conformance/application/Schema.mjs',
+            'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'etc/dem-schema.json',
             ...readdirSync(join(root, 'skills'), {recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()).map(entry=>'skills/'+join(entry.parentPath,entry.name).slice(join(root,'skills').length+1)),
             'types.d.ts',
             ...readdirSync(join(root, 'src'), {recursive: true, withFileTypes: true})
@@ -99,13 +99,14 @@ catch (error) { if (!(error instanceof Error) || error.name !== 'DemRepositoryEr
 const atomic=await container.get('TeqFw_Dem_Api_RepositoryBatch$');
 try {await atomic.execute({operations:[]});throw new Error('Batch should require host substitution');}
 catch(error) {if(!(error instanceof Error) || error.name!=='DemRepositoryError')throw error;}
-const {register} = await import('@teqfw/dem/conformance');
-if (typeof register !== 'function') throw new Error('Missing published conformance');
-const {exercise} = await import('@teqfw/dem/conformance/values');
-if (typeof exercise !== 'function') throw new Error('Missing published shared value workload');
-const {default: Workflow, __deps__: appDeps} = await import('@teqfw/dem/conformance/application');
-const {source: appSource} = await import('@teqfw/dem/conformance/application/schema');
-if (typeof Workflow !== 'function' || appSource.document.$format !== 2 || appDeps.default.provider !== 'TeqFw_Dem_Api_RepositoryProvider$') throw new Error('Missing portable application example');
+const suite = await container.get('TeqFw_Dem_Conformance_Repository$');
+const values = await container.get('TeqFw_Dem_Conformance_Values$');
+const atomicWorkload = await container.get('TeqFw_Dem_Conformance_Atomic$');
+const extended = await container.get('TeqFw_Dem_Conformance_Extended$');
+const evolution = await container.get('TeqFw_Dem_Conformance_Evolution$');
+const appSchema = await container.get('TeqFw_Dem_Conformance_Application_Schema$');
+const workflow = await container.get('TeqFw_Dem_Conformance_Application_Workflow$');
+if (typeof suite.register !== 'function' || typeof values.exercise !== 'function' || typeof atomicWorkload.exercise !== 'function' || typeof extended.exercise !== 'function' || typeof evolution.exercise !== 'function' || appSchema.source.document.$format !== 2 || typeof workflow.exec !== 'function') throw new Error('Missing DI conformance components');
 if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw new Error('Logical boundary failed');
 `);
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');
