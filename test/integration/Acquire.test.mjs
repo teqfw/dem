@@ -34,3 +34,20 @@ test('selection uses npm origins and rejects unknown names and invalid argument 
     await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['unknown']}),(/** @type {any} */ e)=>e.diagnostics[0].code==='DEM_DISCOVERY');
     await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['host','host']}),(/** @type {any} */ e)=>e.diagnostics[0].code==='DEM_CONFIG');
 }));
+test('duplicate npm names are permitted until multiple selected packages contribute schemas',()=>fixture(async root=>{
+    await write(root,'package.json',{name:'host',dependencies:{first:'1.0.0',second:'1.0.0'}});
+    for(const parent of ['first','second']){
+        await write(root,`node_modules/${parent}/package.json`,{name:parent,version:'1.0.0',dependencies:{shared:'1.0.0'}});
+        await write(root,`node_modules/${parent}/node_modules/shared/package.json`,{name:'shared',version:parent==='first'?'1.0.0':'2.0.0'});
+    }
+    assert.deepEqual(await acquire.exec({hostRoot:root}),{schemas:[],trustedPackages:[]});
+    const schema={$format:2,$namespace:'/shared/',item:{attributes:[{name:'id',type:{name:'identity'}}]}};
+    await write(root,'node_modules/first/node_modules/shared/etc/dem-schema.json',schema);
+    const one=await acquire.exec({hostRoot:root,packageNames:['shared']});
+    assert.equal(one.schemas.length,1);
+    assert.equal(one.schemas[0].packageName,'shared');
+    await write(root,'node_modules/second/node_modules/shared/etc/dem-schema.json',schema);
+    await rejects(root,'DEM_DISCOVERY');
+    await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['shared']}),(/** @type {any} */ error)=>error.diagnostics.some((/** @type {any} */ item)=>item.code==='DEM_DISCOVERY'&&item.details.packageName==='shared'));
+    assert.deepEqual(await acquire.exec({hostRoot:root,packageNames:['host']}),{schemas:[],trustedPackages:[]});
+}));

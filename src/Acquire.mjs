@@ -53,7 +53,7 @@ export default class Acquire {
             const names = new Set();
             for (const record of records) {
                 const name = record.packageJson.name;
-                if (typeof name !== 'string' || names.has(name))
+                if (typeof name !== 'string')
                     fail('DEM_DISCOVERY', null, '', { packageName: name ?? '' });
                 names.add(name);
             }
@@ -65,6 +65,7 @@ export default class Acquire {
                 fail('DEM_DISCOVERY', null, '', { hostRoot });
             check();
             /** @type {{schemas:TeqFw_Dem_Envelope[],trustedPackages:string[],map?:TeqFw_Dem_Envelope}} */ const result = { schemas: [], trustedPackages: [...names].filter(name => name === '@teqfw/dem' || name.startsWith('@teqfw/dem-')).sort() };
+            const schemaOrigins = new Set();
             for (const record of [...records].sort((a, b) => String(a.packageJson.name) < String(b.packageJson.name) ? -1 : 1)) {
                 const name = String(record.packageJson.name), selected = !input.packageNames || input.packageNames.includes(name), isHost = record === host;
                 if (!selected && !isHost)
@@ -98,6 +99,13 @@ export default class Acquire {
                             continue;
                         fail('DEM_FILE', declarationSource, '', { error: String(error) });
                         continue;
+                    }
+                    if (kind === 'schema') {
+                        if (schemaOrigins.has(name)) {
+                            fail('DEM_DISCOVERY', null, '', { packageName: name });
+                            continue;
+                        }
+                        schemaOrigins.add(name);
                     }
                     try {
                         const envelope = { ...declarationSource, document: data.parse(content) };

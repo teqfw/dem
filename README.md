@@ -67,29 +67,31 @@ migrations.
 ## Installation and compatibility
 
 ```sh
-npm install @teqfw/dem@^0.4.0 @teqfw/di@^2.11.0
+npm install @teqfw/dem@^2.0.0 @teqfw/di@^2.11.0
 ```
 
 This release replaces the 0.3.x Format 1 schema contract with Format 2; hosts must
-update schema descriptors and use compatible 0.3.x DEM adapters. Host maps remain
+update schema descriptors and use compatible 2.x DEM adapters. Host maps remain
 Format 1. Register each installed package namespace in the host composition root;
 browser hosts must serve the corresponding ESM modules.
 
 ## Compile through DI
 
 Register namespace roots before resolving components. The package root exports
-types only; runtime access uses TeqFW DI tokens.
+types only; runtime access uses TeqFW DI tokens. This Node.js composition root
+discovers namespaces from the host package in the current directory.
 
 ```js
 import Container from '@teqfw/di';
-import {createRequire} from 'node:module';
-import {dirname, join} from 'node:path';
+import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
-const require = createRequire(import.meta.url);
-const demRoot = dirname(dirname(require.resolve('@teqfw/dem/etc/dem-schema.json')));
-const container = new Container({
-    namespaces: [{prefix: 'TeqFw_Dem_', target: join(demRoot, 'src'), defaultExt: '.mjs'}],
-});
+const container = new Container();
+const namespaces = await new NamespaceRegistry({fs, path, appRoot: process.cwd()}).build();
+for (const {prefix, dirAbs, ext} of namespaces) {
+    container.addNamespaceRoot(prefix, dirAbs, ext);
+}
 const registry = await container.get('TeqFw_Dem_Registry$');
 registry.finalize();
 const compiler = await container.get('TeqFw_Dem_Compile$');
@@ -107,6 +109,9 @@ const result = await compiler.exec({
 compiler.assertResult({value: result});
 console.log(result.model.entities['/app/user'], result.fingerprint);
 ```
+
+The infrastructure descriptor is distributed with DEM and discovered by
+`TeqFw_Dem_Acquire$`; it is not a public JavaScript package subpath.
 
 Schema Format 1 is deliberately unsupported. DEM rejects legacy schema descriptors;
 this is an intentional breaking contract with no compatibility mode. Host maps are
@@ -199,10 +204,11 @@ npm run verify
 npm run test:browser
 npm pack --dry-run
 teqfw-platform .
-teqfw-esm-validator . --profile base
 ```
 
-`npm run verify` runs ESM validation and Node tests. `npm run typecheck` is a
+`npm run verify` runs Node tests. Agents validate source conventions separately
+using the locally installed `teqfw-esm-validator` skill and CLI; this tool is not
+a project dependency or CI gate. `npm run typecheck` is a
 separate optional check; `npm run test:browser` checks the portable runtime without
 storage adapters. Adapter projects test their own storage behavior.
 

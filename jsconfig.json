@@ -14,11 +14,9 @@
       "string_decoder": ["./node_modules/@types/node/string_decoder.d.ts"]
     }
   },
-  "include": ["types.d.ts", "node_modules/@flancer32", "node_modules/@teqfw", "src/**/*.mjs", "test/**/*.mjs"],
+  "include": ["types.d.ts", "node_modules/@teqfw", "src/**/*.mjs", "test/**/*.mjs"],
   "exclude": [
     "ctx",
-    "node_modules/@flancer32/skill-teqfw-esm-validator",
-    "node_modules/@flancer32/**/*.js",
     "node_modules/@teqfw/**/*.js"
   ]
 }

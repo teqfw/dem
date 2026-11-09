@@ -1,7 +1,9 @@
 # Release Notes
 
-## 0.4.0 — Release candidate
+## 2.0.0 — Release candidate
 
+- Allow repeated npm dependency names during acquisition when they do not contribute competing selected DEM schemas.
+- Remove the `@teqfw/dem/etc/dem-schema.json` package export; discover the published descriptor through DEM acquisition.
 - Resolve published conformance workloads and example application through TeqFW DI; remove the former conformance ESM entry points.
 
 - Require Format 2 schemas; Format 1 host maps remain supported.

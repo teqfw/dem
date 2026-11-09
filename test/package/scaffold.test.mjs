@@ -15,7 +15,7 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.name, '@teqfw/dem');
     assert.equal(manifest.type, 'module');
     assert.equal(manifest.license, 'Apache-2.0');
-    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './etc/dem-schema.json':'./etc/dem-schema.json'});
+    assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}});
     assert.equal(manifest.types, 'types.d.ts');
     assert.deepEqual(manifest.dependencies ?? {}, {});
     assert.ok(manifest.peerDependencies['@teqfw/di']);
@@ -60,6 +60,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
         assert.equal(readFileSync(join(installed, 'types.d.ts'), 'utf8'), readFileSync(join(root, 'types.d.ts'), 'utf8'));
         const require = createRequire(join(consumer, 'probe.mjs'));
         assert.throws(() => require.resolve('@teqfw/dem'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
+        assert.throws(() => require.resolve('@teqfw/dem/etc/dem-schema.json'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
         assert.throws(() => require.resolve('@teqfw/dem/src/README.md'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
         writeFileSync(join(consumer, 'jsconfig.json'), JSON.stringify({
             compilerOptions: {checkJs: true, strict: true, noEmit: true, module: 'nodenext', moduleResolution: 'nodenext', types: ['node', '@teqfw/dem'], preserveSymlinks: true},
@@ -67,13 +68,17 @@ test('real archive installs into a consumer, preserves declarations, and exclude
         }));
         writeFileSync(join(consumer, 'consumer.mjs'), `// @ts-check
 import Container from '@teqfw/di';
+import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 const container = new Container();
-container.addNamespaceRoot('TeqFw_Dem_', new URL('./node_modules/@teqfw/dem/src', import.meta.url).pathname, '.mjs');
+const namespaces = await new NamespaceRegistry({fs, path, appRoot: process.cwd()}).build();
+for (const {prefix, dirAbs, ext} of namespaces) container.addNamespaceRoot(prefix, dirAbs, ext);
 /** @type {TeqFw_Dem_Acquire} */
 const acquire = await container.get('TeqFw_Dem_Acquire$');
 const acquired = await acquire.exec({hostRoot: process.cwd()});
-if (!Array.isArray(acquired.schemas)) throw new Error('Installed acquisition failed');
+if (!acquired.schemas.some(schema => schema.packageName === '@teqfw/dem' && schema.filename === 'etc/dem-schema.json')) throw new Error('Installed DEM schema was not acquired');
 const registry = await container.get('TeqFw_Dem_Registry$');
 registry.finalize();
 /** @type {TeqFw_Dem_Compile} */

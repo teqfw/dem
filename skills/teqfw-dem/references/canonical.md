@@ -1,6 +1,6 @@
 # Canonical Logical Identity
 
-Implemented canonical contract for package v0.4.0. Inputs are successful normalized [target models](target-api.md).
+Implemented canonical contract for package v2.0.0. Inputs are successful normalized [target models](target-api.md).
 
 ## Canonical object
 

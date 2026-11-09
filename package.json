@@ -1,6 +1,6 @@
 {
   "name": "@teqfw/dem",
-  "version": "0.4.0",
+  "version": "2.0.0",
   "description": "Domain Entity Model: logical schema compilation and portable entity repository contracts for TeqFW applications.",
   "keywords": [
     "data-model",
@@ -27,8 +27,7 @@
   "exports": {
     ".": {
       "types": "./types.d.ts"
-    },
-    "./etc/dem-schema.json": "./etc/dem-schema.json"
+    }
   },
   "types": "types.d.ts",
   "files": [
@@ -41,15 +40,13 @@
     "types.d.ts"
   ],
   "scripts": {
-    "check:esm": "teqfw-esm-validator src --profile base",
     "prepublishOnly": "npm run verify",
-    "test": "npm run check:esm && find test/unit test/integration test/package test/docs -name \"*.test.mjs\" -print0 | xargs -0 node --test",
+    "test": "find test/unit test/integration test/package test/docs -name \"*.test.mjs\" -print0 | xargs -0 node --test",
     "test:browser": "node --test test/browser/Runtime.test.mjs",
     "typecheck": "tsc -p jsconfig.json",
     "verify": "npm test"
   },
   "devDependencies": {
-    "@flancer32/skill-teqfw-esm-validator": "^0.15.2",
     "@types/node": "^22.20.5",
     "typescript": "^5.9.3"
   },

@@ -34,6 +34,8 @@ No `teqfw.dem.host` projection parameter is defined here.
 
 Node acquisition uses the `@teqfw/di` package registry also used by CLI bootstrap,
 separately from portable compilation. See [runtime contracts](scope.md) for status.
+Repeated package names are allowed when at most one selected package contributes a
+schema; multiple selected schemas from the same npm name are ambiguous and fail.
 
 ## Metadata validation
 

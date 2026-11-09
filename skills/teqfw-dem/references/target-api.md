@@ -16,14 +16,15 @@ application-owned examples, not bundled providers.
 
 ```js
 import Container from '@teqfw/di';
-import {createRequire} from 'node:module';
-import {dirname, join} from 'node:path';
+import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
-const require = createRequire(import.meta.url);
-const demRoot = dirname(dirname(require.resolve('@teqfw/dem/etc/dem-schema.json')));
-const container = new Container({
-    namespaces: [{prefix: 'TeqFw_Dem_', target: join(demRoot, 'src'), defaultExt: '.mjs'}],
-});
+const container = new Container();
+const namespaces = await new NamespaceRegistry({fs, path, appRoot: process.cwd()}).build();
+for (const {prefix, dirAbs, ext} of namespaces) {
+    container.addNamespaceRoot(prefix, dirAbs, ext);
+}
 const definition = {
     name: 'example.Token16', parameters: {},
     normalizeParams(params) {
@@ -187,7 +188,9 @@ application directory. Use the package-registry mechanism used by CLI; see the
 [configuration contract](configuration.md) for that integration boundary. Never infer host
 from cwd. PackageNames, when present, is a unique list of npm package names
 restricting selected schema contributions; otherwise select all discovered
-packages. A selected unknown name or duplicate discovered npm name is an error.
+packages. A selected unknown name is an error. Repeated npm names without selected
+schema contributions are allowed; multiple selected schemas with the same npm
+package name are ambiguous and produce `DEM_DISCOVERY`.
 The host's map is acquired independently of this selection; the host's schema
 follows selection like any other schema. Sort returned schemas by packageName.
 
