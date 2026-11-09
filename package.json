@@ -2,89 +2,78 @@
   "name": "@teqfw/dem",
   "version": "0.4.0",
   "description": "Domain Entity Model: logical schema compilation and portable entity repository contracts for TeqFW applications.",
-  "type": "module",
-  "files": [
-    "etc/",
-    "skills/",
-    "src/",
-    "CHANGELOG.md",
-    "LICENSE",
-    "README.md",
-    "types.d.ts"
+  "keywords": [
+    "data-model",
+    "dem",
+    "esm",
+    "teqfw",
+    "tequila framework"
   ],
-  "scripts": {
-    "test": "npm run check:esm && find test/unit test/integration test/package test/docs -name \"*.test.mjs\" -print0 | xargs -0 node --test",
-    "typecheck": "tsc -p jsconfig.json",
-    "verify": "npm test",
-    "prepublishOnly": "npm run verify",
-    "test:browser": "node --test test/browser/Runtime.test.mjs test/browser/Delivery.test.mjs",
-    "check:esm": "teqfw-esm-validator src --profile base"
+  "homepage": "https://github.com/teqfw/dem#readme",
+  "bugs": {
+    "url": "https://github.com/teqfw/dem/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/teqfw/dem.git"
   },
-  "keywords": [
-    "teqfw",
-    "data-model",
-    "dem",
-    "esm",
-    "tequila framework"
-  ],
+  "license": "Apache-2.0",
   "author": {
     "name": "Alex Gusev",
     "email": "alex@flancer64.com",
     "url": "https://github.com/flancer64"
   },
-  "license": "Apache-2.0",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "types": "types.d.ts",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./types.d.ts"
     },
     "./etc/dem-schema.json": "./etc/dem-schema.json"
   },
-  "bugs": {
-    "url": "https://github.com/teqfw/dem/issues"
+  "types": "types.d.ts",
+  "files": [
+    "CHANGELOG.md",
+    "etc/",
+    "LICENSE",
+    "README.md",
+    "skills/",
+    "src/",
+    "types.d.ts"
+  ],
+  "scripts": {
+    "check:esm": "teqfw-esm-validator src --profile base",
+    "prepublishOnly": "npm run verify",
+    "test": "npm run check:esm && find test/unit test/integration test/package test/docs -name \"*.test.mjs\" -print0 | xargs -0 node --test",
+    "test:browser": "node --test test/browser/Runtime.test.mjs",
+    "typecheck": "tsc -p jsconfig.json",
+    "verify": "npm test"
   },
-  "homepage": "https://github.com/teqfw/dem#readme",
-  "engines": {
-    "node": ">=22.0.0"
+  "devDependencies": {
+    "@flancer32/skill-teqfw-esm-validator": "^0.15.2",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "@teqfw/di": "^2.11.0"
   },
-  "devDependencies": {
-    "@teqfw/dem-idb": "github:teqfw/dem-idb",
-    "@teqfw/dem-rdb": "github:teqfw/dem-rdb",
-    "@teqfw/web": "^2.2.0",
-    "@types/node": "^22.20.5",
-    "knex": "^3.1.0",
-    "sqlite3": "^6.0.1",
-    "typescript": "^5.9.3",
-    "@flancer32/skill-teqfw-esm-validator": "^0.15.2"
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "teqfw": {
     "fw": {
       "di": {
         "namespaces": [
           {
-            "prefix": "TeqFw_Dem_",
+            "ext": ".mjs",
             "path": "./src",
-            "ext": ".mjs"
+            "prefix": "TeqFw_Dem_"
           }
         ]
       }
     }
-  },
-  "dependencies": {
-    "@teqfw/cli": "^2.5.0"
-  },
-  "allowScripts": {
-    "sqlite3@6.0.1": true
   }
 }

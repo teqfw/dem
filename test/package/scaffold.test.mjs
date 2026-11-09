@@ -17,7 +17,8 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.equal(manifest.license, 'Apache-2.0');
     assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}, './etc/dem-schema.json':'./etc/dem-schema.json'});
     assert.equal(manifest.types, 'types.d.ts');
-    assert.ok(manifest.dependencies['@teqfw/cli']);
+    assert.deepEqual(manifest.dependencies ?? {}, {});
+    assert.ok(manifest.peerDependencies['@teqfw/di']);
     assert.equal(manifest.teqfw.namespaces, undefined);
     assert.deepEqual(manifest.teqfw.fw.di.namespaces, [
         {prefix: 'TeqFw_Dem_', path: './src', ext: '.mjs'},
@@ -45,12 +46,8 @@ test('real archive installs into a consumer, preserves declarations, and exclude
         assert.deepEqual(packed.files.map((/** @type {{path: string}} */ item) => item.path).sort(), expected.sort());
         writeFileSync(join(consumer, 'package.json'), JSON.stringify({
             name: 'dem-consumer', private: true, type: 'module',
-            allowScripts: {'sqlite3@6.0.1': true},
             dependencies: {
                 '@teqfw/di': `file:${join(root, 'node_modules/@teqfw/di')}`,
-                '@teqfw/cli': `file:${join(root, 'node_modules/@teqfw/cli')}`,
-                '@teqfw/cfg': `file:${join(root, 'node_modules/@teqfw/cfg')}`,
-                '@teqfw/log': `file:${join(root, 'node_modules/@teqfw/log')}`,
                 '@types/node': `file:${join(root, 'node_modules/@types/node')}`,
                 'undici-types': `file:${join(root, 'node_modules/undici-types')}`,
             },
@@ -73,6 +70,10 @@ import Container from '@teqfw/di';
 
 const container = new Container();
 container.addNamespaceRoot('TeqFw_Dem_', new URL('./node_modules/@teqfw/dem/src', import.meta.url).pathname, '.mjs');
+/** @type {TeqFw_Dem_Acquire} */
+const acquire = await container.get('TeqFw_Dem_Acquire$');
+const acquired = await acquire.exec({hostRoot: process.cwd()});
+if (!Array.isArray(acquired.schemas)) throw new Error('Installed acquisition failed');
 const registry = await container.get('TeqFw_Dem_Registry$');
 registry.finalize();
 /** @type {TeqFw_Dem_Compile} */

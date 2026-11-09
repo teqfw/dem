@@ -194,7 +194,7 @@ Support current Active/Maintenance LTS Node.js and stable Chrome/Chromium.
 Set `CHROME_PATH` when the browser executable is not `google-chrome`.
 
 ```sh
-npm ci
+npm install
 npm run verify
 npm run test:browser
 npm pack --dry-run
@@ -203,7 +203,8 @@ teqfw-esm-validator . --profile base
 ```
 
 `npm run verify` runs ESM validation and Node tests. `npm run typecheck` is a
-separate optional check; `npm run test:browser` runs the browser checks.
+separate optional check; `npm run test:browser` checks the portable runtime without
+storage adapters. Adapter projects test their own storage behavior.
 
 Tests cover logical composition, acquisition, exact normalization, independent
 canonical/hash fixtures and a real installed archive. CI performs full Node

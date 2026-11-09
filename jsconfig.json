@@ -8,27 +8,17 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "string_decoder": [
-        "./node_modules/@types/node/string_decoder.d.ts"
-      ]
+      "string_decoder": ["./node_modules/@types/node/string_decoder.d.ts"]
     }
   },
-  "include": [
-    "bin",
-    "src",
-    "test",
-    "types.d.ts",
-    "node_modules/@flancer32",
-    "node_modules/@teqfw",
-    "src/**/*.mjs",
-    "test/**/*.mjs"
-  ],
+  "include": ["types.d.ts", "node_modules/@flancer32", "node_modules/@teqfw", "src/**/*.mjs", "test/**/*.mjs"],
   "exclude": [
-    "ctx"
+    "ctx",
+    "node_modules/@flancer32/skill-teqfw-esm-validator",
+    "node_modules/@flancer32/**/*.js",
+    "node_modules/@teqfw/**/*.js"
   ]
 }
