@@ -1,6 +1,6 @@
 {
   "name": "@teqfw/dem",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Domain Entity Model: logical schema compilation and portable entity repository contracts for TeqFW applications.",
   "type": "module",
   "files": [

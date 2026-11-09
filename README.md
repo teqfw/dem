@@ -64,6 +64,17 @@ to compilation when composing the DEM family schema so package names alone do no
 grant access to reserved `/dem/` paths. The compiler does not plan or execute
 migrations.
 
+## Installation and compatibility
+
+```sh
+npm install @teqfw/dem@^0.4.0 @teqfw/di@^2.11.0
+```
+
+This release replaces the 0.3.x Format 1 schema contract with Format 2; hosts must
+update schema descriptors and use compatible 0.3.x DEM adapters. Host maps remain
+Format 1. Register each installed package namespace in the host composition root;
+browser hosts must serve the corresponding ESM modules.
+
 ## Compile through DI
 
 Register namespace roots before resolving components. The package root exports

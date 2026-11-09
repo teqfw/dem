@@ -1,8 +1,9 @@
 # Release Notes
 
-## Unreleased
+## 0.4.0 — Release candidate
 
-- Add the ordinary DEM model-history schema and reserve `/dem/` for trusted DEM-family declarations.
+- Require Format 2 schemas; Format 1 host maps remain supported.
+- Add model-bound runtime and batch operations, extension type registration and DEM history descriptors.
 
 ## 0.3.0 — 2026-11-02
 

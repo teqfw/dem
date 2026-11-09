@@ -8,7 +8,6 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import Container from '@teqfw/di';
 import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
-import knex from 'knex';
 import {browserMap, browserSelection, serverMap, serverSelection, withHostFixture} from '../fixtures/HostComposition.mjs';
 
 /** @typedef {{error?: string, model?: unknown, fingerprint?: string, contentType?: string, paths?: string[], relationPath?: string, identityProfiles?: unknown, normalizedRecord?: Record<string, string>, unselectedStatus?: number, browser?: string, entityStores?: string[], crud?: unknown, databaseName?: string, backendClosed?: boolean, databaseDeleted?: boolean, cleanupErrors?: string[]}} BrowserReport */
@@ -18,6 +17,7 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
     const sqliteRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dem-delivery-sqlite-'));
     /** @type {string | undefined} */ let profileRoot;
     /** @type {import('knex').Knex | undefined} */ let database;
+    /** @type {TeqFw_Dem_RDb_Connection | undefined} */ let connection;
     /** @type {any} */ let server;
     /** @type {any} */ let backend;
     /** @type {any} */ let provider;
@@ -102,12 +102,14 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         assert.equal(compilationCalls, 2);
 
         profileRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dem-delivery-chrome-'));
-        database = knex({
+        connection = await container.get('TeqFw_Dem_RDb_Connection$');
+        await connection.init({
             client: 'sqlite3',
             connection: {filename: path.join(sqliteRoot, 'host.sqlite')},
             useNullAsDefault: true,
             pool: {min: 1, max: 1},
         });
+        database = connection.getClient();
 
         assert.deepEqual(Object.keys(serverModel.model.entities), [
             '/models/server/customer',
@@ -138,14 +140,14 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
         assert.notEqual(serverModel.fingerprint, browserModel.fingerprint);
 
         /** @param {string} entityPath */
-        const sqliteTable = entityPath => 'dem_' + Buffer.from(entityPath, 'utf8').toString('hex');
+        const sqliteTable = entityPath => entityPath.slice(1).replaceAll('/', '_');
         const configuration = await container.get('Host_Sqlite__Configuration$');
-        configuration.set({model: serverModel.model, knex: database});
+        configuration.set({model: serverModel.model});
         const adapter = await container.get('TeqFw_Dem_RDb_Adapter$');
-        backend = await adapter.open({model: serverModel.model, knex: database});
+        backend = await adapter.open({model: serverModel.model, connection});
         await backend.createSchema();
 
-        const tables = await database('sqlite_master').select('name').where({type: 'table'}).orderBy('name');
+        const tables = await database('sqlite_master').select('name').where({type: 'table'}).whereNot('name', 'like', 'sqlite_%').orderBy('name');
         assert.deepEqual(tables.map(row => row.name), [
             '/models/server/customer',
             '/models/server/ledgerevent',
@@ -316,9 +318,9 @@ test('Node Host keeps SQLite active while delivering its selected browser model 
             await backend.close();
             backendClosed = true;
         });
-        const db = database;
-        if (db) await cleanup('Knex destroy', async () => {
-            await db.destroy();
+        const ownedConnection = connection;
+        if (ownedConnection) await cleanup('DEM-RDB connection disconnect', async () => {
+            await ownedConnection.disconnect();
             databaseDestroyed = true;
         });
         if (started) await cleanup('TeqFW Web stop', async () => {
