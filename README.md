@@ -209,7 +209,8 @@ teqfw-platform .
 `npm run verify` runs Node tests. Agents validate source conventions separately
 using the locally installed `teqfw-esm-validator` skill and CLI; this tool is not
 a project dependency or CI gate. `npm run typecheck` is a
-separate optional check; `npm run test:browser` checks the portable runtime without
+separate optional check. `npm run typecheck:package` checks the installed archive
+with TypeScript in an isolated consumer. `npm run test:browser` checks the portable runtime without
 storage adapters. Adapter projects test their own storage behavior.
 
 Tests cover logical composition, acquisition, exact normalization, independent

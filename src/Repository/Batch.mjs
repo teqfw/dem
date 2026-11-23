@@ -162,7 +162,7 @@ export default class Batch {
                 const before=rows[path][i].record,record=complete({...before,...params.changes});
                 const identity=rows[path][i].cascadeIdentity ?? rows[path][i];
                 rows[path][i]={...rows[path][i],cascadeIdentity:identity,record};if(enforceRelations)cascade(path,before,record);validate();
-                const current=rows[path].find(row=>(row.cascadeIdentity ?? row)===identity);
+                const current=rows[path].find((/** @type {{cascadeIdentity?: object, record: object}} */ row)=>(row.cascadeIdentity ?? row)===identity);
                 return {record:complete(current.record)};
             });
             return {results};

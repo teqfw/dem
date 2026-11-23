@@ -118,7 +118,9 @@ if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');
         writeFileSync(join(consumer, 'probe.mjs'), probe);
         execFileSync(process.execPath, [join(consumer, 'probe.mjs')], {cwd: consumer, stdio: 'pipe'});
-        execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(consumer, 'jsconfig.json')], {cwd: consumer, stdio: 'inherit'});
+        if (process.env.TEQFW_DEM_PACKAGE_TYPECHECK === '1') {
+            execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(consumer, 'jsconfig.json')], {cwd: consumer, stdio: 'inherit'});
+        }
     } finally {
         rmSync(consumer, {recursive: true, force: true});
     }

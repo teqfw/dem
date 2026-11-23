@@ -44,6 +44,7 @@
     "test": "find test/unit test/integration test/package test/docs -name \"*.test.mjs\" -print0 | xargs -0 node --test",
     "test:browser": "node --test test/browser/Runtime.test.mjs",
     "typecheck": "tsc -p jsconfig.json",
+    "typecheck:package": "TEQFW_DEM_PACKAGE_TYPECHECK=1 node --test test/package/scaffold.test.mjs",
     "verify": "npm test"
   },
   "devDependencies": {
