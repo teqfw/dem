@@ -50,8 +50,12 @@ truncate values or perform lossy conversions.
 
 The current implementation provides Format 2 compilation, Format 1 host maps,
 entity selection, Node acquisition, canonical model identity, shared Core operations,
-and registered extension types with model-scoped runtime operations. Independent
-adapters supply storage. See the [implementation status](skills/teqfw-dem/references/scope.md#implementation-status)
+and registered extension types with model-scoped runtime operations. Format 2
+relations support independent `onDelete` and `onUpdate` actions (`restrict` or
+`cascade`); omitted actions default to `restrict`. Ordered Batch operations resolve
+cascades before the next command and include cascade-updated values in their results.
+Vectors are platform extensions, not Core types. Independent adapters supply
+storage. See the [implementation status](skills/teqfw-dem/references/scope.md#implementation-status)
 and [extension composition](skills/teqfw-dem/references/target-api.md#extension-composition)
 for supported behavior and limitations.
 
@@ -67,12 +71,11 @@ migrations.
 ## Installation and compatibility
 
 ```sh
-npm install @teqfw/dem@^2.0.0 @teqfw/di@^2.11.0
+npm install @teqfw/dem@^2.1.0 @teqfw/di@^2.11.0
 ```
 
-This release replaces the 0.3.x Format 1 schema contract with Format 2; hosts must
-update schema descriptors and use compatible 2.x DEM adapters. Host maps remain
-Format 1. Register each installed package namespace in the host composition root;
+DEM 2.x uses Format 2 schema descriptors; hosts upgrading from 0.3.x must update
+their schemas and use compatible 2.x adapters. Host maps remain Format 1. Register each installed package namespace in the host composition root;
 browser hosts must serve the corresponding ESM modules.
 
 ## Compile through DI

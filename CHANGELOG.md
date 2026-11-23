@@ -1,5 +1,12 @@
 # Release Notes
 
+## 2.1.0 — 2026-11-23
+
+- Add Format 2 relation `onDelete` and `onUpdate` actions (`restrict` or `cascade`), with `restrict` as the default.
+- Resolve per-command cascade effects in ordered Batch operations and return values changed by self-referential cascades.
+- Remove vectors from Core; platform-specific vector semantics are supplied by extensions.
+- Include cascade actions in effective model identity and expand compiler and repository conformance coverage.
+
 ## 2.0.0 — Release candidate
 
 - Allow repeated npm dependency names during acquisition when they do not contribute competing selected DEM schemas.

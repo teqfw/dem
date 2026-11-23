@@ -70,10 +70,14 @@ Unknown unique-key names are INVALID_INPUT. No keyless surrogate is introduced.
 
 Writes atomically enforce non-nullability, primary/unique keys and relations.
 A unique key permits repeated records when any member is null; otherwise its tuple
-is unique. A relation with any null local member has no target requirement;
-otherwise its tuple must exist. Target changes/deletes restrict while referenced;
-there are no cascades. Backends unable to enforce these rules reject the affected
-model during provider resolution. There is no implicit cross-source transaction.
+is unique. A relation with any null local member has no target requirement; otherwise its
+tuple must exist. Format 2 relations independently declare `onDelete` and
+`onUpdate` as `restrict` or `cascade`; omission means `restrict`. A cascade deletes
+dependent records or updates their matching local key members. Ordered Batch
+commands resolve each command's cascades and constraints before the next command;
+a failure has no partial effects. Backends unable to enforce the model's declared
+actions reject the affected operation or model explicitly. There is no implicit
+cross-source transaction.
 
 ## Logical values and defaults
 

@@ -34,13 +34,16 @@ test('selection uses npm origins and rejects unknown names and invalid argument 
     await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['unknown']}),(/** @type {any} */ e)=>e.diagnostics[0].code==='DEM_DISCOVERY');
     await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['host','host']}),(/** @type {any} */ e)=>e.diagnostics[0].code==='DEM_CONFIG');
 }));
-test('acquisition follows immediate npm package-registry origins and ignores nested copies',()=>fixture(async root=>{
+test('acquisition follows npm dependency roots and rejects duplicate selected schema origins',()=>fixture(async root=>{
     await write(root,'package.json',{name:'host',dependencies:{first:'1.0.0',second:'1.0.0'}});
     for(const parent of ['first','second']){
         await write(root,`node_modules/${parent}/package.json`,{name:parent,version:'1.0.0',dependencies:{shared:'1.0.0'}});
-        await write(root,`node_modules/${parent}/node_modules/shared/package.json`,{name:'shared',version:parent==='first'?'1.0.0':'2.0.0'});
+        const version=parent==='first'?'1.0.0':'2.0.0';
+        await write(root,`node_modules/${parent}/node_modules/shared/package.json`,{name:'shared',version});
+        await write(root,`node_modules/${parent}/node_modules/shared/etc/dem-schema.json`,{$format:2,$namespace:`/${parent}/`,item:{attributes:[]}});
     }
-    assert.deepEqual(await acquire.exec({hostRoot:root}),{schemas:[],trustedPackages:[]});
-    await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['shared']}),(/** @type {any} */ error)=>error.diagnostics.some((/** @type {any} */ item)=>item.code==='DEM_DISCOVERY'&&item.details.packageName==='shared'));
+    const duplicateOrigin=(/** @type {any} */ error)=>error.diagnostics.some((/** @type {any} */ item)=>item.code==='DEM_DISCOVERY'&&item.details.packageName==='shared');
+    await assert.rejects(()=>acquire.exec({hostRoot:root}),duplicateOrigin);
+    await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['shared']}),duplicateOrigin);
     assert.deepEqual(await acquire.exec({hostRoot:root,packageNames:['host']}),{schemas:[],trustedPackages:[]});
 }));
