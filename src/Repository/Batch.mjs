@@ -160,7 +160,10 @@ export default class Batch {
                 if (method==='delete') {if (i<0) return {deleted:false};const before=rows[path][i].record;rows[path].splice(i,1);if(enforceRelations)cascade(path,before,null);validate();return {deleted:true};}
                 if (i<0) return {record:null};
                 const before=rows[path][i].record,record=complete({...before,...params.changes});
-                rows[path][i]={...rows[path][i],record};if(enforceRelations)cascade(path,before,record);validate();return {record:complete(record)};
+                const identity=rows[path][i].cascadeIdentity ?? rows[path][i];
+                rows[path][i]={...rows[path][i],cascadeIdentity:identity,record};if(enforceRelations)cascade(path,before,record);validate();
+                const current=rows[path].find(row=>(row.cascadeIdentity ?? row)===identity);
+                return {record:complete(current.record)};
             });
             return {results};
         };

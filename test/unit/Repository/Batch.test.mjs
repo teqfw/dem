@@ -48,6 +48,17 @@ test('relation cascade actions apply delete and key update effects before the ne
     assert.equal(deleted.results[0].deleted,true);assert.deepEqual(deleted.results[1].records,[]);
 });
 
+test('an update result includes values changed by a self-referential cascade',()=>{
+    const model={entities:{
+        '/app/node':{attributes:[{name:'id',type:{name:'integer'}},{name:'code',type:{name:'text'}},{name:'parent',type:{name:'text'}}],primaryKey:['id'],uniqueKeys:{by_code:['code']},relations:{parent:{attributes:['parent'],onUpdate:'cascade',target:{path:'/app/node',attributes:['code']}}}},
+    }};
+    const rows={'/app/node':[{key:1,record:{id:'1',code:'old',parent:'old'}}]};
+    const result=batch.plan({model,rows,generate:()=>undefined,operations:[
+        {path:'/app/node',method:'update',params:{key:{kind:'primary',values:{id:'1'}},changes:{code:'new'}}},
+    ]});
+    assert.deepEqual(result.results[0].record,{id:'1',code:'new',parent:'new'});
+});
+
 test('restrict remains the default and a failed delete reports RELATION',()=>{
     const model={entities:{
         '/app/account':{attributes:[{name:'id',type:{name:'integer'}}],primaryKey:['id'],uniqueKeys:{},relations:{}},
