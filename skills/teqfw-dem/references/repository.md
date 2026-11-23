@@ -88,7 +88,7 @@ allowed. Complete mode requires all attributes. Update applies no defaults.
 
 Ordinary values follow [logical types](types.md) and CoreValue normalization:
 integers and decimals use exact canonical strings, dates/datetimes use canonical
-strings, binary uses base64, uuid uses lowercase, JSON/vector are detached JSON.
+strings, binary uses base64, uuid uses lowercase, and JSON is detached JSON.
 Identity/ref int profiles use positive canonical decimal strings; safe positive
 JS integer inputs normalize to strings. No capacity-to-bit-width conversion occurs.
 Actual identity bounds are backend capabilities. A logically valid supplied value
@@ -121,10 +121,8 @@ includes null values; `ne(attr,x)` excludes them. There is no SQL unknown value.
 Literals normalize to the selected attribute's type; an optional explicit type
 must exactly equal its normalized name/params. Identity/ref literals omit type.
 No cross-type coercion, attr-to-attr comparison or nested scalar calls are allowed.
-All core types support comparisons and sorting. Binary compares decoded bytes
-lexicographically; dense and bit vectors compare numeric elements lexicographically.
-Sparse vectors compare their conceptual dense numeric values, treating absent
-entries as zero without allocating a dense vector. JSON compares canonical DEM
+Comparable Core types support comparisons and sorting. Binary compares decoded
+bytes lexicographically. JSON compares canonical DEM
 serialization by Unicode scalar sequence; this is a deterministic representation
 order, not numeric JSON ordering, containment or similarity search.
 
@@ -194,7 +192,7 @@ an in-memory repository engine and provides no persistence or transactions.
 `exercise({provider, assert})`, a shared all-core-type workload returning a logical
 observation transcript. Run it against actual providers and compare transcripts to
 establish bounded cross-backend parity. It covers large texts/binary, nested JSON,
-float/bit/sparse vectors, exact decimals, unsigned 64-bit values, nanosecond datetime,
+exact decimals, unsigned 64-bit values, nanosecond datetime,
 UUID identity generation and ordinary CRUD/List. It supplements rather than
 replaces the strict conformance suite, lifecycle and concurrency checks.
 
@@ -217,8 +215,7 @@ Bulk writes can be expressed as batches. Separate calls have no shared transacti
 
 `TeqFw_Dem_Repository_Batch$` validates commands and plans a disposable logical
 snapshot; adapters own persistence, transaction scope and generation. This helper
-does not create an in-memory backend. JSON and vectors normalize numeric negative
-zero to zero; sparse entry objects are detached from caller inputs.
+does not create an in-memory backend. JSON normalizes numeric negative zero to zero.
 
 **Accepted target; not implemented:** model-bound Batch uses the same Normalize,
 Selection and Select operations and handler Equality for corresponding non-null key

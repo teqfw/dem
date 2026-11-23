@@ -30,11 +30,10 @@ guarantees. Every physical engine still has storage, object-count, transaction a
 resource limits. Large workloads can require substantial memory because software
 operations materialize logical records.
 
-Binary compares decoded bytes. Dense/bit vectors compare numeric elements; sparse
-vectors compare conceptual dense values with absent entries zero. JSON compares
+Binary compares decoded bytes. JSON compares
 canonical serialization by Unicode scalar sequence, not domain numeric or similarity
 semantics. All core types support deterministic ordering, including keyless records.
-JSON/vector negative zero canonicalizes to zero. Lone UTF16 surrogates are rejected
+JSON negative zero canonicalizes to zero. Lone UTF16 surrogates are rejected
 by DEM itself; valid Unicode scalars and NUL are covered by the value workload.
 
 History-managed relational storage records the confirmed initial model and rejects
@@ -67,8 +66,8 @@ scenarios and engines they execute.
 - [MariaDB long binary data](https://mariadb.com/docs/server/reference/data-types/string-data-types/longblob)
 - [IndexedDB](https://www.w3.org/TR/IndexedDB/)
 
-Optional pgvector can optimize a future similarity API; float32 storage is not a
-lossless replacement for every JavaScript float64 vector value.
+Vector storage and platform-specific type behavior belong to the selected extension
+and adapter contract, not Core conformance.
 
 ## Scope of compatibility
 

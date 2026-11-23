@@ -5,7 +5,10 @@ import Container from '@teqfw/di';
 import {fileURLToPath} from 'node:url';
 
 const source = fileURLToPath(new URL('../../src', import.meta.url));
-const makeContainer = () => new Container({namespaces:[{prefix:'TeqFw_Dem_',target:source,defaultExt:'.mjs'}]});
+const makeContainer = () => new Container({namespaces:[
+    {prefix:'TeqFw_Dem_',target:source,defaultExt:'.mjs'},
+    {prefix:'Runtime_Test_',target:fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),defaultExt:'.mjs'},
+]});
 const tokenDefinition = {
     name:'example.Token16', parameters:{},
     normalizeParams:(/** @type {Record<string,any>} */ params) => { if (Object.keys(params).length) throw new TypeError(); return {}; },
@@ -17,7 +20,6 @@ const eq = (/** @type {Uint8Array} */ value) => ({kind:'call',operator:'eq',args
 
 test('Token16 flows through Registry, Compiler, binding, Normalize, Selection and Select', async () => {
     const container=makeContainer();
-    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
     const registry=await container.get('TeqFw_Dem_Registry$');
     registry.register([tokenDefinition]);
     registry.finalize();
@@ -105,7 +107,6 @@ test('opaque class operands survive Expression and Selection normalization and S
 
 test('selection skips a non-orderable primary key in favor of an orderable unique key', async () => {
     const container=makeContainer();
-    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
     const registry=await container.get('TeqFw_Dem_Registry$');
     const equalityDefinition={name:'example.EqualityOnly',parameters:{},normalizeParams:tokenDefinition.normalizeParams,valueDomain:tokenDefinition.valueDomain,preservation:tokenDefinition.preservation,valueHandling:tokenDefinition.valueHandling,equality:'Bytewise equality.'};
     registry.register([equalityDefinition,tokenDefinition]);
@@ -141,7 +142,6 @@ test('selection rejects unsupported runtime comparisons', async () => {
 
 test('bound Batch uses extension equality and isolates command results', async () => {
     const container=makeContainer();
-    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
     const registry=await container.get('TeqFw_Dem_Registry$'); registry.register([tokenDefinition]); registry.finalize();
     const model=(await (await container.get('TeqFw_Dem_Compile$')).exec({schemas:[{packageName:'runtime-test',filename:'batch.json',document:{$format:2,$namespace:'/test/',batch:{attributes:[{name:'id',type:{name:'integer'}},{name:'token',type:{name:'example.Token16'}},{name:'label',type:{name:'text'}}],primaryKey:['id'],uniqueKeys:{by_pair:['label','token']}}}}]})).model;
     const runtime=await container.get('TeqFw_Dem_Repository_Runtime$');
@@ -178,7 +178,6 @@ test('bound Batch uses extension equality and isolates command results', async (
 
 test('bound Batch compares relation tuples and preserves opaque non-key values', async () => {
     const container=makeContainer();
-    container.addNamespaceRoot('Runtime_Test_',fileURLToPath(new URL('../fixtures/Runtime',import.meta.url)),'.mjs');
     const opaqueDefinition={name:'example.Opaque',parameters:{},normalizeParams:tokenDefinition.normalizeParams,valueDomain:'Opaque mutable object.',preservation:'Preserve fields.',valueHandling:'Copy object values.'};
     const registry=await container.get('TeqFw_Dem_Registry$'); registry.register([tokenDefinition,opaqueDefinition]); registry.finalize();
     const schema={packageName:'runtime-test',filename:'relations.json',document:{$format:2,$namespace:'/test/',

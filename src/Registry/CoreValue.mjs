@@ -64,9 +64,6 @@ export default class CoreValue {
                     if (valid)
                         p.values = [...p.values].sort();
                     break;
-                case 'vector':
-                    valid = positive(p.dimensions) && ['float', 'bit'].includes(p.element) && typeof p.sparse === 'boolean' && !(p.element === 'bit' && p.sparse);
-                    break;
             }
             if (!valid)
                 return null;
@@ -176,25 +173,9 @@ export default class CoreValue {
                         fail();
                     return iso.slice(0, 19) + (digits ? '.' + digits : '') + 'Z';
                 }
-                case 'vector': {
-                    if (p.sparse) {
-                        if (!data.isObject(value) || Object.keys(value).some(k => !['dimensions', 'entries'].includes(k)) || value.dimensions !== p.dimensions || !Array.isArray(value.entries))
-                            return fail();
-                        const indices = new Set();
-                        for (const item of value.entries) {
-                            if (!data.isObject(item) || Object.keys(item).length !== 2 || !Number.isSafeInteger(item.index) || item.index < 0 || item.index >= p.dimensions || indices.has(item.index) || typeof item.value !== 'number' || !Number.isFinite(item.value) || item.value === 0)
-                                fail();
-                            indices.add(item.index);
-                        }
-                        return { dimensions: p.dimensions, entries: [...value.entries].sort((a, b) => a.index - b.index).map(item=>({index:item.index,value:item.value})) };
-                    }
-                    if (!Array.isArray(value) || value.length !== p.dimensions || !value.every(v => p.element === 'bit' ? v === 0 || v === 1 : typeof v === 'number' && Number.isFinite(v)))
-                        fail();
-                    break;
-                }
                 default: return fail();
             }
-            return ['json','vector'].includes(type.name) ? JSON.parse(data.serialize(value)) : structuredClone(value);
+            return type.name === 'json' ? JSON.parse(data.serialize(value)) : structuredClone(value);
         };
         /**
          * @param {object} deps

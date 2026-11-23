@@ -12,8 +12,7 @@ import {scenario} from './Scenario.mjs';
 
 test('browser compilation matches Node.js', async () => {
     const root = fileURLToPath(new URL('../../', import.meta.url));
-    const container = new Container();
-    container.addNamespaceRoot('TeqFw_Dem_', join(root, 'src'), '.mjs');
+    const container = new Container({namespaces:[{prefix:'TeqFw_Dem_',target:join(root,'src'),defaultExt:'.mjs'}]});
     const registry = await container.get('TeqFw_Dem_Registry$');
     registry.finalize();
     /** @type {TeqFw_Dem_Compile} */
@@ -28,8 +27,7 @@ test('browser compilation matches Node.js', async () => {
     try {
         const {default: Container} = await import('/node_modules/@teqfw/di/dist/esm.js');
         const {scenario} = await import('/test/browser/Scenario.mjs');
-        const container = new Container();
-        container.addNamespaceRoot('TeqFw_Dem_', location.origin + '/src', '.mjs');
+        const container = new Container({namespaces:[{prefix:'TeqFw_Dem_',target:location.origin + '/src',defaultExt:'.mjs'}]});
         const registry = await container.get('TeqFw_Dem_Registry$');
         registry.finalize();
         const compiler = await container.get('TeqFw_Dem_Compile$');

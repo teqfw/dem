@@ -17,13 +17,6 @@ below are materialized in normalized types. No parameter selects a backend type.
 | string | required positive length, maximum Unicode code points | String within length limit |
 | text | none | String without a declared length limit |
 | uuid | none | UUID textual shape 8-4-4-4-12 hexadecimal digits; normalize letters to lowercase; no version constraint |
-| vector | required positive dimensions; element float or bit; sparse boolean, default false | Dense array of exactly dimensions elements; float elements finite JSON numbers, bit elements 0 or 1 |
-
-Sparse vectors are allowed only for float and use
-`{dimensions,entries:[{index,value}]}`. Dimensions must match the type. Indices
-are unique integers in [0,dimensions), values finite and nonzero. Canonicalize
-entries by index. No physical vector index or similarity algorithm is implied.
-
 Decimal strings match `-?(0|[1-9][0-9]*)(\.[0-9]+)?`; validate scale/precision
 by exact value after removing redundant fraction zeros. Datetime local syntax is
 YYYY-MM-DDTHH:MM:SS with an optional fractional suffix; hours 00–23, minutes/seconds
@@ -53,5 +46,5 @@ Identity and ref use the [declaration contract](declarations.md). Their profiles
 are uuid or int with qualitative capacity; integer bits are not accepted as
 identity-profile parameters. Logical type checking constrains defaults and
 relations during compilation; repository helpers also normalize application values.
-Adapters execute persistence. This table covers Core types; registered extension
-types use the [extension composition contract](target-api.md#extension-composition).
+Adapters execute persistence. This table covers Core types; vectors are supplied
+by registered extensions using the [extension composition contract](target-api.md#extension-composition).

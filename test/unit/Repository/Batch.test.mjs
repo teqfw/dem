@@ -25,3 +25,34 @@ test('planned results are snapshots rather than aliases to later commands',()=>{
     assert.equal(result.results[0].record.name,'a');assert.equal(result.results[2].record.name,'b');
     result.results[2].record.name='local';assert.equal(rows['/app/item'][0].record.name,'b');
 });
+
+test('relation cascade actions apply delete and key update effects before the next command',()=>{
+    const model={entities:{
+        '/app/account':{attributes:[{name:'id',type:{name:'integer'}}],primaryKey:['id'],uniqueKeys:{},relations:{}},
+        '/app/item':{attributes:[{name:'id',type:{name:'integer'}},{name:'account_id',type:{name:'integer'}}],primaryKey:['id'],uniqueKeys:{},relations:{account:{attributes:['account_id'],onDelete:'cascade',onUpdate:'cascade',target:{path:'/app/account',attributes:['id']}}}},
+    }};
+    const rows={'/app/account':[{key:1,record:{id:'1'}}],'/app/item':[{key:2,record:{id:'2',account_id:'1'}}]};
+    const originalChild=rows['/app/item'][0];
+    const updated=batch.plan({model,rows,generate:()=>undefined,operations:[
+        {path:'/app/account',method:'update',params:{key:{kind:'primary',values:{id:'1'}},changes:{id:'3'}}},
+        {path:'/app/item',method:'read',params:{key:{kind:'primary',values:{id:'2'}}}},
+    ]});
+    assert.deepEqual(updated.results[1].record,{id:'2',account_id:'3'});
+    assert.deepEqual(rows['/app/item'][0].record,{id:'2',account_id:'3'});
+    assert.notEqual(rows['/app/item'][0],originalChild);
+    assert.deepEqual(originalChild.record,{id:'2',account_id:'1'});
+    const deleted=batch.plan({model,rows,generate:()=>undefined,operations:[
+        {path:'/app/account',method:'delete',params:{key:{kind:'primary',values:{id:'3'}}}},
+        {path:'/app/item',method:'list',params:{selection:{}}},
+    ]});
+    assert.equal(deleted.results[0].deleted,true);assert.deepEqual(deleted.results[1].records,[]);
+});
+
+test('restrict remains the default and a failed delete reports RELATION',()=>{
+    const model={entities:{
+        '/app/account':{attributes:[{name:'id',type:{name:'integer'}}],primaryKey:['id'],uniqueKeys:{},relations:{}},
+        '/app/item':{attributes:[{name:'id',type:{name:'integer'}},{name:'account_id',type:{name:'integer'}}],primaryKey:['id'],uniqueKeys:{},relations:{account:{attributes:['account_id'],target:{path:'/app/account',attributes:['id']}}}},
+    }};
+    const rows={'/app/account':[{key:1,record:{id:'1'}}],'/app/item':[{key:2,record:{id:'2',account_id:'1'}}]};
+    assert.throws(()=>batch.plan({model,rows,generate:()=>undefined,operations:[{path:'/app/account',method:'delete',params:{key:{kind:'primary',values:{id:'1'}}}}]}),{code:'RELATION'});
+});

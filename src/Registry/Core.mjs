@@ -15,7 +15,7 @@ export default class Core {
             decimal: { allowed: ['precision', 'scale', 'unsigned'], defaults: { unsigned: false } },
             enum: { allowed: ['values'], defaults: {} }, integer: { allowed: ['bits', 'unsigned'], defaults: { bits: 32, unsigned: false } },
             json: { allowed: [], defaults: {} }, string: { allowed: ['length'], defaults: {} }, text: { allowed: [], defaults: {} },
-            uuid: { allowed: [], defaults: {} }, vector: { allowed: ['dimensions', 'element', 'sparse'], defaults: { sparse: false } },
+            uuid: { allowed: [], defaults: {} },
             identity: { allowed: [], defaults: {} }, ref: { allowed: [], defaults: {} },
         });
     }

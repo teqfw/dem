@@ -19,7 +19,7 @@ export default class TypeRegistry {
         const descriptions = /** @type {Record<string,Record<string,string>>} */ ({
             binary: {length: 'Optional maximum byte length, as a positive safe integer.'}, boolean: {}, date: {}, datetime: {precision: 'Fraction digits from 0 through 9.', timezone: 'Whether values include a UTC offset.'},
             decimal: {precision: 'Required total decimal precision.', scale: 'Required fractional scale from 0 through precision.', unsigned: 'Whether negative values are forbidden.'}, enum: {values: 'Required non-empty list of unique string values.'}, integer: {bits: 'Integer width: 8, 16, 32 or 64; defaults to 32.', unsigned: 'Whether negative values are forbidden; defaults to false.'},
-            json: {}, string: {length: 'Required maximum Unicode code point length.'}, text: {}, uuid: {}, vector: {dimensions: 'Required positive vector dimension count.', element: 'Element kind: float or bit.', sparse: 'Whether values use sparse representation; defaults to false.'},
+            json: {}, string: {length: 'Required maximum Unicode code point length.'}, text: {}, uuid: {},
             identity: {}, ref: {},
         });
         /** @param {unknown} value @returns {Record<string, any>} */

@@ -232,8 +232,11 @@ export default class Decode {
                                     if (closed(item, ['attributes'], source, ptr))
                                         list(item.attributes, source, ptr + '/attributes');
                                 }
-                                else if (closed(item, ['attributes', 'target'], source, ptr)) {
+                                else if (closed(item, ['attributes', 'target', 'onDelete', 'onUpdate'], source, ptr)) {
                                     list(item.attributes, source, ptr + '/attributes');
+                                    for (const action of ['onDelete', 'onUpdate'])
+                                        if (Object.hasOwn(item, action) && !['restrict', 'cascade'].includes(item[action]))
+                                            fail('DEM_RELATION', source, ptr + '/' + action, { action: item[action] });
                                     if (closed(item.target, ['path', 'dependency', 'attributes'], source, ptr + '/target')) {
                                         list(item.target.attributes, source, ptr + '/target/attributes');
                                         if (Object.hasOwn(item.target, 'path') === Object.hasOwn(item.target, 'dependency') || typeof (item.target.path ?? item.target.dependency) !== 'string')

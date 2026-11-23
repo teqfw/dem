@@ -9,13 +9,13 @@ dictionary keyed by effective entity paths. Each canonical entity has exactly
 attributes, primaryKey, uniqueKeys, indexes and relations. Convert the published
 attribute array to a name-keyed dictionary, removing only the redundant name field;
 retain type, nullable, generation and declared literal default. All other entity
-fields retain their normalized target-API shape. Sort enum alternatives and sparse
-vector entries as specified in [types](types.md).
+fields retain their normalized target-API shape. Sort enum alternatives; preserve
+registered extension literals as specified in [types](types.md).
 
 Consequently defaults absent versus null are distinct. False nullable/generation,
 empty dictionaries, normalized type params and identity profiles are materialized.
 Absent/explicit identical primary keys canonicalize identically through key
-normalization. Array order inside keys, indexes, relations, vectors and JSON literal
+normalization. Array order inside keys, indexes, relations and JSON literal
 values is significant; enum order and projection attribute order are not.
 
 Packages, comments, provenance, source filenames, dependency aliases, map steps,

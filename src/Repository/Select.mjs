@@ -32,20 +32,6 @@ export default class Select {
                 return a < b ? -1 : a > b ? 1 : 0;
             }
             if (type.name==='binary') {left=atob(left);right=atob(right);}
-            if (type.name==='vector') {
-                if (type.params?.sparse) {
-                    let i=0,j=0;
-                    while (i<left.entries.length || j<right.entries.length) {
-                        const index=Math.min(left.entries[i]?.index ?? Infinity,right.entries[j]?.index ?? Infinity);
-                        const a=left.entries[i]?.index===index ? left.entries[i++].value : 0;
-                        const b=right.entries[j]?.index===index ? right.entries[j++].value : 0;
-                        if(a!==b)return a<b ? -1 : 1;
-                    }
-                    return 0;
-                }
-                for(let i=0;i<left.length;i++)if(left[i]!==right[i])return left[i]<right[i] ? -1 : 1;
-                return 0;
-            }
             if (type.name==='json') {left=data.serialize(left);right=data.serialize(right);}
             if (typeof left === 'boolean') return Number(left) - Number(right);
             const a = Array.from(String(left), c => c.codePointAt(0) ?? 0), b = Array.from(String(right), c => c.codePointAt(0) ?? 0);

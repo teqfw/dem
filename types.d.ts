@@ -36,20 +36,6 @@ export interface DemType extends TeqFw_Dem_Type {}
 export interface DemWorkingState extends TeqFw_Dem_WorkingState {}
 
 declare global {
-    type TeqFw_Dem_Conformance_Repository = import("./src/Conformance/Repository.mjs").default;
-    type TeqFw_Dem_Conformance_Repository__Class = typeof import("./src/Conformance/Repository.mjs").default;
-    type TeqFw_Dem_Conformance_Values = import("./src/Conformance/Values.mjs").default;
-    type TeqFw_Dem_Conformance_Values__Class = typeof import("./src/Conformance/Values.mjs").default;
-    type TeqFw_Dem_Conformance_Atomic = import("./src/Conformance/Atomic.mjs").default;
-    type TeqFw_Dem_Conformance_Atomic__Class = typeof import("./src/Conformance/Atomic.mjs").default;
-    type TeqFw_Dem_Conformance_Extended = import("./src/Conformance/Extended.mjs").default;
-    type TeqFw_Dem_Conformance_Extended__Class = typeof import("./src/Conformance/Extended.mjs").default;
-    type TeqFw_Dem_Conformance_Evolution = import("./src/Conformance/Evolution.mjs").default;
-    type TeqFw_Dem_Conformance_Evolution__Class = typeof import("./src/Conformance/Evolution.mjs").default;
-    type TeqFw_Dem_Conformance_Application_Schema = import("./src/Conformance/Application/Schema.mjs").default;
-    type TeqFw_Dem_Conformance_Application_Schema__Class = typeof import("./src/Conformance/Application/Schema.mjs").default;
-    type TeqFw_Dem_Conformance_Application_Workflow = import("./src/Conformance/Application/Workflow.mjs").default;
-    type TeqFw_Dem_Conformance_Application_Workflow__Class = typeof import("./src/Conformance/Application/Workflow.mjs").default;
 
     type TeqFw_Dem_Acquire = import("./src/Acquire.mjs").default;
     type TeqFw_Dem_Acquire__Class = typeof import("./src/Acquire.mjs").default;
@@ -87,6 +73,20 @@ declare global {
     type TeqFw_Dem_Compile_A_Validate = import("./src/Compile/A/Validate.mjs").default;
     type TeqFw_Dem_Compile_A_Validate__Class = typeof import("./src/Compile/A/Validate.mjs").default;
     type TeqFw_Dem_Compile__Class = typeof import("./src/Compile.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Schema = import("./src/Conformance/Application/Schema.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Schema__Class = typeof import("./src/Conformance/Application/Schema.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Workflow = import("./src/Conformance/Application/Workflow.mjs").default;
+    type TeqFw_Dem_Conformance_Application_Workflow__Class = typeof import("./src/Conformance/Application/Workflow.mjs").default;
+    type TeqFw_Dem_Conformance_Atomic = import("./src/Conformance/Atomic.mjs").default;
+    type TeqFw_Dem_Conformance_Atomic__Class = typeof import("./src/Conformance/Atomic.mjs").default;
+    type TeqFw_Dem_Conformance_Evolution = import("./src/Conformance/Evolution.mjs").default;
+    type TeqFw_Dem_Conformance_Evolution__Class = typeof import("./src/Conformance/Evolution.mjs").default;
+    type TeqFw_Dem_Conformance_Extended = import("./src/Conformance/Extended.mjs").default;
+    type TeqFw_Dem_Conformance_Extended__Class = typeof import("./src/Conformance/Extended.mjs").default;
+    type TeqFw_Dem_Conformance_Repository = import("./src/Conformance/Repository.mjs").default;
+    type TeqFw_Dem_Conformance_Repository__Class = typeof import("./src/Conformance/Repository.mjs").default;
+    type TeqFw_Dem_Conformance_Values = import("./src/Conformance/Values.mjs").default;
+    type TeqFw_Dem_Conformance_Values__Class = typeof import("./src/Conformance/Values.mjs").default;
     type TeqFw_Dem_DeleteResult = {deleted:boolean};
     type TeqFw_Dem_Diagnostic = {code: string; severity: "error"|"warning"; source: TeqFw_Dem_Source|null; pointer: string; details: Record<string, any>};
     type TeqFw_Dem_Dto_Compile_Diagnostic = import("./src/Dto/Compile/Diagnostic.mjs").default;
@@ -130,7 +130,7 @@ declare global {
     type TeqFw_Dem_Registry_CoreValue__Class = typeof import("./src/Registry/CoreValue.mjs").default;
     type TeqFw_Dem_Registry_Core__Class = typeof import("./src/Registry/Core.mjs").default;
     type TeqFw_Dem_Registry__Class = typeof import("./src/Registry.mjs").default;
-    type TeqFw_Dem_Relation = {attributes: string[]; target: {path: string; attributes: string[]}};
+    type TeqFw_Dem_Relation = {attributes: string[]; onDelete:'restrict'|'cascade'; onUpdate:'restrict'|'cascade'; target: {path: string; attributes: string[]}};
     type TeqFw_Dem_RepositoryError = Error & {name:string;code:TeqFw_Dem_RepositoryErrorCode};
     type TeqFw_Dem_RepositoryErrorCode = 'INVALID_INPUT'|'UNSUPPORTED'|'NOT_FOUND'|'CONFLICT'|'RELATION'|'STORAGE';
     type TeqFw_Dem_Repository_Batch = import("./src/Repository/Batch.mjs").default;

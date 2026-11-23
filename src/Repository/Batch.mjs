@@ -70,21 +70,74 @@ export default class Batch {
          */
         this.plan=function ({model,operations,rows,generate,created,enforceRelations=true,handlers:activeHandlers={},normalize:boundNormalize=normalize,selection:boundSelection=selection,select:boundSelect=select}) {
             const commands=this.validate({model,operations,normalize:boundNormalize,selection:boundSelection});
-            /** @param {string} path @returns {void} */
-            const validate=function (path) {
-                const entity=model.entities[path];
-                for (const members of [entity.primaryKey,...Object.values(entity.uniqueKeys)].filter(Boolean)) {
-                    const keys=/** @type {Array<string>} */(members),seen=/** @type {Array<any>} */([]);
-                    for (const {record} of rows[path]) {
-                        if (keys.some(k=>record[k]===null)) continue;
-                        if (seen.some((/** @type {any} */ previous)=>tupleEqual(entity,previous,record,keys,activeHandlers))) fail('CONFLICT','Logical key must be unique.');
-                        seen.push(record);
+            /** @param {string} [onlyPath] @returns {void} */
+            const validate=function (onlyPath) {
+                const paths=onlyPath ? [onlyPath] : Object.keys(model.entities);
+                for (const path of paths) {
+                    const entity=model.entities[path];
+                    for (const members of [entity.primaryKey,...Object.values(entity.uniqueKeys)].filter(Boolean)) {
+                        const keys=/** @type {Array<string>} */(members),seen=/** @type {Array<any>} */([]);
+                        for (const {record} of rows[path]) {
+                            if (keys.some(k=>record[k]===null)) continue;
+                            if (seen.some((/** @type {any} */ previous)=>tupleEqual(entity,previous,record,keys,activeHandlers))) fail('CONFLICT','Logical key must be unique.');
+                            seen.push(record);
+                        }
                     }
                 }
                 if (enforceRelations) for (const [p,entity] of Object.entries(model.entities)) for (const relation of Object.values(entity.relations)) {
                     for (const {record} of rows[p]) {
                         if (relation.attributes.some(k=>record[k]===null)) continue;
                         if (!rows[relation.target.path].some((/** @type {any} */ target)=>relation.attributes.every((/** @type {string} */ sourceName,/** @type {number} */ index)=>equal(entity,sourceName,record[sourceName],target.record[relation.target.attributes[index]],activeHandlers)))) fail('RELATION','Relation target is missing or still referenced.');
+                    }
+                }
+            };
+            /** @param {string} path @param {any} before @param {any} after @returns {void} */
+            const cascade=function (path,before,after) {
+                /** @type {Array<any>} */ const pending=[{path,before,after}];
+                const cascadeWrites=new WeakMap();
+                /** @type {Array<any>} */ const processed=[];
+                while (pending.length) {
+                    const event=pending.shift(),target=model.entities[event.path];
+                    for (const [sourcePath,source] of Object.entries(model.entities)) for (const relation of Object.values(source.relations)) {
+                        if (relation.target.path!==event.path) continue;
+                        const oldValues=Object.fromEntries(relation.target.attributes.map((/** @type {string} */ name)=>[name,event.before[name]]));
+                        if (Object.values(oldValues).some(value=>value===null)) continue;
+                        const newValues=event.after && Object.fromEntries(relation.target.attributes.map((/** @type {string} */ name)=>[name,event.after[name]]));
+                        const duplicate=processed.some(previous=>previous.path===sourcePath && previous.relation===relation
+                            && tupleEqual(target,previous.before,oldValues,relation.target.attributes,activeHandlers)
+                            && (previous.after===null && newValues===null
+                                || previous.after && newValues && tupleEqual(target,previous.after,newValues,relation.target.attributes,activeHandlers)));
+                        if (duplicate) continue;
+                        processed.push({path:sourcePath,relation,before:oldValues,after:newValues});
+                        if (newValues && relation.target.attributes.every((/** @type {string} */ name)=>equal(target,name,oldValues[name],newValues[name],activeHandlers))) continue;
+                        const action=event.after ? (relation.onUpdate ?? 'restrict') : (relation.onDelete ?? 'restrict');
+                        const matched=rows[sourcePath].filter((/** @type {any} */ row)=>relation.attributes.every((/** @type {string} */ name,/** @type {number} */ index)=>row.record[name]!==null && equal(source,name,row.record[name],oldValues[relation.target.attributes[index]],activeHandlers)));
+                        if (!matched.length) continue;
+                        if (action==='restrict') fail('RELATION','Relation action restricts the target change.');
+                        if (action!=='cascade') fail('UNSUPPORTED','Unknown relation action.');
+                        for (const row of matched) {
+                            if (!event.after) {
+                                const index=rows[sourcePath].indexOf(row);
+                                if (index>=0) {const removed=rows[sourcePath].splice(index,1)[0];pending.push({path:sourcePath,before:removed.record,after:null});}
+                                continue;
+                            }
+                            const changes=Object.fromEntries(relation.attributes.map((/** @type {string} */ local,/** @type {number} */ index)=>[local,newValues[relation.target.attributes[index]]]));
+                            const identity=row.cascadeIdentity ?? row;
+                            let prior=cascadeWrites.get(identity);
+                            if (!prior) {prior=new Map();cascadeWrites.set(identity,prior);}
+                            let repeated=true;
+                            for (const [name,value] of Object.entries(changes)) {
+                                if (prior.has(name)) {
+                                    if (!equal(source,name,prior.get(name),value,activeHandlers)) fail('UNSUPPORTED','Conflicting cascade paths update the same record.');
+                                } else repeated=false;
+                            }
+                            if (repeated) continue;
+                            for (const [name,value] of Object.entries(changes)) prior.set(name,value);
+                            const updated=boundNormalize.record({entity:source,record:{...row.record,...changes},mode:'complete'});
+                            const oldRecord=row.record,index=rows[sourcePath].indexOf(row);
+                            rows[sourcePath][index]={...row,cascadeIdentity:identity,record:updated};
+                            pending.push({path:sourcePath,before:oldRecord,after:updated});
+                        }
                     }
                 }
             };
@@ -104,10 +157,10 @@ export default class Batch {
                 const members=Object.keys(params.key.values);
                 const i=rows[path].findIndex((/** @type {any} */ row)=>tupleEqual(entity,row.record,params.key.values,members,activeHandlers));
                 if (method==='read') return {record:i<0 ? null : complete(rows[path][i].record)};
-                if (method==='delete') {if (i<0) return {deleted:false};rows[path].splice(i,1);validate(path);return {deleted:true};}
+                if (method==='delete') {if (i<0) return {deleted:false};const before=rows[path][i].record;rows[path].splice(i,1);if(enforceRelations)cascade(path,before,null);validate();return {deleted:true};}
                 if (i<0) return {record:null};
-                const record=complete({...rows[path][i].record,...params.changes});
-                rows[path][i]={...rows[path][i],record};validate(path);return {record:complete(record)};
+                const before=rows[path][i].record,record=complete({...before,...params.changes});
+                rows[path][i]={...rows[path][i],record};if(enforceRelations)cascade(path,before,record);validate();return {record:complete(record)};
             });
             return {results};
         };

@@ -101,7 +101,12 @@ export default class Resolve {
                         fail('DEM_TARGET', info.schema.source, pointer, { path: address, attributes });
                         continue;
                     }
-                    info.relations[name] = { attributes: relation.attributes, target: { path: address, attributes } };
+                    info.relations[name] = {
+                        attributes: relation.attributes,
+                        onDelete: relation.onDelete ?? 'restrict',
+                        onUpdate: relation.onUpdate ?? 'restrict',
+                        target: { path: address, attributes },
+                    };
                 }
             }
             work.provenance.bindings.sort((a, b) => {

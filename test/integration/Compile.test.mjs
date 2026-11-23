@@ -110,6 +110,17 @@ test('cycles, optional defaults and significant relation/index ordering remain l
     composite.link.relations.r.attributes.reverse();const z=await compiler.exec({schemas:[envelope(composite)]});assert.notEqual(z.fingerprint,y.fingerprint);
 });
 
+test('relation actions normalize restrict defaults and contribute to model identity',async()=>{
+    const base={$format:2,$namespace:'/app/',target:{attributes:[identity()]},source:{attributes:[identity(),{name:'target_id',type:{name:'ref'}}],relations:{target:{attributes:['target_id'],target:{path:'target',attributes:['id']}}}}};
+    const omitted=await compiler.exec({schemas:[envelope(base)]});
+    assert.deepEqual(omitted.model.entities['/app/source'].relations.target,{attributes:['target_id'],onDelete:'restrict',onUpdate:'restrict',target:{path:'/app/target',attributes:['id']}});
+    const explicit=structuredClone(base);explicit.source.relations.target.onDelete='restrict';explicit.source.relations.target.onUpdate='restrict';
+    assert.equal((await compiler.exec({schemas:[envelope(explicit)]})).fingerprint,omitted.fingerprint);
+    const cascade=structuredClone(base);cascade.source.relations.target.onDelete='cascade';
+    assert.notEqual((await compiler.exec({schemas:[envelope(cascade)]})).fingerprint,omitted.fingerprint);
+    await rejects({schemas:[envelope({...structuredClone(base),source:{...base.source,relations:{target:{...base.source.relations.target,onDelete:'set null'}}}})]},'DEM_RELATION');
+});
+
 test('own-member semantics are safe for reserved JavaScript property names',async()=>{
     const input=/** @type {any} */(scenario());
     const source=input.schemas[1].document;

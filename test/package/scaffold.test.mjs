@@ -31,10 +31,11 @@ test('package declares a closed DI-only runtime boundary', () => {
 test('real archive installs into a consumer, preserves declarations, and excludes private content', () => {
     const consumer = mkdtempSync(join(tmpdir(), 'teqfw-dem-consumer-'));
     try {
-        const packed = JSON.parse(execFileSync('npm', [
+        const packResult = JSON.parse(execFileSync('npm', [
             'pack', '--json', '--ignore-scripts', '--pack-destination', consumer,
             '--cache', join(consumer, 'cache'),
-        ], {cwd: root, encoding: 'utf8'}))[0];
+        ], {cwd: root, encoding: 'utf8'}));
+        const packed = Array.isArray(packResult) ? packResult[0] : Object.values(packResult)[0];
         const expected = [
             'CHANGELOG.md', 'LICENSE', 'README.md', 'package.json', 'etc/dem-schema.json',
             ...readdirSync(join(root, 'skills'), {recursive:true,withFileTypes:true}).filter(entry=>entry.isFile()).map(entry=>'skills/'+join(entry.parentPath,entry.name).slice(join(root,'skills').length+1)),
@@ -72,9 +73,8 @@ import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-const container = new Container();
 const namespaces = await new NamespaceRegistry({fs, path, appRoot: process.cwd()}).build();
-for (const {prefix, dirAbs, ext} of namespaces) container.addNamespaceRoot(prefix, dirAbs, ext);
+const container = new Container({namespaces:namespaces.map(({prefix,dirAbs,ext})=>({prefix,target:dirAbs,defaultExt:ext}))});
 /** @type {TeqFw_Dem_Acquire} */
 const acquire = await container.get('TeqFw_Dem_Acquire$');
 const acquired = await acquire.exec({hostRoot: process.cwd()});
