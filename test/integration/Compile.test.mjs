@@ -111,7 +111,7 @@ test('cycles, optional defaults and significant relation/index ordering remain l
 });
 
 test('relation actions normalize restrict defaults and contribute to model identity',async()=>{
-    const base={$format:2,$namespace:'/app/',target:{attributes:[identity()]},source:{attributes:[identity(),{name:'target_id',type:{name:'ref'}}],relations:{target:{attributes:['target_id'],target:{path:'target',attributes:['id']}}}}};
+    const base=/** @type {any} */({$format:2,$namespace:'/app/',target:{attributes:[identity()]},source:{attributes:[identity(),{name:'target_id',type:{name:'ref'}}],relations:{target:{attributes:['target_id'],target:{path:'target',attributes:['id']}}}}});
     const omitted=await compiler.exec({schemas:[envelope(base)]});
     assert.deepEqual(omitted.model.entities['/app/source'].relations.target,{attributes:['target_id'],onDelete:'restrict',onUpdate:'restrict',target:{path:'/app/target',attributes:['id']}});
     const explicit=structuredClone(base);explicit.source.relations.target.onDelete='restrict';explicit.source.relations.target.onUpdate='restrict';
