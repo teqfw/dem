@@ -384,9 +384,9 @@ const modelB = await compiler.exec({schemas: [schema], selection: [select('/demo
 // modelA.model.entities has only /demo/a; modelB has only /demo/b.
 
 // B: reuse A independently with two identity profiles.
-const uuid = await compiler.exec({
+const regular = await compiler.exec({
     schemas: [schema], selection: [select('/demo/a')],
-    map: map({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'uuid'}}}}),
+    map: map({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'int', capacity: 'regular'}}}}),
 });
 const small = await compiler.exec({
     schemas: [schema], selection: [select('/demo/a')],

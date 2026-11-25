@@ -106,8 +106,8 @@ export const browserMap = {
         $format: 1,
         sources: {'@example/catalog': {rename: {'/vnd/catalog/': '/models/browser/'}}},
         identityProfiles: {
-            '/models/browser/cart': {id: {type: 'uuid'}},
-            '/models/browser/customer': {id: {type: 'uuid'}},
+            '/models/browser/cart': {id: {type: 'int', capacity: 'regular'}},
+            '/models/browser/customer': {id: {type: 'int', capacity: 'regular'}},
         },
     },
 };

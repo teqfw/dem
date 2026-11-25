@@ -1,5 +1,9 @@
 # Release Notes
 
+## Unreleased
+
+- Restrict identity and ref profiles to host-selected integer capacities; ordinary UUID attributes remain supported. UUID identity profiles require host-directed migration.
+
 ## 2.1.0 — 2026-11-23
 
 - Add Format 2 relation `onDelete` and `onUpdate` actions (`restrict` or `cascade`), with `restrict` as the default.

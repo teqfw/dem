@@ -135,7 +135,7 @@ regardless of whether another fragment happens to supply a matching path.
       "user_key": {"type": "int", "capacity": "large"}
     },
     "/app/accounts/operator": {
-      "operator_key": {"type": "uuid"}
+      "operator_key": {"type": "int", "capacity": "small"}
     },
     "/app/sale/order": {"id": {"type": "int", "capacity": "large"}},
     "/vnd/customer/address": {"id": {"type": "int", "capacity": "large"}}
@@ -152,14 +152,14 @@ Its path selects an effective entity; its attribute dictionary maps every requir
 alias to an actual attribute name. All relations using that dependency share the
 binding. Relation-local attribute order and composition are unchanged.
 In this example order's user_id inherits user_key's int/large profile and
-address's owner_id inherits operator_key's uuid profile. To share one target, bind both
+address's owner_id inherits operator_key's int/small profile. To share one target, bind both
 user dependencies to `/app/accounts/user` with id mapped to user_key.
 
 `identityProfiles` selects a logical profile by effective entity path and id
-attribute: `{"type": "uuid"}` or `{"type": "int", "capacity": "small"}`,
+attribute: `{"type": "int", "capacity": "small"}`,
 with int capacity restricted to small, regular or large. These are qualitative
 population expectations, not bits, SQL types or hard bounds. Downstream selects
-representation and reports actual limits. UUID generation/allocation is separate.
+representation and reports actual limits. Ordinary UUID attributes are separate.
 The profile grammar and semantics are accepted target requirements.
 
 In v0.2.0 every declared external dependency requires binding even when an actual
@@ -179,9 +179,9 @@ local dependencies. Host mappings cannot repair an out-of-namespace source targe
 | Effective entity | Identity / derived primary key | Profile | Resolved ref endpoint / inherited profile |
 | --- | --- | --- | --- |
 | `/app/sale/order` | `id` | int/large | `user_id` → `/app/accounts/user.user_key`, int/large |
-| `/vnd/customer/address` | `id` | int/large | `owner_id` → `/app/accounts/operator.operator_key`, uuid |
+| `/vnd/customer/address` | `id` | int/large | `owner_id` → `/app/accounts/operator.operator_key`, int/small |
 | `/app/accounts/user` | `user_key` | int/large | — |
-| `/app/accounts/operator` | `operator_key` | uuid | — |
+| `/app/accounts/operator` | `operator_key` | int/small | — |
 
 The dot between entity path and attribute in this table is display notation,
 not an address grammar. There are four entities, each with its derived
@@ -279,7 +279,7 @@ without matching identities and unknown selectors are errors, never ignored.
 Bind values contain exactly `path` and `attributes`. Path is an effective absolute
 entity address; attributes maps every required alias to a real target name, with
 no extra aliases. Binding all required aliases is mandatory; distinct aliases must
-map to distinct attributes. Identity profiles contain `{type:"uuid"}` or
+map to distinct attributes. Identity profiles contain
 `{type:"int",capacity?:"small"|"regular"|"large"}`; omitted int capacity means regular.
 Profiles select effective entity/id names only. Missing map means empty dictionaries,
 not missing dependency bindings. Explicit empty map and absent map are equivalent.

@@ -44,7 +44,6 @@ export default class Normalize {
             const type = attribute.type;
             try {
                 if (type.name === 'identity' || type.name === 'ref') {
-                    if (type.profile?.type === 'uuid') return values.normalizeValue({type:{name:'uuid'}, value});
                     if (type.profile?.type !== 'int' || !(typeof value === 'string' && /^[1-9][0-9]*$/.test(value)
                         || typeof value === 'number' && Number.isSafeInteger(value) && value > 0)) return invalid('Invalid identity value.');
                     return String(value);

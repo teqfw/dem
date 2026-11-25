@@ -373,9 +373,9 @@ export default class Decode {
                 for (const [attribute, profile] of Object.entries(rules)) {
                     if (!member(attribute))
                         fail('DEM_MAP', work.mapSource, '/identityProfiles', { path: selector, attribute });
-                    if (!data.isObject(profile) || !['int', 'uuid'].includes(profile.type)
-                        || Object.keys(profile).some(k => !['type', ...(profile.type === 'int' ? ['capacity'] : [])].includes(k))
-                        || profile.type === 'int' && !['small', 'regular', 'large'].includes(profile.capacity ?? 'regular')
+                    if (!data.isObject(profile) || profile.type !== 'int'
+                        || Object.keys(profile).some(k => !['type', 'capacity'].includes(k))
+                        || !['small', 'regular', 'large'].includes(profile.capacity ?? 'regular')
                         || Object.hasOwn(profile, 'capacity') && profile.capacity === null)
                         fail('DEM_TYPE', work.mapSource, '/identityProfiles', { path: selector, attribute });
                 }

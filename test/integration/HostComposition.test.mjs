@@ -78,8 +78,8 @@ test('a Node Host acquires one package and composes independent server and brows
         capacity: 'large',
     });
     assert.deepEqual(serverOrder.attributes[1].type.profile, {type: 'int', capacity: 'large'});
-    assert.deepEqual(browserModel.model.entities['/models/browser/customer'].attributes[0].type.profile, {type: 'uuid'});
-    assert.deepEqual(browserCart.attributes[1].type.profile, {type: 'uuid'});
+    assert.deepEqual(browserModel.model.entities['/models/browser/customer'].attributes[0].type.profile, {type: 'int', capacity: 'regular'});
+    assert.deepEqual(browserCart.attributes[1].type.profile, {type: 'int', capacity: 'regular'});
 
     assert.notEqual(serverModel.fingerprint, browserModel.fingerprint);
     assert.deepEqual(serverModel.provenance.map, {packageName: 'host-app', filename: 'host-config/server-map.json'});

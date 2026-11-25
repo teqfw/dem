@@ -42,10 +42,8 @@ test('selection supports independent identity profiles and an explicit empty mod
         envelope({$format: 2, $namespace: '/empty/', 'placeholder/': {}}, 'empty'),
     ];
     const selection = [select('app', '/demo/a')];
-    const uuid = await compiler.exec({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'uuid'}}}})});
     const small = await compiler.exec({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'int', capacity: 'small'}}}})});
-    assert.notEqual(uuid.fingerprint, small.fingerprint);
-    assert.deepEqual((/** @type {any} */(uuid.model.entities['/demo/a'])).attributes[0].type.profile, {type: 'uuid'});
+    await rejects({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/a': {id: {type: 'uuid'}}}})}, 'DEM_TYPE');
     const empty = await compiler.exec({schemas, selection: []});
     assert.deepEqual(empty.model, {packages: [], entities: {}});
     assert.equal(empty.fingerprint, (await compiler.exec({schemas: []})).fingerprint);
@@ -105,7 +103,7 @@ test('host rules apply after selection and entity rules cannot address excluded 
     assert.deepEqual(Object.keys(moved.model.entities), ['/selected/a']);
     assert.ok(!moved.model.packages.includes('/other/'));
     await rejects({schemas, selection, map: mapEnvelope({$format: 1, sources: {app: {rename: {'/demo/b': '/other/b'}}}})}, 'DEM_MAP');
-    await rejects({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/b': {id: {type: 'uuid'}}}})}, 'DEM_MAP');
+    await rejects({schemas, selection, map: mapEnvelope({$format: 1, identityProfiles: {'/demo/b': {id: {type: 'uuid'}}}})}, 'DEM_TYPE');
 });
 
 test('external dependencies are required only by selected relations and relevant bindings', async () => {

@@ -116,7 +116,7 @@ declare global {
     type TeqFw_Dem_Object = Record<string,unknown>;
     type TeqFw_Dem_Order = {attribute:string;direction:'asc'|'desc';nulls:'first'|'last'};
     type TeqFw_Dem_PathTransform = {path:string;rule:{from:string;to:string}|null};
-    type TeqFw_Dem_Profile = {type: "uuid"|"int"; capacity?: "small"|"regular"|"large"};
+    type TeqFw_Dem_Profile = {type: "int"; capacity: "small"|"regular"|"large"};
     type TeqFw_Dem_Provenance = {entities: Record<string,TeqFw_Dem_Source & {namespace:string;originalPath:string}>;map:TeqFw_Dem_Source|null;pathMappings:{packageName:string;namespace:string;originalPath:string;effectivePath:string;rule:{from:string;to:string}|null}[];bindings:{packageName:string;dependency:string;path:string;attributes:Record<string,string>}[]};
     type TeqFw_Dem_QueryExpression = {kind:"attr"|"value"|"call";name?:string;value?:unknown;type?:TeqFw_Dem_Type;operator?:string;args?:TeqFw_Dem_QueryExpression[]};
     type TeqFw_Dem_QueryExpressionArrayOptional = TeqFw_Dem_QueryExpression[]|undefined;

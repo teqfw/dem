@@ -16,7 +16,7 @@ test('updates are patches and keys are exact',()=>{
  assert.deepEqual(normalize.key({entity,key:{kind:'primary',values:{id:12}}}),{kind:'primary',values:{id:'12'}});
  for(const key of [{kind:'primary',values:{id:null}},{kind:'primary',values:{id:1,title:'x'}},{kind:'unique',name:'missing',values:{title:'a'}}]) assert.throws(()=>normalize.key({entity,key}),{code:'INVALID_INPUT'});
 });
-test('identity values use exact positive strings and uuid delegation',()=>{
+test('identity values use exact positive integer strings',()=>{
  const attribute=entity.attributes[0];
  for(const value of [0,-1,'01','-1','0',1.2,Number.MAX_SAFE_INTEGER+1]) assert.throws(()=>normalize.value({attribute,value}),{code:'INVALID_INPUT'});
  assert.equal(normalize.value({attribute,value:'18446744073709551616'}),'18446744073709551616');

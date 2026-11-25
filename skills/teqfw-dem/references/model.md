@@ -36,7 +36,7 @@ explicit, including composite, primary key or none. A ref links to a target iden
 logical profile, without its generation policy. Final models retain roles,
 resolved endpoints and profiles instead of discarding the id/ref relationship.
 
-The host selects uuid or int with qualitative capacity small, regular or large.
+The host selects an int identity profile with qualitative capacity small, regular or large; regular is the default. The ordinary uuid type is independent of identity/ref.
 An omitted profile resolves to int/regular. Capacity describes expected identity
 population, not bits, a SQL type or a guaranteed range. The same plugin schema
 can use different profiles in different hosts. Downstream selects representation

@@ -30,7 +30,7 @@ const schema = Object.freeze({$format:2,$namespace:'/portable/',
     proto:{attributes:[{name:'__proto__',type:{name:'identity'},generation:true},{name:'constructor',type:{name:'text'}}]},
     uuid:{attributes:[{name:'id',type:{name:'identity'},generation:true},{name:'name',type:{name:'text'}}]},
 });
-const map = Object.freeze({$format:1,identityProfiles:{'/portable/uuid':{id:{type:'uuid'}}}});
+const map = Object.freeze({$format:1,identityProfiles:{'/portable/large':{id:{type:'int',capacity:'large'}}}});
 /**
  * Run identical operations in a real provider. Results contain no backend-specific generated UUID.
  * @param {object} deps
@@ -86,10 +86,7 @@ this.exercise = async function ({provider,assert}) {
     const prototypeRecord=await prototypeNames.create({record:{constructor:'ordinary attribute'}});
     assert.equal(prototypeRecord.record.__proto__,'1');
     assert.deepEqual(await prototypeNames.read({key:{kind:'primary',values:Object.fromEntries([['__proto__','1']])}}),prototypeRecord);
-    const uuid=await provider.get({path:'/portable/uuid'});
-    const generated=(await uuid.create({record:{name:'generated'}})).record;
-    assert.match(generated.id,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    return {record,read,ordered,orderedText,filtered,updated,conflict,remaining:await repo.list({selection:{}}),largeRecords,largeConcurrent,prototypeRecord,keylessOrdered,keylessFiltered,binaryRange,jsonRange,uuidGenerated:true};
+    return {record,read,ordered,orderedText,filtered,updated,conflict,remaining:await repo.list({selection:{}}),largeRecords,largeConcurrent,prototypeRecord,keylessOrdered,keylessFiltered,binaryRange,jsonRange};
 }
 
 

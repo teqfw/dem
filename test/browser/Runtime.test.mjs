@@ -36,8 +36,8 @@ test('browser compilation matches Node.js', async () => {
         const normalize = await container.get('TeqFw_Dem_Repository_Normalize$');
         const selection = await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$');
         const entity = compiled.model.entities['/app/accounts/user'];
-        const record = normalize.record({entity,record:{user_key:'ABCDEF12-3456-7890-ABCD-EF1234567890'},mode:'complete'});
-        if (record.user_key !== 'abcdef12-3456-7890-abcd-ef1234567890') throw new Error('Browser record normalization failed');
+        const record = normalize.record({entity,record:{user_key:'1'},mode:'complete'});
+        if (record.user_key !== '1') throw new Error('Browser record normalization failed');
         const query = selection.create({entity,selection:{limit:0}});
         if (query.limit !== 0 || query.orderBy[0].attribute !== 'user_key') throw new Error('Browser selection failed');
         const evaluator = await container.get('TeqFw_Dem_Repository_Select$');

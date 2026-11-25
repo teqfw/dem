@@ -27,7 +27,7 @@ test('canonical goldens match independent SHA-256 and immutable authenticated ou
 });
 
 test('explicit dependency aliases bind to shared or separate identities and inherit each host profile',async()=>{
-    for(const profile of [{type:'int',capacity:'small'},{type:'int',capacity:'regular'},{type:'int',capacity:'large'},{type:'uuid'}]){
+    for(const profile of [{type:'int',capacity:'small'},{type:'int',capacity:'regular'},{type:'int',capacity:'large'}]){
         const input=/** @type {any} */(scenario());input.map.document.identityProfiles['/app/accounts/user'].user_key=/** @type {any} */(profile);
         const result=await compiler.exec(input);
         for(const [address,name] of [['/app/sale/order','user_id'],['/vnd/customer/address','owner_id']]){
@@ -91,7 +91,7 @@ test('independent structural errors aggregate and invalid dependencies/types hav
     await rejects({schemas:[descriptor('/app/',{item:{attributes:[{name:'value',type:{name:'integer'},generation:true,default:1}]}})]},'DEM_TYPE');
     await rejects({schemas:[descriptor('/app/',{item:{attributes:[{name:'value',type:{name:'text'},default:null}]}})]},'DEM_TYPE');
     await rejects({schemas:[],map:envelope({$format:1,sources:{unknown:{}}})},'DEM_MAP');
-    await rejects({schemas:[descriptor('/app/',{item:{attributes:[identity()]}})],map:envelope({$format:1,identityProfiles:{'/app/item':{id:{type:'uuid',capacity:'large'}}}})},'DEM_TYPE');
+    await rejects({schemas:[descriptor('/app/',{item:{attributes:[identity()]}})],map:envelope({$format:1,identityProfiles:{'/app/item':{id:{type:'uuid'}}}})},'DEM_TYPE');
 });
 
 test('cycles, optional defaults and significant relation/index ordering remain logical content',async()=>{

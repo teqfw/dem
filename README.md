@@ -124,8 +124,11 @@ The immutable result contains model, canonical content, fingerprint, provenance,
 dependency graph and warnings. Invalid inputs reject with a frozen
 DemCompilationError containing source-linked diagnostics and no usable model.
 Identity defaults to int/regular and derives a primary key; refs inherit their
-resolved target identity profile. Host profiles select uuid or int with qualitative
-small/regular/large capacity, without choosing physical types or bit widths.
+resolved target identity profile. Host identity profiles are restricted to `int`
+with qualitative small/regular/large capacity; omitted and explicit int/regular
+profiles have the same canonical model. UUID identity profiles are rejected.
+Ordinary `uuid` attributes remain supported. This is a breaking change for UUID
+identity profiles; the host directs any required model and data migration.
 
 Logical path segments match `[a-z][a-z0-9]*`; underscores and repeated `/`
 separators are invalid. Package addresses

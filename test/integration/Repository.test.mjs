@@ -26,8 +26,8 @@ test('portable access components resolve through actual DI',async()=>{
 test('logical values reject lossy and non-JSON input',async()=>{
  const normalize=await container.get('TeqFw_Dem_Repository_Normalize$');
  for(const record of [{id:1,amount:'1.001'},{id:1,amount:1.2},{id:1,name:undefined},{id:1,extra:1}]) assert.throws(()=>normalize.record({entity,record,mode:'create'}),{code:'INVALID_INPUT'});
- const identity={...entity.attributes[0],type:{name:'identity',profile:{type:'uuid'}}};
- assert.equal(normalize.value({attribute:identity,value:'ABCDEF12-3456-7890-ABCD-EF1234567890'}),'abcdef12-3456-7890-abcd-ef1234567890');
+ const identity={...entity.attributes[0],type:{name:'identity',profile:{type:'int',capacity:'regular'}}};
+ assert.throws(()=>normalize.value({attribute:identity,value:'ABCDEF12-3456-7890-ABCD-EF1234567890'}));
 });
 test('selection rejects unsupported types, malformed operators and mismatched literals',async()=>{
  const factory=await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$');

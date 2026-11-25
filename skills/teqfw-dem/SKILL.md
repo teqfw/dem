@@ -17,6 +17,9 @@ DEM composes plugin fragments into a complete, consistent logical model per comp
 DEM also defines backend-independent entity access. Hosts select entities per model,
 bind dependencies used by selected entities and select identity profiles; refs inherit
 their target identities' profiles. Storage projection belongs to downstream plugins.
+These profiles are restricted to `int` with `small`, `regular` or `large` capacity;
+`regular` is the default. UUID identity profiles are rejected. Ordinary `uuid`
+remains a Core type.
 
 - For product semantics and composition invariants, read
   [Accepted logical model](references/model.md).

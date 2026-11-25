@@ -93,7 +93,7 @@ allowed. Complete mode requires all attributes. Update applies no defaults.
 Ordinary values follow [logical types](types.md) and CoreValue normalization:
 integers and decimals use exact canonical strings, dates/datetimes use canonical
 strings, binary uses base64, uuid uses lowercase, and JSON is detached JSON.
-Identity/ref int profiles use positive canonical decimal strings; safe positive
+Identity/ref profiles use positive canonical decimal strings; safe positive
 JS integer inputs normalize to strings. No capacity-to-bit-width conversion occurs.
 Actual identity bounds are backend capabilities. A logically valid supplied value
 outside backend capacity rejects UNSUPPORTED before effects; exhaustion during
@@ -197,8 +197,9 @@ an in-memory repository engine and provides no persistence or transactions.
 observation transcript. Run it against actual providers and compare transcripts to
 establish bounded cross-backend parity. It covers large texts/binary, nested JSON,
 exact decimals, unsigned 64-bit values, nanosecond datetime,
-UUID identity generation and ordinary CRUD/List. It supplements rather than
-replaces the strict conformance suite, lifecycle and concurrency checks.
+ordinary UUID values, integer identity generation and CRUD/List in the accepted target.
+It supplements rather than replaces the strict conformance suite, lifecycle and
+concurrency checks.
 
 
 The shared value workload also verifies linked identities beyond JavaScript's safe

@@ -43,7 +43,7 @@ scalar values; reject lone surrogates and apply no NFC/NFD rewriting. String enu
 alternatives remain distinct by their exact Unicode content.
 
 Identity and ref use the [declaration contract](declarations.md). Their profiles
-are uuid or int with qualitative capacity; integer bits are not accepted as
+are int with qualitative capacity; integer bits are not accepted as
 identity-profile parameters. Logical type checking constrains defaults and
 relations during compilation; repository helpers also normalize application values.
 Adapters execute persistence. This table covers Core types; vectors are supplied
