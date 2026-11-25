@@ -35,12 +35,10 @@ test('selection uses npm origins and rejects unknown names and invalid argument 
     await assert.rejects(()=>acquire.exec({hostRoot:root,packageNames:['host','host']}),(/** @type {any} */ e)=>e.diagnostics[0].code==='DEM_CONFIG');
 }));
 test('acquisition follows npm dependency roots and rejects duplicate selected schema origins',()=>fixture(async root=>{
-    await write(root,'package.json',{name:'host',dependencies:{first:'1.0.0',second:'1.0.0'}});
-    for(const parent of ['first','second']){
-        await write(root,`node_modules/${parent}/package.json`,{name:parent,version:'1.0.0',dependencies:{shared:'1.0.0'}});
-        const version=parent==='first'?'1.0.0':'2.0.0';
-        await write(root,`node_modules/${parent}/node_modules/shared/package.json`,{name:'shared',version});
-        await write(root,`node_modules/${parent}/node_modules/shared/etc/dem-schema.json`,{$format:2,$namespace:`/${parent}/`,item:{attributes:[]}});
+    await write(root,'package.json',{name:'host',dependencies:{first:'npm:shared@1.0.0',second:'npm:shared@2.0.0'}});
+    for(const [installedName,version] of [['first','1.0.0'],['second','2.0.0']]){
+        await write(root,`node_modules/${installedName}/package.json`,{name:'shared',version,teqfw:{}});
+        await write(root,`node_modules/${installedName}/etc/dem-schema.json`,{$format:2,$namespace:`/${installedName}/`,item:{attributes:[]}});
     }
     const duplicateOrigin=(/** @type {any} */ error)=>error.diagnostics.some((/** @type {any} */ item)=>item.code==='DEM_DISCOVERY'&&item.details.packageName==='shared');
     await assert.rejects(()=>acquire.exec({hostRoot:root}),duplicateOrigin);

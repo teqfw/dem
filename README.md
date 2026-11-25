@@ -71,7 +71,7 @@ migrations.
 ## Installation and compatibility
 
 ```sh
-npm install @teqfw/dem@^2.1.0 @teqfw/di@^2.11.0
+npm install @teqfw/dem@^2.2.0 @teqfw/di@^2.11.0
 ```
 
 DEM 2.x uses Format 2 schema descriptors; hosts upgrading from 0.3.x must update

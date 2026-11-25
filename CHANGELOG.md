@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- Restrict identity and ref profiles to host-selected integer capacities; ordinary UUID attributes remain supported. UUID identity profiles require host-directed migration.
+## 2.2.0 — 2026-11-25
+
+- Restrict identity and ref profiles to host-selected integer capacities; ordinary UUID attributes remain supported.
+- Reject UUID identity/ref profiles; existing UUID identity models require host-directed migration.
 
 ## 2.1.0 — 2026-11-23
 
