@@ -71,7 +71,7 @@ migrations.
 ## Installation and compatibility
 
 ```sh
-npm install @teqfw/dem@^2.2.0 @teqfw/di@^2.11.0
+npm install @teqfw/dem@^2.2.0 @teqfw/di@^2.12.1
 ```
 
 DEM 2.x uses Format 2 schema descriptors; hosts upgrading from 0.3.x must update
@@ -80,9 +80,10 @@ browser hosts must serve the corresponding ESM modules.
 
 ## Compile through DI
 
-Register namespace roots before resolving components. The package root exports
-types only; runtime access uses TeqFW DI tokens. This Node.js composition root
-discovers namespaces from the host package in the current directory.
+Pass namespace mappings to the Container constructor before resolving
+components. The package root exports types only; runtime access uses TeqFW DI
+tokens. This Node.js composition root discovers namespaces from the host package
+in the current directory.
 
 ```js
 import Container from '@teqfw/di';
@@ -90,11 +91,10 @@ import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-const container = new Container();
 const namespaces = await new NamespaceRegistry({fs, path, appRoot: process.cwd()}).build();
-for (const {prefix, dirAbs, ext} of namespaces) {
-    container.addNamespaceRoot(prefix, dirAbs, ext);
-}
+const container = new Container({
+    namespaces: namespaces.map(({prefix, dirAbs, ext}) => ({prefix, target: dirAbs, defaultExt: ext})),
+});
 const registry = await container.get('TeqFw_Dem_Registry$');
 registry.finalize();
 const compiler = await container.get('TeqFw_Dem_Compile$');
@@ -214,9 +214,9 @@ teqfw-platform .
 
 `npm run verify` runs Node tests. Agents validate source conventions separately
 using the locally installed `teqfw-esm-validator` skill and CLI; this tool is not
-a project dependency or CI gate. `npm run typecheck` is a
-separate optional check. `npm run typecheck:package` checks the installed archive
-with TypeScript in an isolated consumer. `npm run test:browser` checks the portable runtime without
+a project dependency or CI gate. `npm run typecheck` is the optional
+TypeScript/JSDoc check. Package tests exercise an installed archive's runtime
+and public boundary. `npm run test:browser` checks the portable runtime without
 storage adapters. Adapter projects test their own storage behavior.
 
 Tests cover logical composition, acquisition, exact normalization, independent

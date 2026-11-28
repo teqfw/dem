@@ -18,7 +18,7 @@ test('package declares a closed DI-only runtime boundary', () => {
     assert.deepEqual(manifest.exports, {'.': {types: './types.d.ts'}});
     assert.equal(manifest.types, 'types.d.ts');
     assert.deepEqual(manifest.dependencies ?? {}, {});
-    assert.ok(manifest.peerDependencies['@teqfw/di']);
+    assert.equal(manifest.peerDependencies['@teqfw/di'], '^2.12.1');
     assert.equal(manifest.teqfw.namespaces, undefined);
     assert.deepEqual(manifest.teqfw.fw.di.namespaces, [
         {prefix: 'TeqFw_Dem_', path: './src', ext: '.mjs'},
@@ -49,8 +49,6 @@ test('real archive installs into a consumer, preserves declarations, and exclude
             name: 'dem-consumer', private: true, type: 'module',
             dependencies: {
                 '@teqfw/di': `file:${join(root, 'node_modules/@teqfw/di')}`,
-                '@types/node': `file:${join(root, 'node_modules/@types/node')}`,
-                'undici-types': `file:${join(root, 'node_modules/undici-types')}`,
             },
         }));
         const installEnv = {...process.env};
@@ -63,11 +61,7 @@ test('real archive installs into a consumer, preserves declarations, and exclude
         assert.throws(() => require.resolve('@teqfw/dem'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
         assert.throws(() => require.resolve('@teqfw/dem/etc/dem-schema.json'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
         assert.throws(() => require.resolve('@teqfw/dem/src/README.md'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
-        writeFileSync(join(consumer, 'jsconfig.json'), JSON.stringify({
-            compilerOptions: {checkJs: true, strict: true, noEmit: true, module: 'nodenext', moduleResolution: 'nodenext', types: ['node', '@teqfw/dem'], preserveSymlinks: true},
-            include: ['consumer.mjs', 'node_modules/@teqfw/di/src', 'node_modules/@teqfw/di/types.d.ts', 'node_modules/@teqfw/dem/src', 'node_modules/@teqfw/dem/types.d.ts'],
-        }));
-        writeFileSync(join(consumer, 'consumer.mjs'), `// @ts-check
+        writeFileSync(join(consumer, 'consumer.mjs'), `
 import Container from '@teqfw/di';
 import NamespaceRegistry from '@teqfw/di/node/registry/namespace';
 import * as fs from 'node:fs/promises';
@@ -75,15 +69,12 @@ import * as path from 'node:path';
 
 const namespaces = await new NamespaceRegistry({fs, path, appRoot: process.cwd()}).build();
 const container = new Container({namespaces:namespaces.map(({prefix,dirAbs,ext})=>({prefix,target:dirAbs,defaultExt:ext}))});
-/** @type {TeqFw_Dem_Acquire} */
 const acquire = await container.get('TeqFw_Dem_Acquire$');
 const acquired = await acquire.exec({hostRoot: process.cwd()});
 if (!acquired.schemas.some(schema => schema.packageName === '@teqfw/dem' && schema.filename === 'etc/dem-schema.json')) throw new Error('Installed DEM schema was not acquired');
 const registry = await container.get('TeqFw_Dem_Registry$');
 registry.finalize();
-/** @type {TeqFw_Dem_Compile} */
 const compiler = await container.get('TeqFw_Dem_Compile$');
-/** @type {import('@teqfw/dem').DemCompilationResult} */
 const result = await compiler.exec({
     schemas: [{packageName: 'consumer', filename: 'etc/dem-schema.json', document: {
         $format: 2, $namespace: '/app/', item: {attributes: [{name: 'id', type: {name: 'identity'}}]},
@@ -91,17 +82,13 @@ const result = await compiler.exec({
     selection: [{packageName: 'consumer', entityPath: '/app/item'}],
 });
 if (compiler.assertResult({value: result}) !== result || !Object.isFrozen(result.model)) throw new Error('Invalid result');
-/** @type {import('@teqfw/dem').DemSelection} */
-const selection = (/** @type {TeqFw_Dem_Dto_Query_Selection__Factory} */ (await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$'))).create({entity:result.model.entities['/app/item'],selection:{limit:0}});
+const selection = (await container.get('TeqFw_Dem_Dto_Query_Selection__Factory$')).create({entity:result.model.entities['/app/item'],selection:{limit:0}});
 if (selection.limit !== 0) throw new Error('Invalid selection');
-/** @type {TeqFw_Dem_Repository_Select} */
 const evaluator=await container.get('TeqFw_Dem_Repository_Select$');
 if (evaluator.exec({entity:result.model.entities['/app/item'],records:[{id:'10'},{id:'2'}],selection:{}}).records[0].id !== '2') throw new Error('Installed selection evaluation failed');
-/** @type {import('@teqfw/dem').DemRepositoryProvider} */
 const provider = await container.get('TeqFw_Dem_Api_RepositoryProvider$');
 try { await provider.get({path:'/app/item'}); throw new Error('Provider should require host substitution'); }
 catch (error) { if (!(error instanceof Error) || error.name !== 'DemRepositoryError') throw error; }
-/** @type {import('@teqfw/dem').DemRepositoryBatch} */
 const atomic=await container.get('TeqFw_Dem_Api_RepositoryBatch$');
 try {await atomic.execute({operations:[]});throw new Error('Batch should require host substitution');}
 catch(error) {if(!(error instanceof Error) || error.name!=='DemRepositoryError')throw error;}
@@ -118,9 +105,6 @@ if (result.graph.components[0][0] !== '/app/item' || 'physical' in result) throw
         const probe = readFileSync(join(consumer, 'consumer.mjs'), 'utf8').replace("", '');
         writeFileSync(join(consumer, 'probe.mjs'), probe);
         execFileSync(process.execPath, [join(consumer, 'probe.mjs')], {cwd: consumer, stdio: 'pipe'});
-        if (process.env.TEQFW_DEM_PACKAGE_TYPECHECK === '1') {
-            execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(consumer, 'jsconfig.json')], {cwd: consumer, stdio: 'inherit'});
-        }
     } finally {
         rmSync(consumer, {recursive: true, force: true});
     }

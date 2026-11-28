@@ -8,15 +8,20 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "string_decoder": ["./node_modules/@types/node/string_decoder.d.ts"]
-    }
+    "types": ["node"]
   },
-  "include": ["types.d.ts", "node_modules/@teqfw", "src/**/*.mjs", "test/**/*.mjs"],
+  "include": [
+    "bin",
+    "src",
+    "test",
+    "types.d.ts",
+    "node_modules/@flancer32/**/*.mjs",
+    "node_modules/@flancer32/**/types.d.ts",
+    "node_modules/@teqfw/**/*.mjs",
+    "node_modules/@teqfw/**/types.d.ts"
+  ],
   "exclude": [
     "ctx",
-    "node_modules/@teqfw/**/*.js"
+    "node_modules/**/*.js"
   ]
 }

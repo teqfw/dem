@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 2.2.1 — 2026-11-28
+
+- Require `@teqfw/di` `^2.12.1` and update the documented Container composition to
+  use constructor namespace mappings.
+- Keep one canonical TypeScript check and retain the installed-archive runtime
+  test in `npm test`.
+- Align `jsconfig.json` with the shared repository template and remove the
+  obsolete `baseUrl` and `string_decoder` path mapping.
+
 ## 2.2.0 — 2026-11-25
 
 - Restrict identity and ref profiles to host-selected integer capacities; ordinary UUID attributes remain supported.
